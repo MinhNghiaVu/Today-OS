@@ -44,6 +44,9 @@ export const todos = {
 	},
 	remove(id: string) {
 		_todos.update((t) => t.filter((x) => x.id !== id));
+	},
+	clear() {
+		_todos.set([]);
 	}
 };
 
@@ -83,6 +86,9 @@ export const habits = {
 	},
 	remove(id: string) {
 		_habits.update((h) => h.filter((x) => x.id !== id));
+	},
+	clear() {
+		_habits.set([]);
 	}
 };
 
@@ -107,6 +113,9 @@ export const habitLogs = {
 	},
 	update(id: string, amount: number) {
 		_habitLogs.update((l) => l.map((x) => (x.id === id ? { ...x, amount } : x)));
+	},
+	clear() {
+		_habitLogs.set([]);
 	}
 };
 
@@ -120,6 +129,29 @@ export const habitTotalsToday = derived([_habits, _habitLogs], ([$habits, $logs]
 		.filter((h) => h.is_active)
 		.map((h) => ({ ...h, total: map.get(h.id) ?? 0 }));
 });
+
+// ── Settings ─────────────────────────────────────────────────────────────────
+
+export const ACCENT_PRESETS = [
+	{ label: 'Indigo', accent: '#6366f1', hover: '#4f52d4' },
+	{ label: 'Violet', accent: '#8b5cf6', hover: '#7c3aed' },
+	{ label: 'Emerald', accent: '#10b981', hover: '#059669' },
+	{ label: 'Rose', accent: '#f43f5e', hover: '#e11d48' },
+	{ label: 'Amber', accent: '#f59e0b', hover: '#d97706' },
+	{ label: 'Sky', accent: '#0ea5e9', hover: '#0284c7' }
+];
+
+const _settings = writable({ theme: 'dark' as 'dark' | 'light', accentIndex: 0 });
+
+export const settings = {
+	subscribe: _settings.subscribe,
+	setTheme(theme: 'dark' | 'light') {
+		_settings.update((s) => ({ ...s, theme }));
+	},
+	setAccent(index: number) {
+		_settings.update((s) => ({ ...s, accentIndex: index }));
+	}
+};
 
 // ── Notes ────────────────────────────────────────────────────────────────────
 
@@ -147,5 +179,8 @@ export const notes = {
 	},
 	remove(id: string) {
 		_notes.update((n) => n.filter((x) => x.id !== id));
+	},
+	clear() {
+		_notes.set([]);
 	}
 };

@@ -1,6 +1,15 @@
 <script lang="ts">
 	import '../app.css';
 	import { page } from '$app/stores';
+	import { browser } from '$app/environment';
+	import { settings, ACCENT_PRESETS } from '$lib/stores';
+
+	$: if (browser) {
+		document.documentElement.setAttribute('data-theme', $settings.theme);
+		const p = ACCENT_PRESETS[$settings.accentIndex];
+		document.documentElement.style.setProperty('--accent', p.accent);
+		document.documentElement.style.setProperty('--accent-hover', p.hover);
+	}
 
 	const nav = [
 		{ href: '/today', label: 'Today' },

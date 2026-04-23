@@ -12,6 +12,14 @@
 	--accent-hover: #4f52d4;
 }
 
+[data-theme='light'] {
+	--bg: #f4f4f5;
+	--surface: #ffffff;
+	--border: #e4e4e7;
+	--text: #111111;
+	--muted: #71717a;
+}
+
 html, body {
 	margin: 0;
 	padding: 0;

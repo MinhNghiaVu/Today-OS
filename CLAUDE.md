@@ -16,6 +16,7 @@ Phase 1 - Local-only prototype:
 - [x] Render Today page with fake data.
 - [x] Hook up Habit Log Drawer UX.
 - [x] Basic notes CRUD with markdown.
+- [x] Settings page (theme, accent, export, clear).
 - [ ] /calendar or /days view (Phase 3).
 
 ## Decisions
@@ -23,6 +24,12 @@ Phase 1 - Local-only prototype:
 - 2026-04-23: Notes use markdown for content.
 
 ## Log
+2026-04-24 (session 3)
+- settings/+page.svelte — Full settings page: dark/light theme toggle, 6 accent color swatches, export-all-data as JSON download, clear-all-data with confirm.
+- stores.ts — Added settings store (theme, accentIndex), ACCENT_PRESETS constant, clear() on todos/habits/habitLogs/notes stores.
+- app.css — Added [data-theme='light'] CSS variable overrides.
+- layout.svelte — Reactively applies data-theme attribute and --accent/--accent-hover CSS vars from settings store.
+
 2026-04-24 (session 2)
 - notes/+page.svelte — Full notes CRUD: two-panel layout (sidebar list + editor), auto-save on input, Edit/Preview tab toggle with marked markdown rendering, delete with confirm, relative timestamps. Added marked@18 dep.
 
