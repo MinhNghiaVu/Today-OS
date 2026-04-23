@@ -25,3 +25,4 @@ Phase 1 - Local-only prototype:
 2026-04-23
 - Scaffolded SvelteKit project with Bun.
 - Drafted Today page layout.
+- Building Today OS habit log drawer. Added inline log form per habit row on Today page — hover the + button to enter an amount. Next: wire up the Habits management page. (disable recaps in /config)  
