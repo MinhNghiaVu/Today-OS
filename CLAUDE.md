@@ -15,7 +15,7 @@ Phase 1 - Local-only prototype:
 - [x] Build in-memory stores in src/lib/stores.
 - [x] Render Today page with fake data.
 - [x] Hook up Habit Log Drawer UX.
-- [ ] Basic notes CRUD with markdown.
+- [x] Basic notes CRUD with markdown.
 - [ ] /calendar or /days view (Phase 3).
 
 ## Decisions
@@ -23,6 +23,9 @@ Phase 1 - Local-only prototype:
 - 2026-04-23: Notes use markdown for content.
 
 ## Log
+2026-04-24 (session 2)
+- notes/+page.svelte — Full notes CRUD: two-panel layout (sidebar list + editor), auto-save on input, Edit/Preview tab toggle with marked markdown rendering, delete with confirm, relative timestamps. Added marked@18 dep.
+
 2026-04-24
 - types.ts — Todo replaced: TodoStatus ('pending'|'done'), TodoPriority ('high'|'medium'|'low'), full Todo shape (title, description?, status, due_date?, priority?, note_id?, created_at, completed_at?).
 - stores.ts — todos store: add(title, opts?), toggle sets completed_at, update(id, patch), remove. Added todosToday derived: filters due today or overdue-pending, sorts pending-first then by priority rank.
