@@ -26,3 +26,8 @@ Phase 1 - Local-only prototype:
 - Scaffolded SvelteKit project with Bun.
 - Drafted Today page layout.
 - Building Today OS habit log drawer. Added inline log form per habit row on Today page — hover the + button to enter an amount. Next: wire up the Habits management page. (disable recaps in /config)  
+
+- types.ts — Habit expanded: type: HabitType, daily_goal: number | null, color: string, is_active: boolean. HabitType union exported.
+- stores.ts — habits store gains update() + toggleActive(). Seed data upgraded to full shape. habitTotalsToday now filters inactive habits. habitLogs gains remove() + update().
+- habits/+page.svelte — Full management screen: list with color dot + type badge + inactive dimming, hover-reveal action buttons (edit/activate/delete), inline add/edit form with all fields (name, unit, type, goal, color picker, active toggle). Delete confirms via confirm().
+- today/+page.svelte — Bar uses habit.color, bar-warn overrides red when max_goal exceeded, bar-met brightens when min_goal met. Count line shows total / goal or just total for info_only.

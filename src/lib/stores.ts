@@ -32,15 +32,22 @@ export const todos = {
 // ── Habits ───────────────────────────────────────────────────────────────────
 
 const _habits = writable<Habit[]>([
-	{ id: 'h1', name: 'Water', unit: 'glasses', targetPerDay: 8 },
-	{ id: 'h2', name: 'Exercise', unit: 'minutes', targetPerDay: 30 },
-	{ id: 'h3', name: 'Reading', unit: 'pages', targetPerDay: 20 }
+	{ id: 'h1', name: 'Water', unit: 'ml', type: 'min_goal', daily_goal: 2000, color: '#6366f1', is_active: true },
+	{ id: 'h2', name: 'Exercise', unit: 'minutes', type: 'min_goal', daily_goal: 30, color: '#10b981', is_active: true },
+	{ id: 'h3', name: 'Screen time', unit: 'hours', type: 'max_goal', daily_goal: 4, color: '#f59e0b', is_active: true },
+	{ id: 'h4', name: 'Sleep', unit: 'hours', type: 'info_only', daily_goal: null, color: '#8b5cf6', is_active: true }
 ]);
 
 export const habits = {
 	subscribe: _habits.subscribe,
-	add(name: string, unit: string, targetPerDay: number) {
-		_habits.update((h) => [...h, { id: uid(), name, unit, targetPerDay }]);
+	add(draft: Omit<Habit, 'id'>) {
+		_habits.update((h) => [...h, { id: uid(), ...draft }]);
+	},
+	update(id: string, patch: Partial<Omit<Habit, 'id'>>) {
+		_habits.update((h) => h.map((x) => (x.id === id ? { ...x, ...patch } : x)));
+	},
+	toggleActive(id: string) {
+		_habits.update((h) => h.map((x) => (x.id === id ? { ...x, is_active: !x.is_active } : x)));
 	},
 	remove(id: string) {
 		_habits.update((h) => h.filter((x) => x.id !== id));
@@ -50,7 +57,8 @@ export const habits = {
 // ── Habit Logs ────────────────────────────────────────────────────────────────
 
 const _habitLogs = writable<HabitLog[]>([
-	{ id: uid(), habitId: 'h1', date: today(), amount: 3, loggedAt: new Date().toISOString() },
+	{ id: uid(), habitId: 'h1', date: today(), amount: 500, loggedAt: new Date().toISOString() },
+	{ id: uid(), habitId: 'h1', date: today(), amount: 330, loggedAt: new Date().toISOString() },
 	{ id: uid(), habitId: 'h2', date: today(), amount: 15, loggedAt: new Date().toISOString() }
 ]);
 
@@ -61,6 +69,12 @@ export const habitLogs = {
 			...l,
 			{ id: uid(), habitId, date: today(), amount, loggedAt: new Date().toISOString() }
 		]);
+	},
+	remove(id: string) {
+		_habitLogs.update((l) => l.filter((x) => x.id !== id));
+	},
+	update(id: string, amount: number) {
+		_habitLogs.update((l) => l.map((x) => (x.id === id ? { ...x, amount } : x)));
 	}
 };
 
@@ -70,7 +84,9 @@ export const habitTotalsToday = derived([_habits, _habitLogs], ([$habits, $logs]
 	for (const log of $logs) {
 		if (log.date === d) map.set(log.habitId, (map.get(log.habitId) ?? 0) + log.amount);
 	}
-	return $habits.map((h) => ({ ...h, total: map.get(h.id) ?? 0 }));
+	return $habits
+		.filter((h) => h.is_active)
+		.map((h) => ({ ...h, total: map.get(h.id) ?? 0 }));
 });
 
 // ── Notes ────────────────────────────────────────────────────────────────────

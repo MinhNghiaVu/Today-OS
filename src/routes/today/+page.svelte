@@ -69,14 +69,21 @@
 					<div class="habit-info">
 						<span class="habit-name">{habit.name}</span>
 						<div class="habit-right">
-							<span class="habit-count">{habit.total} / {habit.targetPerDay} {habit.unit}</span>
+							<span class="habit-count">
+								{habit.total}{habit.daily_goal !== null ? ` / ${habit.daily_goal}` : ''} {habit.unit}
+							</span>
 							<button class="log-btn" on:click={() => openLog(habit.id)} aria-label="log">+</button>
 						</div>
 					</div>
 					<div class="bar-track">
 						<div
 							class="bar-fill"
-							style="width: {Math.min(100, (habit.total / habit.targetPerDay) * 100)}%"
+							class:bar-met={habit.type === 'min_goal' && habit.daily_goal !== null && habit.total >= habit.daily_goal}
+							class:bar-warn={habit.type === 'max_goal' && habit.daily_goal !== null && habit.total > habit.daily_goal}
+							style="
+								width: {habit.daily_goal ? Math.min(100, (habit.total / habit.daily_goal) * 100) : 100}%;
+								background: {habit.color};
+							"
 						></div>
 					</div>
 					{#if activeHabitId === habit.id}
@@ -327,8 +334,15 @@
 
 	.bar-fill {
 		height: 100%;
-		background: var(--accent);
 		border-radius: 999px;
-		transition: width 0.3s ease;
+		transition: width 0.3s ease, background 0.3s ease;
+	}
+
+	.bar-fill.bar-met {
+		filter: brightness(1.2);
+	}
+
+	.bar-fill.bar-warn {
+		background: #ef4444 !important;
 	}
 </style>

@@ -5,11 +5,16 @@ export interface Todo {
 	createdAt: string;
 }
 
+export type HabitType = 'min_goal' | 'max_goal' | 'info_only';
+
 export interface Habit {
 	id: string;
 	name: string;
 	unit: string;
-	targetPerDay: number;
+	type: HabitType;
+	daily_goal: number | null;
+	color: string;
+	is_active: boolean;
 }
 
 export interface HabitLog {
