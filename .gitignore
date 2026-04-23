@@ -1,0 +1,44 @@
+# Dependencies
+node_modules/
+
+# SvelteKit / Vite
+.svelte-kit/
+build/
+dist/
+.vite/
+
+# Environment (keep templates tracked: !.env.example)
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# TypeScript
+*.tsbuildinfo
+
+# Test / coverage
+coverage/
+
+# Supabase CLI (local)
+supabase/.branches
+supabase/.temp
+
+# Deploy / hosting
+.vercel
+
+# Editor (uncomment if you do not commit workspace settings)
+# .vscode/
+.idea/
+
+# Misc
+*.local
