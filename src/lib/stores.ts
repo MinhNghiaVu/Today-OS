@@ -1,5 +1,5 @@
 import { writable, derived } from 'svelte/store';
-import type { Todo, Habit, HabitLog, Note } from './types';
+import type { Todo, TodoPriority, Habit, HabitLog, Note } from './types';
 
 function uid(): string {
 	return Math.random().toString(36).slice(2, 10);
@@ -12,22 +12,54 @@ function today(): string {
 // ── Todos ────────────────────────────────────────────────────────────────────
 
 const _todos = writable<Todo[]>([
-	{ id: uid(), text: 'Review morning notes', done: false, createdAt: today() },
-	{ id: uid(), text: 'Write daily log', done: true, createdAt: today() }
+	{ id: uid(), title: 'Review morning notes', status: 'pending', due_date: today(), created_at: today() },
+	{ id: uid(), title: 'Write daily log', status: 'done', due_date: today(), created_at: today(), completed_at: new Date().toISOString() },
+	{ id: uid(), title: 'Buy groceries', status: 'pending', due_date: today(), priority: 'medium', created_at: today() },
+	{ id: uid(), title: 'Finish assignment', status: 'pending', due_date: today(), priority: 'high', description: 'Chapter 3 review — due Friday', created_at: today() }
 ]);
 
 export const todos = {
 	subscribe: _todos.subscribe,
-	add(text: string) {
-		_todos.update((t) => [...t, { id: uid(), text, done: false, createdAt: today() }]);
+	add(title: string, opts?: Partial<Pick<Todo, 'description' | 'due_date' | 'priority'>>) {
+		_todos.update((t) => [
+			...t,
+			{ id: uid(), title, status: 'pending', created_at: new Date().toISOString(), ...opts }
+		]);
 	},
 	toggle(id: string) {
-		_todos.update((t) => t.map((x) => (x.id === id ? { ...x, done: !x.done } : x)));
+		_todos.update((t) =>
+			t.map((x) => {
+				if (x.id !== id) return x;
+				const nowDone = x.status !== 'done';
+				return {
+					...x,
+					status: nowDone ? 'done' : 'pending',
+					completed_at: nowDone ? new Date().toISOString() : undefined
+				};
+			})
+		);
+	},
+	update(id: string, patch: Partial<Omit<Todo, 'id' | 'created_at'>>) {
+		_todos.update((t) => t.map((x) => (x.id === id ? { ...x, ...patch } : x)));
 	},
 	remove(id: string) {
 		_todos.update((t) => t.filter((x) => x.id !== id));
 	}
 };
+
+const priorityRank: Record<string, number> = { high: 0, medium: 1, low: 2 };
+
+export const todosToday = derived(_todos, ($todos) => {
+	const d = today();
+	return $todos
+		.filter((t) => t.due_date === d || (t.status === 'pending' && !!t.due_date && t.due_date < d))
+		.sort((a, b) => {
+			if (a.status !== b.status) return a.status === 'pending' ? -1 : 1;
+			const pa = priorityRank[a.priority ?? ''] ?? 3;
+			const pb = priorityRank[b.priority ?? ''] ?? 3;
+			return pa - pb;
+		});
+});
 
 // ── Habits ───────────────────────────────────────────────────────────────────
 

@@ -4,6 +4,7 @@
 
 	const nav = [
 		{ href: '/today', label: 'Today' },
+		{ href: '/todos', label: 'Todos' },
 		{ href: '/habits', label: 'Habits' },
 		{ href: '/notes', label: 'Notes' },
 		{ href: '/settings', label: 'Settings' }

@@ -11,17 +11,25 @@ Phase 1 - Local-only prototype:
 - Implement /today, /habits, /notes, /settings skeleton.
 
 ## Task Queue
-- [ ] Implement basic SvelteKit routing structure.
-- [ ] Build in-memory stores in src/lib/stores.
-- [ ] Render Today page with fake data.
-- [ ] Hook up Habit Log Drawer UX.
+- [x] Implement basic SvelteKit routing structure.
+- [x] Build in-memory stores in src/lib/stores.
+- [x] Render Today page with fake data.
+- [x] Hook up Habit Log Drawer UX.
 - [ ] Basic notes CRUD with markdown.
+- [ ] /calendar or /days view (Phase 3).
 
 ## Decisions
 - 2026-04-23: Habit logs are append-only rows; totals are sums per day.
 - 2026-04-23: Notes use markdown for content.
 
 ## Log
+2026-04-24
+- types.ts — Todo replaced: TodoStatus ('pending'|'done'), TodoPriority ('high'|'medium'|'low'), full Todo shape (title, description?, status, due_date?, priority?, note_id?, created_at, completed_at?).
+- stores.ts — todos store: add(title, opts?), toggle sets completed_at, update(id, patch), remove. Added todosToday derived: filters due today or overdue-pending, sorts pending-first then by priority rank.
+- todos/+page.svelte — New full management screen: filter tabs (All/Pending/Done with counts), inline add form (title + date + priority), todo rows with priority badges + overdue date highlight, hover-reveal edit/delete actions, inline edit form (title, description, due_date, priority), circular checkbox. Seed data: 4 todos with varying priority/status.
+- today/+page.svelte — Todos section uses todosToday derived store (today + overdue only). Updated to todo.title, todo.status. Priority dot badge (H/M/L) shown per row. New todos auto-set due_date to today.
+- layout.svelte — Added Todos nav link.
+
 2026-04-23
 - Scaffolded SvelteKit project with Bun.
 - Drafted Today page layout.

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { todos, habitTotalsToday, habitLogs } from '$lib/stores';
+	import { todos, todosToday, habitTotalsToday, habitLogs } from '$lib/stores';
 
 	const dateLabel = new Date().toLocaleDateString('en-US', {
 		weekday: 'long',
@@ -7,12 +7,14 @@
 		day: 'numeric'
 	});
 
+	const todayStr = new Date().toISOString().slice(0, 10);
+
 	let newTodo = '';
 
 	function addTodo() {
 		const t = newTodo.trim();
 		if (t) {
-			todos.add(t);
+			todos.add(t, { due_date: todayStr });
 			newTodo = '';
 		}
 	}
@@ -48,12 +50,15 @@
 		</form>
 
 		<ul class="todo-list">
-			{#each $todos as todo (todo.id)}
-				<li class:done={todo.done}>
+			{#each $todosToday as todo (todo.id)}
+				<li class:done={todo.status === 'done'}>
 					<button class="check" on:click={() => todos.toggle(todo.id)} aria-label="toggle">
-						{#if todo.done}✓{:else}&nbsp;{/if}
+						{#if todo.status === 'done'}✓{:else}&nbsp;{/if}
 					</button>
-					<span>{todo.text}</span>
+					<span class="todo-title">{todo.title}</span>
+					{#if todo.priority}
+						<span class="p-badge p-{todo.priority}">{todo.priority[0].toUpperCase()}</span>
+					{/if}
 					<button class="del" on:click={() => todos.remove(todo.id)} aria-label="delete">×</button>
 				</li>
 			{/each}
@@ -215,10 +220,26 @@
 		color: #fff;
 	}
 
-	.todo-list li span {
+	.todo-title {
 		flex: 1;
 		font-size: 14px;
 	}
+
+	.p-badge {
+		font-size: 10px;
+		font-weight: 600;
+		width: 18px;
+		height: 18px;
+		border-radius: 50%;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		flex-shrink: 0;
+	}
+
+	.p-high { background: #ef444420; color: #ef4444; }
+	.p-medium { background: #f59e0b20; color: #f59e0b; }
+	.p-low { background: #3b82f620; color: #3b82f6; }
 
 	.del {
 		background: transparent;
