@@ -29,6 +29,7 @@ Phase 1 - Local-only prototype:
 - stores.ts — Added settings store (theme, accentIndex), ACCENT_PRESETS constant, clear() on todos/habits/habitLogs/notes stores.
 - app.css — Added [data-theme='light'] CSS variable overrides.
 - layout.svelte — Reactively applies data-theme attribute and --accent/--accent-hover CSS vars from settings store.
+- Finished Phase 1 — settings page now has theme toggle, accent colors, data export, and clear. Next step is Phase 2: Supabase persistence.
 
 2026-04-24 (session 2)
 - notes/+page.svelte — Full notes CRUD: two-panel layout (sidebar list + editor), auto-save on input, Edit/Preview tab toggle with marked markdown rendering, delete with confirm, relative timestamps. Added marked@18 dep.
