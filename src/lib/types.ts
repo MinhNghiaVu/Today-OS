@@ -3,6 +3,7 @@ export type TodoPriority = 'high' | 'medium' | 'low';
 
 export interface Todo {
 	id: string;
+	user_id: string;
 	title: string;
 	description?: string;
 	status: TodoStatus;
@@ -17,6 +18,7 @@ export type HabitType = 'min_goal' | 'max_goal' | 'info_only';
 
 export interface Habit {
 	id: string;
+	user_id: string;
 	name: string;
 	unit: string;
 	type: HabitType;
@@ -27,15 +29,26 @@ export interface Habit {
 
 export interface HabitLog {
 	id: string;
-	habitId: string;
+	user_id: string;
+	habit_id: string;
 	date: string;
-	amount: number;
-	loggedAt: string;
+	value: number;
+	created_at: string;
 }
+
+export type NoteType = 'note' | 'draft' | 'list';
 
 export interface Note {
 	id: string;
+	user_id: string;
 	title: string;
 	content: string;
-	updatedAt: string;
+	type: NoteType;
+	date?: string;
+	created_at: string;
+	updated_at: string;
+}
+
+export interface HabitWithTotal extends Habit {
+	total: number;
 }

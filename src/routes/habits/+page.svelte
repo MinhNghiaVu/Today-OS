@@ -1,8 +1,11 @@
 <script lang="ts">
-	import { habits } from '$lib/stores';
+	import { enhance } from '$app/forms';
+	import type { PageData } from './$types';
 	import type { Habit, HabitType } from '$lib/types';
 
-	type HabitDraft = Omit<Habit, 'id'>;
+	export let data: PageData;
+
+	type HabitDraft = Omit<Habit, 'id' | 'user_id'>;
 
 	const blank = (): HabitDraft => ({
 		name: '',
@@ -25,34 +28,20 @@
 
 	function startEdit(habit: Habit) {
 		editingId = habit.id;
-		draft = { name: habit.name, unit: habit.unit, type: habit.type, daily_goal: habit.daily_goal, color: habit.color, is_active: habit.is_active };
+		draft = {
+			name: habit.name,
+			unit: habit.unit,
+			type: habit.type,
+			daily_goal: habit.daily_goal,
+			color: habit.color,
+			is_active: habit.is_active
+		};
 		showForm = true;
 	}
 
 	function cancelForm() {
 		showForm = false;
 		editingId = null;
-	}
-
-	function submitForm() {
-		const name = draft.name.trim();
-		const unit = draft.unit.trim();
-		if (!name || !unit) return;
-
-		if (editingId) {
-			habits.update(editingId, draft);
-		} else {
-			habits.add(draft);
-		}
-		showForm = false;
-		editingId = null;
-	}
-
-	function confirmDelete(habit: Habit) {
-		if (confirm(`Delete "${habit.name}"? This also removes its log history.`)) {
-			habits.remove(habit.id);
-			if (editingId === habit.id) cancelForm();
-		}
 	}
 
 	const typeLabels: Record<HabitType, string> = {
@@ -69,24 +58,40 @@
 	</div>
 
 	{#if showForm}
-		<form class="habit-form" on:submit|preventDefault={submitForm}>
+		<form
+			method="POST"
+			action={editingId ? '?/update' : '?/add'}
+			class="habit-form"
+			use:enhance={() => {
+				return async ({ result, update }) => {
+					if (result.type === 'success' || result.type === 'redirect') {
+						showForm = false;
+						editingId = null;
+					}
+					await update();
+				};
+			}}
+		>
 			<h2>{editingId ? 'Edit habit' : 'New habit'}</h2>
+			{#if editingId}
+				<input type="hidden" name="id" value={editingId} />
+			{/if}
 
 			<div class="form-row">
 				<label>
 					Name
-					<input bind:value={draft.name} placeholder="e.g. Water" required />
+					<input bind:value={draft.name} name="name" placeholder="e.g. Water" required />
 				</label>
 				<label>
 					Unit
-					<input bind:value={draft.unit} placeholder="e.g. ml" required />
+					<input bind:value={draft.unit} name="unit" placeholder="e.g. ml" required />
 				</label>
 			</div>
 
 			<div class="form-row">
 				<label>
 					Type
-					<select bind:value={draft.type}>
+					<select bind:value={draft.type} name="type">
 						<option value="min_goal">Min goal — at least this amount</option>
 						<option value="max_goal">Max goal — don't exceed</option>
 						<option value="info_only">Info only — just track</option>
@@ -96,6 +101,7 @@
 					Daily goal
 					<input
 						type="number"
+						name="daily_goal"
 						min="0"
 						step="any"
 						placeholder={draft.type === 'info_only' ? 'None' : 'Required'}
@@ -113,15 +119,22 @@
 				<label class="color-label">
 					Color
 					<div class="color-wrap">
-						<input type="color" bind:value={draft.color} />
+						<input type="color" name="color" bind:value={draft.color} />
 						<span class="color-hex">{draft.color}</span>
 					</div>
 				</label>
 				<label class="checkbox-label">
-					<input type="checkbox" bind:checked={draft.is_active} />
+					<input type="hidden" name="is_active" value="false" />
+					<input type="checkbox" bind:checked={draft.is_active} on:change={(e) => {
+						const el = e.currentTarget.form?.querySelector('input[name="is_active"][type="hidden"]') as HTMLInputElement | null;
+						if (el) el.value = e.currentTarget.checked ? 'true' : 'false';
+					}} />
 					Active
 				</label>
 			</div>
+
+			<!-- Hidden is_active value synced via checkbox handler -->
+			<input type="hidden" name="is_active" value={draft.is_active ? 'true' : 'false'} />
 
 			<div class="form-actions">
 				<button type="submit" class="btn-primary">{editingId ? 'Save' : 'Add habit'}</button>
@@ -131,7 +144,7 @@
 	{/if}
 
 	<ul class="habit-list">
-		{#each $habits as habit (habit.id)}
+		{#each data.habits as habit (habit.id)}
 			<li class:inactive={!habit.is_active}>
 				<div class="color-dot" style="background: {habit.color}"></div>
 				<div class="habit-info">
@@ -148,16 +161,28 @@
 				{/if}
 				<div class="actions">
 					<button class="act-btn" on:click={() => startEdit(habit)} title="Edit">✎</button>
-					<button class="act-btn" on:click={() => habits.toggleActive(habit.id)} title={habit.is_active ? 'Deactivate' : 'Activate'}>
-						{habit.is_active ? '⏸' : '▶'}
-					</button>
-					<button class="act-btn danger" on:click={() => confirmDelete(habit)} title="Delete">✕</button>
+
+					<form method="POST" action="?/toggleActive" use:enhance>
+						<input type="hidden" name="id" value={habit.id} />
+						<input type="hidden" name="is_active" value={String(habit.is_active)} />
+						<button type="submit" class="act-btn" title={habit.is_active ? 'Deactivate' : 'Activate'}>
+							{habit.is_active ? '⏸' : '▶'}
+						</button>
+					</form>
+
+					<form method="POST" action="?/remove" use:enhance={({ cancel }) => {
+						if (!confirm(`Delete "${habit.name}"? This also removes its log history.`)) cancel();
+						return async ({ update }) => update();
+					}}>
+						<input type="hidden" name="id" value={habit.id} />
+						<button type="submit" class="act-btn danger" title="Delete">✕</button>
+					</form>
 				</div>
 			</li>
 		{/each}
 	</ul>
 
-	{#if $habits.length === 0}
+	{#if data.habits.length === 0}
 		<p class="empty">No habits yet. Add one above.</p>
 	{/if}
 </div>
@@ -182,7 +207,6 @@
 		font-weight: 600;
 	}
 
-	/* Form */
 	.habit-form {
 		background: var(--surface);
 		border: 1px solid var(--border);
@@ -281,7 +305,6 @@
 		gap: 8px;
 	}
 
-	/* Buttons */
 	.btn-primary {
 		background: var(--accent);
 		color: #fff;
@@ -306,7 +329,6 @@
 		cursor: pointer;
 	}
 
-	/* Habit list */
 	.habit-list {
 		list-style: none;
 		margin: 0;
@@ -414,5 +436,10 @@
 		color: var(--muted);
 		font-size: 14px;
 		margin: 0;
+	}
+
+	/* strip form default margins inside action buttons */
+	.actions form {
+		display: contents;
 	}
 </style>

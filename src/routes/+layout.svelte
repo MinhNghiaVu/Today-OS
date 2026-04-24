@@ -4,6 +4,11 @@
 	import { browser } from '$app/environment';
 	import { settings, ACCENT_PRESETS } from '$lib/stores';
 
+	export let data: { preferences?: { theme: 'dark' | 'light'; accentIndex: number }; user?: { email?: string } | null };
+
+	// Initialize settings store from DB preferences on every load
+	$: if (data.preferences) settings.init(data.preferences);
+
 	$: if (browser) {
 		document.documentElement.setAttribute('data-theme', $settings.theme);
 		const p = ACCENT_PRESETS[$settings.accentIndex];
@@ -32,6 +37,15 @@
 				</li>
 			{/each}
 		</ul>
+
+		{#if data.user}
+			<div class="user-section">
+				<span class="user-email" title={data.user.email}>{data.user.email}</span>
+				<form method="POST" action="/logout">
+					<button type="submit" class="logout-btn">Sign out</button>
+				</form>
+			</div>
+		{/if}
 	</nav>
 
 	<main class="content">
@@ -70,6 +84,7 @@
 		display: flex;
 		flex-direction: column;
 		gap: 2px;
+		flex: 1;
 	}
 
 	a {
@@ -88,6 +103,40 @@
 	a.active {
 		background: var(--border);
 		color: var(--text);
+	}
+
+	.user-section {
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+		padding: 12px 8px 0;
+		border-top: 1px solid var(--border);
+	}
+
+	.user-email {
+		font-size: 11px;
+		color: var(--muted);
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.logout-btn {
+		background: transparent;
+		border: 1px solid var(--border);
+		border-radius: 5px;
+		padding: 5px 10px;
+		font-size: 12px;
+		color: var(--muted);
+		cursor: pointer;
+		width: 100%;
+		text-align: left;
+		transition: color 0.1s, border-color 0.1s;
+	}
+
+	.logout-btn:hover {
+		color: #ef4444;
+		border-color: #ef444440;
 	}
 
 	.content {

@@ -1,27 +1,33 @@
 <script lang="ts">
-	import { notes } from '$lib/stores';
-	import type { Note } from '$lib/types';
+	import { invalidateAll } from '$app/navigation';
 	import { marked } from 'marked';
+	import type { PageData } from './$types';
 
-	let selectedId: string | null = $notes.length ? $notes[0].id : null;
+	export let data: PageData;
+
+	let selectedId: string | null = data.notes[0]?.id ?? null;
 	let activeTab: 'edit' | 'preview' = 'edit';
-
-	$: sorted = [...$notes].sort(
-		(a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
-	);
-
-	$: selected = $notes.find((n) => n.id === selectedId) ?? null;
-
-	// local edit buffers
 	let editTitle = '';
 	let editContent = '';
+	let saveTimer: ReturnType<typeof setTimeout>;
+	let prevId: string | null = null;
 
-	$: if (selected) {
-		editTitle = selected.title;
-		editContent = selected.content;
+	$: sorted = [...data.notes].sort(
+		(a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+	);
+
+	$: selected = data.notes.find((n) => n.id === selectedId) ?? null;
+
+	// Only reset edit buffers when the selected note changes, not when data refreshes
+	$: if (selectedId !== prevId) {
+		prevId = selectedId;
+		editTitle = selected?.title ?? '';
+		editContent = selected?.content ?? '';
 	}
 
-	$: preview = editContent ? (marked.parse(editContent) as string) : '<p style="color:var(--muted)">Nothing to preview.</p>';
+	$: preview = editContent
+		? (marked.parse(editContent) as string)
+		: '<p style="color:var(--muted)">Nothing to preview.</p>';
 
 	function selectNote(id: string) {
 		if (selectedId !== id) {
@@ -30,36 +36,48 @@
 		}
 	}
 
-	function newNote() {
-		notes.add('Untitled');
-		// find the new note (it's last in unsorted $notes after add)
-		const all = $notes;
-		const newest = [...all].sort(
-			(a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
-		)[0];
-		selectedId = newest.id;
-		activeTab = 'edit';
+	async function newNote() {
+		const form = new FormData();
+		const res = await fetch('?/add', { method: 'POST', body: form });
+		const result = await res.json();
+		// SvelteKit serializes action results — extract the newId
+		const newId = result?.data?.newId ?? null;
+		await invalidateAll();
+		if (newId) {
+			selectedId = newId;
+			activeTab = 'edit';
+		}
 	}
 
-	function handleTitleInput() {
-		if (selectedId) notes.update(selectedId, { title: editTitle });
+	function scheduleAutoSave() {
+		clearTimeout(saveTimer);
+		if (!selectedId) return;
+		saveTimer = setTimeout(async () => {
+			const form = new FormData();
+			form.set('id', selectedId!);
+			form.set('title', editTitle);
+			form.set('content', editContent);
+			await fetch('?/update', { method: 'POST', body: form });
+			await invalidateAll();
+		}, 800);
 	}
 
-	function handleContentInput() {
-		if (selectedId) notes.update(selectedId, { content: editContent });
-	}
+	async function deleteNote() {
+		if (!selected) return;
+		if (!confirm(`Delete "${selected.title || 'Untitled'}"?`)) return;
 
-	function deleteNote(note: Note) {
-		if (!confirm(`Delete "${note.title || 'Untitled'}"?`)) return;
-		const remaining = $notes.filter((n) => n.id !== note.id);
-		notes.remove(note.id);
-		selectedId = remaining.length ? remaining[0].id : null;
+		const form = new FormData();
+		form.set('id', selected.id);
+		await fetch('?/remove', { method: 'POST', body: form });
+		await invalidateAll();
+
+		const remaining = data.notes.filter((n) => n.id !== selected!.id);
+		selectedId = remaining[0]?.id ?? null;
 	}
 
 	function fmtDate(iso: string) {
 		const d = new Date(iso);
-		const now = new Date();
-		const diff = now.getTime() - d.getTime();
+		const diff = Date.now() - d.getTime();
 		if (diff < 60_000) return 'just now';
 		if (diff < 3_600_000) return `${Math.floor(diff / 60_000)}m ago`;
 		if (diff < 86_400_000) return `${Math.floor(diff / 3_600_000)}h ago`;
@@ -68,7 +86,6 @@
 </script>
 
 <div class="page">
-	<!-- Note list sidebar -->
 	<aside class="note-list">
 		<div class="list-header">
 			<span class="list-title">Notes</span>
@@ -79,7 +96,7 @@
 				<li class:active={selectedId === note.id}>
 					<button class="note-item" on:click={() => selectNote(note.id)}>
 						<span class="note-item-title">{note.title || 'Untitled'}</span>
-						<span class="note-item-date">{fmtDate(note.updatedAt)}</span>
+						<span class="note-item-date">{fmtDate(note.updated_at)}</span>
 					</button>
 				</li>
 			{/each}
@@ -89,28 +106,27 @@
 		</ul>
 	</aside>
 
-	<!-- Editor pane -->
 	<div class="editor">
 		{#if selected}
 			<div class="editor-header">
 				<input
 					class="title-input"
 					bind:value={editTitle}
-					on:input={handleTitleInput}
+					on:input={scheduleAutoSave}
 					placeholder="Untitled"
 				/>
 				<div class="tab-bar">
 					<button class="tab" class:active={activeTab === 'edit'} on:click={() => (activeTab = 'edit')}>Edit</button>
 					<button class="tab" class:active={activeTab === 'preview'} on:click={() => (activeTab = 'preview')}>Preview</button>
 				</div>
-				<button class="del-btn" on:click={() => deleteNote(selected)} title="Delete note">Delete</button>
+				<button class="del-btn" on:click={deleteNote} title="Delete note">Delete</button>
 			</div>
 
 			{#if activeTab === 'edit'}
 				<textarea
 					class="content-input"
 					bind:value={editContent}
-					on:input={handleContentInput}
+					on:input={scheduleAutoSave}
 					placeholder="Write in markdown…"
 					spellcheck="false"
 				></textarea>
@@ -133,7 +149,6 @@
 		overflow: hidden;
 	}
 
-	/* Sidebar */
 	.note-list {
 		width: 220px;
 		flex-shrink: 0;
@@ -227,7 +242,6 @@
 		color: var(--muted);
 	}
 
-	/* Editor */
 	.editor {
 		flex: 1;
 		display: flex;
@@ -329,7 +343,6 @@
 		line-height: 1.7;
 	}
 
-	/* Prose styles for markdown output */
 	.prose :global(h1) { font-size: 22px; font-weight: 700; margin: 0 0 12px; }
 	.prose :global(h2) { font-size: 17px; font-weight: 600; margin: 20px 0 8px; }
 	.prose :global(h3) { font-size: 15px; font-weight: 600; margin: 16px 0 6px; }
@@ -350,21 +363,14 @@
 		overflow-x: auto;
 		margin: 0 0 12px;
 	}
-	.prose :global(pre code) {
-		background: none;
-		padding: 0;
-	}
+	.prose :global(pre code) { background: none; padding: 0; }
 	.prose :global(blockquote) {
 		border-left: 3px solid var(--accent);
 		margin: 0 0 12px;
 		padding: 4px 16px;
 		color: var(--muted);
 	}
-	.prose :global(hr) {
-		border: none;
-		border-top: 1px solid var(--border);
-		margin: 16px 0;
-	}
+	.prose :global(hr) { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
 	.prose :global(a) { color: var(--accent); }
 	.prose :global(strong) { font-weight: 600; }
 

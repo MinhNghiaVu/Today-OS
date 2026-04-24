@@ -1,15 +1,24 @@
 <script lang="ts">
-	import { settings, ACCENT_PRESETS, todos, habits, habitLogs, notes } from '$lib/stores';
+	import { enhance } from '$app/forms';
+	import { invalidateAll } from '$app/navigation';
+	import { settings, ACCENT_PRESETS } from '$lib/stores';
+	import type { PageData } from './$types';
 
-	function exportData() {
-		const data = {
-			exportedAt: new Date().toISOString(),
-			todos: $todos,
-			habits: $habits,
-			habitLogs: $habitLogs,
-			notes: $notes
-		};
-		const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+	export let data: PageData;
+
+	async function exportData() {
+		const sb = (await import('$lib/supabase')).supabase;
+		const [todos, habits, habitLogs, notes] = await Promise.all([
+			sb.from('todos').select('*'),
+			sb.from('habit_definitions').select('*'),
+			sb.from('habit_logs').select('*'),
+			sb.from('notes').select('*')
+		]);
+
+		const blob = new Blob(
+			[JSON.stringify({ exportedAt: new Date().toISOString(), todos: todos.data, habits: habits.data, habitLogs: habitLogs.data, notes: notes.data }, null, 2)],
+			{ type: 'application/json' }
+		);
 		const url = URL.createObjectURL(blob);
 		const a = document.createElement('a');
 		a.href = url;
@@ -18,12 +27,11 @@
 		URL.revokeObjectURL(url);
 	}
 
-	function clearData() {
+	async function clearData() {
 		if (!confirm('Clear all todos, habits, habit logs, and notes? This cannot be undone.')) return;
-		todos.clear();
-		habits.clear();
-		habitLogs.clear();
-		notes.clear();
+		const form = new FormData();
+		await fetch('?/clearData', { method: 'POST', body: form });
+		await invalidateAll();
 	}
 </script>
 
@@ -36,16 +44,20 @@
 		<div class="row">
 			<span class="label">Theme</span>
 			<div class="toggle-group">
-				<button
-					class="toggle-btn"
-					class:active={$settings.theme === 'dark'}
-					on:click={() => settings.setTheme('dark')}
-				>Dark</button>
-				<button
-					class="toggle-btn"
-					class:active={$settings.theme === 'light'}
-					on:click={() => settings.setTheme('light')}
-				>Light</button>
+				<form method="POST" action="?/setTheme" use:enhance={() => {
+					settings.setTheme('dark');
+					return async ({ update }) => update();
+				}}>
+					<input type="hidden" name="theme" value="dark" />
+					<button type="submit" class="toggle-btn" class:active={$settings.theme === 'dark'}>Dark</button>
+				</form>
+				<form method="POST" action="?/setTheme" use:enhance={() => {
+					settings.setTheme('light');
+					return async ({ update }) => update();
+				}}>
+					<input type="hidden" name="theme" value="light" />
+					<button type="submit" class="toggle-btn" class:active={$settings.theme === 'light'}>Light</button>
+				</form>
 			</div>
 		</div>
 
@@ -53,14 +65,30 @@
 			<span class="label">Accent</span>
 			<div class="swatch-row">
 				{#each ACCENT_PRESETS as preset, i}
-					<button
-						class="swatch"
-						class:selected={$settings.accentIndex === i}
-						style="background: {preset.accent};"
-						title={preset.label}
-						on:click={() => settings.setAccent(i)}
-					></button>
+					<form method="POST" action="?/setAccent" use:enhance={() => {
+						settings.setAccent(i);
+						return async ({ update }) => update();
+					}}>
+						<input type="hidden" name="accentIndex" value={i} />
+						<button
+							type="submit"
+							class="swatch"
+							class:selected={$settings.accentIndex === i}
+							style="background: {preset.accent};"
+							title={preset.label}
+						></button>
+					</form>
 				{/each}
+			</div>
+		</div>
+	</section>
+
+	<section>
+		<h2>Account</h2>
+		<div class="row">
+			<div class="col">
+				<span class="label">Email</span>
+				<span class="hint">{data.email}</span>
 			</div>
 		</div>
 	</section>
@@ -149,6 +177,10 @@
 		gap: 2px;
 	}
 
+	.toggle-group form {
+		display: contents;
+	}
+
 	.toggle-btn {
 		background: transparent;
 		border: 1px solid var(--border);
@@ -174,6 +206,10 @@
 	.swatch-row {
 		display: flex;
 		gap: 8px;
+	}
+
+	.swatch-row form {
+		display: contents;
 	}
 
 	.swatch {

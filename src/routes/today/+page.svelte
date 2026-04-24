@@ -1,5 +1,8 @@
 <script lang="ts">
-	import { todos, todosToday, habitTotalsToday, habitLogs } from '$lib/stores';
+	import { enhance } from '$app/forms';
+	import type { PageData } from './$types';
+
+	export let data: PageData;
 
 	const dateLabel = new Date().toLocaleDateString('en-US', {
 		weekday: 'long',
@@ -7,19 +10,7 @@
 		day: 'numeric'
 	});
 
-	const todayStr = new Date().toISOString().slice(0, 10);
-
 	let newTodo = '';
-
-	function addTodo() {
-		const t = newTodo.trim();
-		if (t) {
-			todos.add(t, { due_date: todayStr });
-			newTodo = '';
-		}
-	}
-
-	// Habit log drawer
 	let activeHabitId: string | null = null;
 	let logAmount = '';
 
@@ -27,49 +18,61 @@
 		activeHabitId = id;
 		logAmount = '';
 	}
-
-	function submitLog(habitId: string) {
-		const n = parseFloat(logAmount);
-		if (n > 0) {
-			habitLogs.log(habitId, n);
-		}
-		activeHabitId = null;
-		logAmount = '';
-	}
 </script>
 
 <div class="page">
 	<h1>{dateLabel}</h1>
 
+	<!-- Todos -->
 	<section>
 		<h2>Todos</h2>
 
-		<form on:submit|preventDefault={addTodo} class="add-row">
-			<input bind:value={newTodo} placeholder="Add a task…" />
+		<form
+			method="POST"
+			action="?/addTodo"
+			class="add-row"
+			use:enhance={() => {
+				const t = newTodo;
+				newTodo = '';
+				return async ({ update }) => {
+					newTodo = t && false ? t : '';
+					await update();
+				};
+			}}
+		>
+			<input bind:value={newTodo} name="title" placeholder="Add a task…" autocomplete="off" />
 			<button type="submit">Add</button>
 		</form>
 
 		<ul class="todo-list">
-			{#each $todosToday as todo (todo.id)}
+			{#each data.todosToday as todo (todo.id)}
 				<li class:done={todo.status === 'done'}>
-					<button class="check" on:click={() => todos.toggle(todo.id)} aria-label="toggle">
-						{#if todo.status === 'done'}✓{:else}&nbsp;{/if}
-					</button>
+					<form method="POST" action="?/toggleTodo" use:enhance>
+						<input type="hidden" name="id" value={todo.id} />
+						<input type="hidden" name="status" value={todo.status} />
+						<button type="submit" class="check" aria-label="toggle">
+							{#if todo.status === 'done'}✓{:else}&nbsp;{/if}
+						</button>
+					</form>
 					<span class="todo-title">{todo.title}</span>
 					{#if todo.priority}
 						<span class="p-badge p-{todo.priority}">{todo.priority[0].toUpperCase()}</span>
 					{/if}
-					<button class="del" on:click={() => todos.remove(todo.id)} aria-label="delete">×</button>
+					<form method="POST" action="?/removeTodo" use:enhance>
+						<input type="hidden" name="id" value={todo.id} />
+						<button type="submit" class="del" aria-label="delete">×</button>
+					</form>
 				</li>
 			{/each}
 		</ul>
 	</section>
 
+	<!-- Habits -->
 	<section>
 		<h2>Habits</h2>
 
 		<ul class="habit-list">
-			{#each $habitTotalsToday as habit (habit.id)}
+			{#each data.habitTotals as habit (habit.id)}
 				<li>
 					<div class="habit-info">
 						<span class="habit-name">{habit.name}</span>
@@ -92,15 +95,25 @@
 						></div>
 					</div>
 					{#if activeHabitId === habit.id}
-						<form class="log-row" on:submit|preventDefault={() => submitLog(habit.id)}>
+						<form
+							method="POST"
+							action="?/logHabit"
+							class="log-row"
+							use:enhance={() => {
+								logAmount = '';
+								activeHabitId = null;
+								return async ({ update }) => update();
+							}}
+						>
+							<input type="hidden" name="habit_id" value={habit.id} />
 							<input
 								type="number"
+								name="value"
 								min="0"
 								step="any"
 								bind:value={logAmount}
 								placeholder="Amount…"
-								autofocus
-							/>
+						/>
 							<button type="submit">Log</button>
 							<button type="button" on:click={() => (activeHabitId = null)}>Cancel</button>
 						</form>

@@ -1,6 +1,9 @@
 <script lang="ts">
-	import { todos } from '$lib/stores';
+	import { enhance } from '$app/forms';
+	import type { PageData } from './$types';
 	import type { Todo, TodoPriority, TodoStatus } from '$lib/types';
+
+	export let data: PageData;
 
 	type Filter = 'all' | TodoStatus;
 
@@ -14,74 +17,23 @@
 	const priorityLabels: Record<TodoPriority, string> = { high: 'High', medium: 'Med', low: 'Low' };
 
 	let filter: Filter = 'all';
-
-	// Add form
-	let newTitle = '';
-	let newDueDate = '';
-	let newPriority: TodoPriority | '' = '';
-
-	function addTodo() {
-		const t = newTitle.trim();
-		if (!t) return;
-		todos.add(t, {
-			due_date: newDueDate || undefined,
-			priority: newPriority || undefined
-		});
-		newTitle = '';
-		newDueDate = '';
-		newPriority = '';
-	}
-
-	// Edit state
 	let editingId: string | null = null;
-	let editTitle = '';
-	let editDescription = '';
-	let editDueDate = '';
-	let editPriority: TodoPriority | '' = '';
 
-	function startEdit(todo: Todo) {
-		editingId = todo.id;
-		editTitle = todo.title;
-		editDescription = todo.description ?? '';
-		editDueDate = todo.due_date ?? '';
-		editPriority = todo.priority ?? '';
-	}
-
-	function saveEdit() {
-		if (!editingId || !editTitle.trim()) return;
-		todos.update(editingId, {
-			title: editTitle.trim(),
-			description: editDescription.trim() || undefined,
-			due_date: editDueDate || undefined,
-			priority: editPriority || undefined
+	$: filtered = data.todos
+		.filter((t) => filter === 'all' || t.status === filter)
+		.sort((a, b) => {
+			if (a.status !== b.status) return a.status === 'pending' ? -1 : 1;
+			const rank: Record<string, number> = { high: 0, medium: 1, low: 2 };
+			return (rank[a.priority ?? ''] ?? 3) - (rank[b.priority ?? ''] ?? 3);
 		});
-		editingId = null;
-	}
-
-	function cancelEdit() {
-		editingId = null;
-	}
-
-	function confirmDelete(todo: Todo) {
-		if (confirm(`Delete "${todo.title}"?`)) {
-			todos.remove(todo.id);
-			if (editingId === todo.id) editingId = null;
-		}
-	}
-
-	$: filtered = $todos.filter((t) => filter === 'all' || t.status === filter).sort((a, b) => {
-		if (a.status !== b.status) return a.status === 'pending' ? -1 : 1;
-		const rank: Record<string, number> = { high: 0, medium: 1, low: 2 };
-		const pa = rank[a.priority ?? ''] ?? 3;
-		const pb = rank[b.priority ?? ''] ?? 3;
-		return pa - pb;
-	});
 
 	$: counts = {
-		all: $todos.length,
-		pending: $todos.filter((t) => t.status === 'pending').length,
-		done: $todos.filter((t) => t.status === 'done').length
+		all: data.todos.length,
+		pending: data.todos.filter((t) => t.status === 'pending').length,
+		done: data.todos.filter((t) => t.status === 'done').length
 	};
+
+	const todayStr = new Date().toISOString().slice(0, 10);
 </script>
 
 <div class="page">
@@ -91,34 +43,30 @@
 	</div>
 
 	<!-- Add form -->
-	<form class="add-form" on:submit|preventDefault={addTodo}>
+	<form
+		method="POST"
+		action="?/add"
+		class="add-form"
+		use:enhance={() => async ({ update }) => update()}
+	>
 		<div class="add-main">
-			<input
-				class="add-title"
-				bind:value={newTitle}
-				placeholder="Add a task…"
-				autocomplete="off"
-			/>
+			<input class="add-title" name="title" placeholder="Add a task…" autocomplete="off" required />
 		</div>
 		<div class="add-meta">
-			<input type="date" class="meta-input" bind:value={newDueDate} title="Due date" />
-			<select class="meta-input" bind:value={newPriority}>
+			<input type="date" class="meta-input" name="due_date" />
+			<select class="meta-input" name="priority">
 				{#each priorityOpts as opt}
 					<option value={opt.value}>{opt.label}</option>
 				{/each}
 			</select>
-			<button type="submit" class="btn-primary" disabled={!newTitle.trim()}>Add</button>
+			<button type="submit" class="btn-primary">Add</button>
 		</div>
 	</form>
 
 	<!-- Filter tabs -->
 	<div class="filter-tabs">
 		{#each (['all', 'pending', 'done'] as Filter[]) as tab}
-			<button
-				class="tab"
-				class:active={filter === tab}
-				on:click={() => (filter = tab)}
-			>
+			<button class="tab" class:active={filter === tab} on:click={() => (filter = tab)}>
 				{tab.charAt(0).toUpperCase() + tab.slice(1)}
 				<span class="tab-count">{counts[tab]}</span>
 			</button>
@@ -134,37 +82,61 @@
 				<li class:done={todo.status === 'done'}>
 					{#if editingId === todo.id}
 						<!-- Inline edit form -->
-						<form class="edit-form" on:submit|preventDefault={saveEdit}>
-							<input class="edit-title" bind:value={editTitle} placeholder="Title" required />
+						<form
+							method="POST"
+							action="?/update"
+							class="edit-form"
+							use:enhance={() => async ({ result, update }) => {
+								if (result.type === 'success') editingId = null;
+								await update();
+							}}
+						>
+							<input type="hidden" name="id" value={todo.id} />
+							<input
+								class="edit-title"
+								name="title"
+								value={todo.title}
+								placeholder="Title"
+								required
+							/>
 							<textarea
 								class="edit-desc"
-								bind:value={editDescription}
+								name="description"
 								placeholder="Description (optional)"
-								rows="2"
-							></textarea>
+								rows="2">{todo.description ?? ''}</textarea
+							>
 							<div class="edit-meta">
-								<input type="date" class="meta-input" bind:value={editDueDate} title="Due date" />
-								<select class="meta-input" bind:value={editPriority}>
+								<input
+									type="date"
+									class="meta-input"
+									name="due_date"
+									value={todo.due_date ?? ''}
+								/>
+								<select class="meta-input" name="priority">
 									{#each priorityOpts as opt}
-										<option value={opt.value}>{opt.label}</option>
+										<option value={opt.value} selected={todo.priority === opt.value || (!todo.priority && opt.value === '')}>{opt.label}</option>
 									{/each}
 								</select>
 							</div>
 							<div class="edit-actions">
 								<button type="submit" class="btn-primary">Save</button>
-								<button type="button" class="btn-ghost" on:click={cancelEdit}>Cancel</button>
+								<button type="button" class="btn-ghost" on:click={() => (editingId = null)}>Cancel</button>
 							</div>
 						</form>
 					{:else}
 						<!-- Normal row -->
-						<button
-							class="check"
-							class:checked={todo.status === 'done'}
-							on:click={() => todos.toggle(todo.id)}
-							aria-label="toggle"
-						>
-							{#if todo.status === 'done'}✓{/if}
-						</button>
+						<form method="POST" action="?/toggle" use:enhance>
+							<input type="hidden" name="id" value={todo.id} />
+							<input type="hidden" name="status" value={todo.status} />
+							<button
+								type="submit"
+								class="check"
+								class:checked={todo.status === 'done'}
+								aria-label="toggle"
+							>
+								{#if todo.status === 'done'}✓{/if}
+							</button>
+						</form>
 						<div class="todo-body">
 							<div class="todo-top">
 								<span class="todo-title">{todo.title}</span>
@@ -172,7 +144,10 @@
 									<span class="priority-badge priority-{todo.priority}">{priorityLabels[todo.priority]}</span>
 								{/if}
 								{#if todo.due_date}
-									<span class="due-date" class:overdue={todo.status === 'pending' && todo.due_date < new Date().toISOString().slice(0, 10)}>
+									<span
+										class="due-date"
+										class:overdue={todo.status === 'pending' && todo.due_date < todayStr}
+									>
 										{todo.due_date}
 									</span>
 								{/if}
@@ -182,8 +157,14 @@
 							{/if}
 						</div>
 						<div class="actions">
-							<button class="act-btn" on:click={() => startEdit(todo)} title="Edit">✎</button>
-							<button class="act-btn danger" on:click={() => confirmDelete(todo)} title="Delete">✕</button>
+							<button class="act-btn" on:click={() => (editingId = todo.id)} title="Edit">✎</button>
+							<form method="POST" action="?/remove" use:enhance={({ cancel }) => {
+								if (!confirm(`Delete "${todo.title}"?`)) cancel();
+								return async ({ update }) => update();
+							}}>
+								<input type="hidden" name="id" value={todo.id} />
+								<button type="submit" class="act-btn danger" title="Delete">✕</button>
+							</form>
 						</div>
 					{/if}
 				</li>
@@ -217,7 +198,6 @@
 		color: var(--muted);
 	}
 
-	/* Add form */
 	.add-form {
 		display: flex;
 		flex-direction: column;
@@ -262,7 +242,6 @@
 		border-color: var(--accent);
 	}
 
-	/* Filter tabs */
 	.filter-tabs {
 		display: flex;
 		gap: 4px;
@@ -298,7 +277,6 @@
 		opacity: 0.75;
 	}
 
-	/* Todo list */
 	.todo-list {
 		list-style: none;
 		margin: 0;
@@ -384,7 +362,6 @@
 		line-height: 1.4;
 	}
 
-	/* Priority badges */
 	.priority-badge {
 		font-size: 11px;
 		font-weight: 500;
@@ -405,7 +382,6 @@
 		color: #ef4444;
 	}
 
-	/* Actions */
 	.actions {
 		display: flex;
 		gap: 4px;
@@ -443,7 +419,6 @@
 		border-color: #ef4444;
 	}
 
-	/* Edit form */
 	.edit-form {
 		flex: 1;
 		display: flex;
@@ -489,7 +464,6 @@
 		gap: 8px;
 	}
 
-	/* Shared buttons */
 	.btn-primary {
 		background: var(--accent);
 		color: #fff;
@@ -502,11 +476,6 @@
 
 	.btn-primary:hover:not(:disabled) {
 		background: var(--accent-hover);
-	}
-
-	.btn-primary:disabled {
-		opacity: 0.4;
-		cursor: default;
 	}
 
 	.btn-ghost {
@@ -523,5 +492,9 @@
 		color: var(--muted);
 		font-size: 14px;
 		margin: 0;
+	}
+
+	.actions form {
+		display: contents;
 	}
 </style>
