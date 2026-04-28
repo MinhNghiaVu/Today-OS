@@ -1,18 +1,42 @@
 # Today OS — Working Log
 
-> Authoritative handoff between sessions. Read top-to-bottom before any code. Update Task Queue + Decisions + Log + Open Questions before ending. Spec lives at `docs/today-os-spec.md`.
+> Authoritative handoff between sessions. Read top-to-bottom before any code. Update Task Queue + Decisions + Log + Open Questions before ending. Spec lives at `docs/today-os-spec.md`. **Design system lives at `docs/design-system.md` and is canonical for every UI decision.**
 
 ---
 
 ## Session Protocol (READ FIRST)
 
-1. Read this file end-to-end + the spec section for the **Current Phase** below.
+1. Read this file end-to-end + the spec section for the **Current Phase** below + `docs/design-system.md` if the task touches UI in any way.
 2. Pick exactly ONE task from **Task Queue** (top-down). Do not multi-task phases.
 3. Propose a 3–4 step micro-plan, then execute. If a step balloons past its phase, stop and add to **Open Questions** rather than guess.
 4. **Manual-action handoff:** for anything I need to do outside the editor (API keys, OAuth setup, billing, bucket config), write `docs/phase{N}-setup.md` with copy-paste-ready steps. Use MCPs to do setup yourself wherever possible — only ask me for things only I can do.
 5. **Context hygiene:** at ~80% context use `/compact`; when switching tasks use `/clear`. Don't ride a stale context to the bottom.
 6. **End of session:** update Task Queue, Decisions, Log, and Open Questions sections below. Run `/caveman-commit` with all session files.
 7. If blocked or uncertain, log to **Open Questions** and stop. Don't guess.
+
+---
+
+## UI Work Protocol (READ BEFORE TOUCHING ANY .svelte FILE)
+
+Any task that creates or modifies UI must follow this. No exceptions.
+0. **Load the frontend-design skill before any UI task.** The skill provides judgment on patterns and aesthetics; the design system provides the specific tokens and rules. Use both.
+1. **Read `docs/design-system.md` end-to-end** if you haven't this session. It's canonical. Spacing, type, colors, components, motion — all decisions are pre-made there.
+2. **Audit before you fix.** When refactoring an existing screen, list every spacing, alignment, hierarchy, density, and motion issue first. Group by severity. Don't change code until the audit is in the proposed micro-plan.
+3. **Pick from the system, don't invent.** Spacing values come from the scale. Colors come from `--token` references. Type from the ramp. Components from §8. If a value isn't in the system, **add it to `docs/design-system.md` + `src/app.css` in the same commit** that uses it. Never inline a one-off.
+4. **Spec all four states** before shipping any screen: loading, empty, error, populated. If any is "later," it gets done now.
+5. **Build static first, then animate.** Layout and hierarchy correct → then add transitions per §9 of the design system. Never animation-first.
+6. **Match a reference UI.** Linear, ClickUp, Things 3, Vercel dashboard. When unsure about density or hierarchy, screenshot the closest reference and match it. When in doubt: match Linear's restraint.
+7. **Reject these patterns on sight** (the most common failure modes — they're the canonical "what not to ship" list in §14):
+   - Controls inside text inputs (date pickers, dropdowns, badges, submit buttons crammed into one input)
+   - Monospace font outside `<code>` blocks
+   - Raw Tailwind colors (`bg-red-500`, `text-gray-400`) or inline hex
+   - Content hugging the top-left of the viewport with no max-width container
+   - Empty screens with no empty state (no icon, no title, no CTA)
+   - `transition: all`, or animations on width/height/top/left
+   - Left-border accent stripes on active nav items
+   - Full-page spinners as the default loading state
+   - 700+ font-weight in body/UI, or `text-xs` (10px) anywhere
+8. For a refactor, **Read docs/design-system.md and load the frontend-design skill.** Audit the Todos screen — list every spacing, hierarchy, density, motion, and aesthetic issue. The skill should inform what "feels right"; the design system tells you what specific values to use.
 
 ---
 
@@ -25,7 +49,7 @@
 
 ### Stack
 - **SvelteKit + TypeScript (strict) + Bun + Supabase + Tailwind.** Never `npm`/`pnpm` — always `bun` (`bun install`, `bun run dev`, `bun add`).
-- **One library per job.** Before adding a dep, confirm an existing one can't do the job. Pick markdown OR rich-text, not both. Pick lucide OR phosphor, not both. (We use `marked` for markdown; lucide for icons.)
+- **One library per job.** Before adding a dep, confirm an existing one can't do the job. Pick markdown OR rich-text, not both. Pick lucide OR phosphor, not both. (We use `marked` for markdown; lucide for icons; Inter via `@fontsource-variable/inter`.)
 
 ### Server vs client state
 - **Server state** (todos, habits, logs, notes) → SvelteKit `+page.server.ts` `load` + form `actions`. Never mirror server state into a Svelte store.
@@ -40,11 +64,14 @@
 - Supabase query helpers: `src/lib/db.ts` (one shared module, not one per route).
 - Types: `src/lib/types.ts`. Domain types only. DB row types are inferred from queries.
 
-### Styling
-- All colors live in `src/app.css` as CSS variables (`--color-*`, `--accent`, `--accent-hover`). Never raw Tailwind colors like `text-red-400` and never inline hex anywhere in components.
-- Use via `style="color: var(--color-x)"` or Tailwind arbitrary values like `bg-[color:var(--accent)]`.
-- Light mode = `[data-theme='light']` overrides on the same variables. Don't write a parallel set of class names.
-- Spacing: more breathing room than feels necessary. The app should feel calm.
+### Styling — see `docs/design-system.md`
+- **Read the design system before any UI work.** It is canonical for spacing, type, color, radius, shadow, layout, components, motion, accessibility, and the "what not to do" list.
+- All design tokens live in `src/app.css` as CSS variables. The CSS file and the design-system doc must agree at all times.
+- Never inline a hex. Never use raw Tailwind colors (`text-red-400`, `bg-gray-800`). Never invent a one-off spacing or type value.
+- Use tokens via `style="color: var(--text-primary)"` or Tailwind arbitrary values like `bg-[color:var(--surface-1)]`.
+- Light mode = `[data-theme='light']` overrides on the same variables. Never a parallel set of class names.
+- **Dark is the primary theme.** Design and tune for dark first; light is a recolor of the same tokens.
+- New patterns require updating `docs/design-system.md` + `src/app.css` in the same commit that uses them.
 
 ### TypeScript
 - `strict: true`. No `any`, no `as unknown as Foo`. No implicit return types on exported functions.
@@ -56,17 +83,23 @@
 
 ### Error handling
 - Form actions return `fail(400, { error: '...' })` with messages the user can act on ("Couldn't save — check your connection"), not stack traces.
+- Surface errors inline at the relevant level (form-level for form errors, page-level for load failures). See design system §10.
 - Don't wrap whole components in try/catch to hide errors. Let them bubble.
 - No silent catches. If you catch, surface or log.
 
 ### Performance
 - Route-level code splitting via SvelteKit's default routing — don't import giant libs at the top of `+layout.svelte`.
 - Don't memoize prophylactically. Measure first.
-- Streaming load (`return { promise }`) for slow DB calls so the page renders fast.
+- Streaming load (`return { promise }`) for slow DB calls so the page renders fast. Skeletons match the populated layout's row heights (design system §8.13).
 
-### Accessibility minimums
-- Every interactive element keyboard-reachable. Every icon-only button has `aria-label`. Visible focus rings.
-- Color contrast AA for body text. Test both themes.
+### Accessibility minimums (industry baseline, non-negotiable)
+- See design system §11 for the full list.
+- Every interactive element keyboard-reachable. Tab order matches visual order. Esc closes overlays.
+- Every icon-only button has `aria-label`. Decorative icons are `aria-hidden="true"`.
+- Visible focus rings — never `outline: none` without a focus-visible replacement that's at least as visible.
+- Color contrast AA. Test both themes.
+- `prefers-reduced-motion` respected globally (declared once in `app.css`).
+- Touch targets ≥36×36, ≥44×44 preferred for primary actions on touch.
 
 ### Security
 - No secrets in client code. Only `PUBLIC_*` env vars are exposed to the browser; the anon key is the only one that should be.
@@ -76,15 +109,17 @@
 ### Git & commits
 - Conventional Commits: `feat:`, `fix:`, `chore:`, `refactor:`, `docs:`, `test:`. One logical change per commit.
 - Branch per phase: `phase/3-calendar`, `phase/4-google-calendar`, etc. Merge to `main` after I confirm acceptance.
+- Design-system updates and the components that use them ship in the same commit.
 - End of session: `/caveman-commit`.
 
 ### What NOT to do
 - No `+page.ts` (universal load) for protected routes — always `+page.server.ts` so RLS-aware queries run server-side.
 - No client-side Supabase mutations except auth flow.
-- No CSS-in-JS. No styled-components. No `style=` blocks doing what utility classes can do.
+- No CSS-in-JS. No styled-components. No `style=` blocks doing what utility classes can do — except for `style="color: var(--token)"` patterns where Tailwind arbitrary values get noisy.
 - No new abstractions on top of Supabase (`Repository`, `Service`, etc.). Call `event.locals.supabase` directly in `db.ts` helpers.
 - No screens that exist "for completeness" with no content. If a phase doesn't need a screen, skip it.
 - No `// TODO` placeholders in committed code. Either build it or open a tracked task in the queue.
+- See design system §14 for the canonical UI "what not to do" list.
 
 ---
 
@@ -92,7 +127,9 @@
 
 **Phase 2 — Supabase + Auth: COMPLETE pending manual setup.** I need to follow `docs/phase2-setup.md` to wire keys, run the migration, and enable Google OAuth. After that, Phase 3 begins.
 
-**Phase 3 — Calendar & history (next).** Spec section 5: month view + per-day breakdown (todos, habits, notes), optional simple charts for last 7/30 days.
+**Phase 2.5 — Design system rollout (next, before Phase 3).** Wire `docs/design-system.md` tokens into `src/app.css`, refactor existing screens (Today, Todos, Habits, Notes, Settings, Sidebar) to match the system. Audit each screen against the design doc, list issues, fix top-down. No new features in this phase.
+
+**Phase 3 — Calendar & history.** Spec section 5: month view + per-day breakdown (todos, habits, notes), optional simple charts for last 7/30 days. Built against the now-finalized design system.
 
 ---
 
@@ -105,6 +142,14 @@
 - [x] Settings page (theme, accent, export, clear).
 - [x] Phase 2 — Supabase + Google Auth code.
 - [ ] **Manual:** follow `docs/phase2-setup.md` (Supabase project, env vars, migration, OAuth) and confirm `/today` loads against real DB.
+- [ ] **Phase 2.5 — Wire design tokens into `src/app.css`** per `docs/design-system.md` §2–§6. Add Inter via `@fontsource-variable/inter`. Add easing curves. Add `prefers-reduced-motion` block.
+- [ ] **Phase 2.5 — Audit & refactor Sidebar** — replace `email + sign-out button` with bottom account-block popover (design system §8.7). Active nav state via `--surface-3`, no left-border stripes.
+- [ ] **Phase 2.5 — Audit & refactor Todos screen** — split the input/date/priority/submit out of one box per §8.2. Add list-item enter/exit motion per §9. Container max-width + page padding per §7.
+- [ ] **Phase 2.5 — Audit & refactor Habits screen** — same container/padding fix; row density set to Default; New Habit button is primary `md`; empty state per §8.12.
+- [ ] **Phase 2.5 — Audit & refactor Notes screen** — Inter for note body (not mono); editor/preview as a segmented control per §8.9; selected-note crossfade per §9.
+- [ ] **Phase 2.5 — Audit & refactor Settings screen** — section structure per §8.8; danger button for Clear; max-width container.
+- [ ] **Phase 2.5 — Audit & refactor Today screen** — page header + section gaps per §7; inline log motion per §9.
+- [ ] **Phase 2.5 — Toast component** + global `toast()` helper per §8.14. Replace any inline error banners that should be transient.
 - [ ] **Phase 3 — `/calendar` route:** month grid view; click a date → per-day panel (todos due, habit totals, notes for that date). Spec §5.
 - [ ] **Phase 3 — Habit charts:** 7-day and 30-day bar/line per habit on the per-day panel and/or `/habits/{id}` detail view.
 - [ ] **Phase 4 — Google Calendar (read-only)** on Today + per-day. Spec §6.
@@ -118,6 +163,8 @@
 - 2026-04-25: All routes use `+page.server.ts` `load` + form actions. No client-side Supabase mutations except auth.
 - 2026-04-25: Stores stripped to client UI state only (settings + ACCENT_PRESETS). Server state stays on the server.
 - 2026-04-25: Auto-create `users` row via Postgres trigger on first sign-in (not in app code).
+- 2026-04-27: Design system at `docs/design-system.md` is canonical. Dark theme is primary. Inter is the single UI font. Accent is rose `#f43f5e` by default; the picker swaps `--accent` and recomputes the soft variants via `color-mix`.
+- 2026-04-27: Phase 2.5 inserted between Phase 2 and Phase 3 — full design-system rollout across existing screens before any new feature work.
 
 ---
 
