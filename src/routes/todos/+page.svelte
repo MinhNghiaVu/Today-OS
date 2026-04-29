@@ -1,5 +1,10 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { fly } from 'svelte/transition';
+	import { flip } from 'svelte/animate';
+	import { cubicOut, cubicIn } from 'svelte/easing';
+	import { ClipboardList } from 'lucide-svelte';
+	import Select from '$lib/components/Select.svelte';
 	import type { PageData } from './$types';
 	import type { Todo, TodoPriority, TodoStatus } from '$lib/types';
 
@@ -42,31 +47,37 @@
 		<span class="total-badge">{counts.pending} pending</span>
 	</div>
 
-	<!-- Add form -->
+	<!-- Add form: title input standalone, meta row separate per §8.2 -->
 	<form
 		method="POST"
 		action="?/add"
 		class="add-form"
 		use:enhance={() => async ({ update }) => update()}
 	>
-		<div class="add-main">
-			<input class="add-title" name="title" placeholder="Add a task…" autocomplete="off" required />
-		</div>
+		<input
+			class="add-title"
+			name="title"
+			placeholder="Add a task…"
+			autocomplete="off"
+			required
+		/>
 		<div class="add-meta">
 			<input type="date" class="meta-input" name="due_date" value={todayStr} />
-			<select class="meta-input" name="priority">
-				{#each priorityOpts as opt}
-					<option value={opt.value}>{opt.label}</option>
-				{/each}
-			</select>
+			<Select name="priority" options={priorityOpts} />
 			<button type="submit" class="btn-primary">Add</button>
 		</div>
 	</form>
 
-	<!-- Filter tabs -->
-	<div class="filter-tabs">
+	<!-- Filter tabs — segmented control per §8.9 -->
+	<div class="filter-tabs" role="tablist">
 		{#each (['all', 'pending', 'done'] as Filter[]) as tab}
-			<button class="tab" class:active={filter === tab} on:click={() => (filter = tab)}>
+			<button
+				class="tab"
+				class:active={filter === tab}
+				role="tab"
+				aria-selected={filter === tab}
+				on:click={() => (filter = tab)}
+			>
 				{tab.charAt(0).toUpperCase() + tab.slice(1)}
 				<span class="tab-count">{counts[tab]}</span>
 			</button>
@@ -75,13 +86,31 @@
 
 	<!-- Todo list -->
 	{#if filtered.length === 0}
-		<p class="empty">No tasks here.</p>
+		<div class="empty-state">
+			<div class="empty-icon">
+				<ClipboardList size={40} strokeWidth={1.5} />
+			</div>
+			<p class="empty-title">
+				{filter === 'done' ? 'Nothing done yet' : filter === 'pending' ? 'All clear' : 'No tasks yet'}
+			</p>
+			<p class="empty-desc">
+				{filter === 'done'
+					? 'Complete a task to see it here.'
+					: filter === 'pending'
+					? 'No pending tasks right now.'
+					: 'Add your first task using the form above.'}
+			</p>
+		</div>
 	{:else}
 		<ul class="todo-list">
 			{#each filtered as todo (todo.id)}
-				<li class:done={todo.status === 'done'}>
+				<li
+					class:done={todo.status === 'done'}
+					in:fly={{ y: -8, duration: 220, easing: cubicOut }}
+					out:fly={{ y: 4, duration: 160, easing: cubicIn }}
+					animate:flip={{ duration: 220, easing: cubicOut }}
+				>
 					{#if editingId === todo.id}
-						<!-- Inline edit form -->
 						<form
 							method="POST"
 							action="?/update"
@@ -112,19 +141,16 @@
 									name="due_date"
 									value={todo.due_date ?? ''}
 								/>
-								<select class="meta-input" name="priority">
-									{#each priorityOpts as opt}
-										<option value={opt.value} selected={todo.priority === opt.value || (!todo.priority && opt.value === '')}>{opt.label}</option>
-									{/each}
-								</select>
+								<Select name="priority" options={priorityOpts} value={todo.priority ?? ''} />
 							</div>
 							<div class="edit-actions">
 								<button type="submit" class="btn-primary">Save</button>
-								<button type="button" class="btn-ghost" on:click={() => (editingId = null)}>Cancel</button>
+								<button type="button" class="btn-ghost" on:click={() => (editingId = null)}
+									>Cancel</button
+								>
 							</div>
 						</form>
 					{:else}
-						<!-- Normal row -->
 						<form method="POST" action="?/toggle" use:enhance>
 							<input type="hidden" name="id" value={todo.id} />
 							<input type="hidden" name="status" value={todo.status} />
@@ -132,7 +158,7 @@
 								type="submit"
 								class="check"
 								class:checked={todo.status === 'done'}
-								aria-label="toggle"
+								aria-label={todo.status === 'done' ? 'Mark pending' : 'Mark done'}
 							>
 								{#if todo.status === 'done'}✓{/if}
 							</button>
@@ -142,7 +168,9 @@
 							<div class="todo-top">
 								<span class="todo-title">{todo.title}</span>
 								{#if todo.priority}
-									<span class="priority-badge priority-{todo.priority}">{priorityLabels[todo.priority]}</span>
+									<span class="priority-badge priority-{todo.priority}"
+										>{priorityLabels[todo.priority]}</span
+									>
 								{/if}
 								{#if todo.due_date}
 									<span
@@ -158,12 +186,18 @@
 							{/if}
 						</div>
 						<div class="actions">
-							<form method="POST" action="?/remove" use:enhance={({ cancel }) => {
-								if (!confirm(`Delete "${todo.title}"?`)) cancel();
-								return async ({ update }) => update();
-							}}>
+							<form
+								method="POST"
+								action="?/remove"
+								use:enhance={({ cancel }) => {
+									if (!confirm(`Delete "${todo.title}"?`)) cancel();
+									return async ({ update }) => update();
+								}}
+							>
 								<input type="hidden" name="id" value={todo.id} />
-								<button type="submit" class="act-btn danger" title="Delete" aria-label="delete">✕</button>
+								<button type="submit" class="act-btn danger" title="Delete" aria-label="delete"
+									>✕</button
+								>
 							</form>
 						</div>
 					{/if}
@@ -179,8 +213,10 @@
 		display: flex;
 		flex-direction: column;
 		gap: 20px;
+		padding: 32px 24px;
 	}
 
+	/* ── Header ── */
 	.header {
 		display: flex;
 		align-items: baseline;
@@ -191,35 +227,47 @@
 		margin: 0;
 		font-size: 24px;
 		font-weight: 600;
+		letter-spacing: -0.01em;
+		color: var(--text-primary);
 	}
 
 	.total-badge {
 		font-size: 13px;
-		color: var(--muted);
+		color: var(--text-secondary);
 	}
 
+	/* ── Add form ── */
 	.add-form {
 		display: flex;
 		flex-direction: column;
 		gap: 8px;
-		background: var(--surface);
-		border: 1px solid var(--border);
-		border-radius: 8px;
-		padding: 12px;
 	}
 
 	.add-title {
 		width: 100%;
-		background: transparent;
-		border: none;
-		color: var(--text);
-		font-size: 15px;
+		height: 36px;
+		background: var(--surface-2);
+		border: 1px solid var(--border-default);
+		border-radius: var(--radius-md);
+		color: var(--text-primary);
+		font-size: 14px;
+		font-family: inherit;
+		padding: 0 12px;
 		outline: none;
-		padding: 4px 0;
+		transition: border-color 120ms var(--ease-out);
 	}
 
 	.add-title::placeholder {
-		color: var(--muted);
+		color: var(--text-tertiary);
+	}
+
+	.add-title:hover {
+		border-color: var(--border-strong);
+	}
+
+	.add-title:focus-visible {
+		outline: 2px solid var(--border-focus);
+		outline-offset: 2px;
 	}
 
 	.add-meta {
@@ -229,54 +277,73 @@
 	}
 
 	.meta-input {
-		background: var(--bg);
-		border: 1px solid var(--border);
-		border-radius: 6px;
-		padding: 6px 10px;
-		color: var(--text);
+		height: 36px;
+		background: var(--surface-2);
+		border: 1px solid var(--border-default);
+		border-radius: var(--radius-md);
+		padding: 0 10px;
+		color: var(--text-primary);
 		font-size: 13px;
+		font-family: inherit;
 		outline: none;
+		transition: border-color 120ms var(--ease-out);
 	}
 
-	.meta-input:focus {
-		border-color: var(--accent);
+	.meta-input:hover {
+		border-color: var(--border-strong);
 	}
 
+	.meta-input:focus-visible {
+		outline: 2px solid var(--border-focus);
+		outline-offset: 2px;
+	}
+
+	/* ── Filter tabs — segmented control ── */
 	.filter-tabs {
 		display: flex;
-		gap: 4px;
+		gap: 2px;
+		background: var(--surface-2);
+		border-radius: var(--radius-md);
+		padding: 4px;
+		width: fit-content;
 	}
 
 	.tab {
 		background: transparent;
-		border: 1px solid var(--border);
-		border-radius: 6px;
-		padding: 6px 14px;
+		border: none;
+		border-radius: var(--radius-sm);
+		padding: 0 12px;
+		height: 28px;
 		font-size: 13px;
-		color: var(--muted);
+		font-weight: 500;
+		font-family: inherit;
+		color: var(--text-secondary);
 		cursor: pointer;
 		display: flex;
 		align-items: center;
 		gap: 6px;
-		transition: background 0.1s, color 0.1s;
+		transition:
+			background-color 120ms var(--ease-out),
+			color 120ms var(--ease-out);
 	}
 
 	.tab:hover {
-		background: var(--border);
-		color: var(--text);
+		color: var(--text-primary);
 	}
 
 	.tab.active {
-		background: var(--accent);
-		color: #fff;
-		border-color: var(--accent);
+		background: var(--surface-overlay);
+		color: var(--text-primary);
+		box-shadow: var(--shadow-sm);
 	}
 
 	.tab-count {
-		font-size: 11px;
-		opacity: 0.75;
+		font-size: 12px;
+		font-weight: 400;
+		color: var(--text-tertiary);
 	}
 
+	/* ── Todo list ── */
 	.todo-list {
 		list-style: none;
 		margin: 0;
@@ -289,34 +356,37 @@
 	.todo-list li {
 		display: flex;
 		align-items: center;
-		gap: 10px;
-		padding: 10px 12px;
-		border-radius: 8px;
-		transition: background 0.15s;
+		gap: 12px;
+		padding: 12px 16px;
+		border-radius: var(--radius-md);
+		transition: background-color 120ms var(--ease-out);
 	}
 
 	.todo-list li:hover {
-		background: var(--surface);
+		background: var(--surface-2);
 	}
 
 	.todo-list li.done {
-		opacity: 0.55;
+		opacity: 0.5;
 	}
 
+	/* ── Checkbox ── */
 	.check {
 		width: 20px;
 		height: 20px;
-		border: 1.5px solid var(--border);
-		border-radius: 50%;
+		border: 1.5px solid var(--border-default);
+		border-radius: var(--radius-full);
 		background: transparent;
-		color: #fff;
+		color: var(--text-on-accent);
 		font-size: 11px;
 		cursor: pointer;
 		display: flex;
 		align-items: center;
 		justify-content: center;
 		flex-shrink: 0;
-		transition: background 0.1s, border-color 0.1s;
+		transition:
+			background-color 120ms var(--ease-out),
+			border-color 120ms var(--ease-out);
 	}
 
 	.check.checked {
@@ -328,6 +398,7 @@
 		border-color: var(--accent);
 	}
 
+	/* ── Todo row body ── */
 	.todo-body {
 		flex: 1;
 		min-width: 0;
@@ -346,45 +417,49 @@
 
 	.todo-title {
 		font-size: 14px;
-		font-weight: 450;
+		font-weight: 500;
+		color: var(--text-primary);
 	}
 
 	li.done .todo-title {
 		text-decoration: line-through;
+		color: var(--text-secondary);
 	}
 
 	.todo-desc {
 		margin: 0;
-		font-size: 12px;
-		color: var(--muted);
+		font-size: 13px;
+		color: var(--text-secondary);
 		line-height: 1.4;
 	}
 
+	/* ── Priority badges ── */
 	.priority-badge {
-		font-size: 11px;
+		font-size: 12px;
 		font-weight: 500;
 		padding: 1px 6px;
-		border-radius: 999px;
+		border-radius: var(--radius-full);
 	}
 
-	.priority-high { background: #ef444420; color: #ef4444; }
-	.priority-medium { background: #f59e0b20; color: #f59e0b; }
-	.priority-low { background: #3b82f620; color: #3b82f6; }
+	.priority-high   { background: var(--danger-soft);  color: var(--danger);  }
+	.priority-medium { background: var(--warning-soft); color: var(--warning); }
+	.priority-low    { background: var(--info-soft);    color: var(--info);    }
 
 	.due-date {
 		font-size: 12px;
-		color: var(--muted);
+		color: var(--text-secondary);
 	}
 
 	.due-date.overdue {
-		color: #ef4444;
+		color: var(--danger);
 	}
 
+	/* ── Row actions ── */
 	.actions {
 		display: flex;
 		gap: 4px;
 		opacity: 0;
-		transition: opacity 0.1s;
+		transition: opacity 120ms var(--ease-out);
 		flex-shrink: 0;
 	}
 
@@ -393,30 +468,33 @@
 	}
 
 	.act-btn {
-		width: 26px;
-		height: 26px;
-		border: 1px solid var(--border);
-		border-radius: 5px;
+		width: 28px;
+		height: 28px;
+		border: 1px solid var(--border-default);
+		border-radius: var(--radius-sm);
 		background: transparent;
-		color: var(--muted);
-		font-size: 13px;
+		color: var(--text-tertiary);
+		font-size: 12px;
 		cursor: pointer;
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		transition: color 0.1s, border-color 0.1s;
+		transition:
+			color 120ms var(--ease-out),
+			border-color 120ms var(--ease-out);
 	}
 
 	.act-btn:hover {
-		color: var(--text);
-		border-color: var(--text);
+		color: var(--text-primary);
+		border-color: var(--border-strong);
 	}
 
 	.act-btn.danger:hover {
-		color: #ef4444;
-		border-color: #ef4444;
+		color: var(--danger);
+		border-color: var(--danger);
 	}
 
+	/* ── Inline edit form ── */
 	.edit-form {
 		flex: 1;
 		display: flex;
@@ -425,31 +503,35 @@
 	}
 
 	.edit-title {
-		background: var(--bg);
-		border: 1px solid var(--accent);
-		border-radius: 6px;
-		padding: 6px 10px;
-		color: var(--text);
-		font-size: 14px;
-		outline: none;
 		width: 100%;
+		height: 36px;
+		background: var(--surface-2);
+		border: 1px solid var(--accent);
+		border-radius: var(--radius-md);
+		padding: 0 10px;
+		color: var(--text-primary);
+		font-size: 14px;
+		font-family: inherit;
+		outline: none;
 	}
 
 	.edit-desc {
-		background: var(--bg);
-		border: 1px solid var(--border);
-		border-radius: 6px;
-		padding: 6px 10px;
-		color: var(--text);
+		width: 100%;
+		background: var(--surface-2);
+		border: 1px solid var(--border-default);
+		border-radius: var(--radius-md);
+		padding: 8px 10px;
+		color: var(--text-primary);
 		font-size: 13px;
+		font-family: inherit;
 		outline: none;
 		resize: vertical;
-		width: 100%;
-		font-family: inherit;
+		min-height: 64px;
 	}
 
-	.edit-desc:focus {
-		border-color: var(--accent);
+	.edit-desc:focus-visible {
+		outline: 2px solid var(--border-focus);
+		outline-offset: 2px;
 	}
 
 	.edit-meta {
@@ -462,36 +544,83 @@
 		gap: 8px;
 	}
 
+	/* ── Buttons ── */
 	.btn-primary {
+		height: 36px;
+		padding: 0 16px;
 		background: var(--accent);
-		color: #fff;
+		color: var(--text-on-accent);
 		border: none;
-		border-radius: 6px;
-		padding: 7px 16px;
+		border-radius: var(--radius-md);
 		font-size: 13px;
+		font-weight: 500;
+		font-family: inherit;
 		cursor: pointer;
+		white-space: nowrap;
+		transition:
+			background-color 120ms var(--ease-out),
+			transform 120ms var(--ease-out);
 	}
 
 	.btn-primary:hover:not(:disabled) {
 		background: var(--accent-hover);
 	}
 
+	.btn-primary:active:not(:disabled) {
+		background: var(--accent-pressed);
+		transform: translateY(1px);
+	}
+
 	.btn-ghost {
-		background: var(--border);
-		color: var(--text);
+		height: 36px;
+		padding: 0 16px;
+		background: var(--surface-2);
+		color: var(--text-primary);
 		border: none;
-		border-radius: 6px;
-		padding: 7px 16px;
+		border-radius: var(--radius-md);
 		font-size: 13px;
+		font-weight: 500;
+		font-family: inherit;
 		cursor: pointer;
+		transition: background-color 120ms var(--ease-out);
 	}
 
-	.empty {
-		color: var(--muted);
-		font-size: 14px;
+	.btn-ghost:hover {
+		background: var(--surface-3);
+	}
+
+	/* ── Empty state ── */
+	.empty-state {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		text-align: center;
+		padding: 48px 24px;
+		gap: 8px;
+	}
+
+	.empty-icon {
+		color: var(--text-tertiary);
+		margin-bottom: 8px;
+		display: flex;
+	}
+
+	.empty-title {
 		margin: 0;
+		font-size: 17px;
+		font-weight: 600;
+		color: var(--text-primary);
+		line-height: 1.3;
 	}
 
+	.empty-desc {
+		margin: 0;
+		font-size: 14px;
+		color: var(--text-secondary);
+		max-width: 280px;
+	}
+
+	/* ── Utility ── */
 	.actions form {
 		display: contents;
 	}
