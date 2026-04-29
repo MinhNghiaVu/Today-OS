@@ -1,5 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
-import type { Todo, Habit, HabitLog, HabitWithTotal, Note } from './types';
+import type { Todo, Habit, HabitLog, HabitWithTotal, Note, Job } from './types';
 
 function today(): string {
 	return new Date().toISOString().slice(0, 10);
@@ -231,4 +231,16 @@ export async function getHabitLogsForRange(
 		result.push({ date: dateStr, total: totals.get(dateStr) ?? 0 });
 	}
 	return result;
+}
+
+// ── Jobs ──────────────────────────────────────────────────────
+
+export async function getJobs(sb: SupabaseClient, userId: string): Promise<Job[]> {
+	const { data, error } = await sb
+		.from('jobs')
+		.select('*')
+		.eq('user_id', userId)
+		.order('created_at', { ascending: false });
+	if (error) throw error;
+	return data ?? [];
 }

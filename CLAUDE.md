@@ -133,7 +133,9 @@ Any task that creates or modifies UI must follow this. No exceptions.
 
 **Phase 4 — Google Calendar (read-only): COMPLETE** (pending manual setup in phase4-setup.md).
 
-**Phase 5 — AI Assistant: COMPLETE** (pending manual setup in phase5-setup.md — just an Anthropic API key).
+**Phase 5 — AI Assistant: COMPLETE** (pending manual setup in phase5-setup.md — just an Anthropic API key). **Note: AI assistant is temporarily disabled** — Anthropic imports commented out in `src/routes/api/chat/+server.ts`, nav item commented out in layout. Re-enable when API key is ready.
+
+**Phase 6 — Job Board: PLANNED.** Full spec in section below. Start with DB migration, then server, then UI. Read the Phase 6 spec section before touching any file.
 
 ---
 
@@ -161,6 +163,297 @@ Any task that creates or modifies UI must follow this. No exceptions.
 - [x] **Phase 4 — Google Calendar (read-only)** on Today + per-day. Spec §6.
 - [x] **Phase 5 — AI assistant** at `/assistant`. Spec §7.
 - [ ] **Manual:** follow `docs/phase5-setup.md` (Anthropic API key) and verify streaming chat works.
+- [x] **Phase 6.1 — DB migration** — `supabase/migrations/003_jobs.sql`; types in `src/lib/types.ts`; query helper `getJobs` in `src/lib/db.ts`. See Phase 6 spec below.
+- [ ] **Phase 6.2 — Server route** — `src/routes/jobs/+page.server.ts`: load + `add` / `update` / `remove` actions. See Phase 6 spec below.
+- [ ] **Phase 6.3 — Page UI** — `src/routes/jobs/+page.svelte`: table layout, add-row form, inline edit, status badge quick-update, empty state. Read Phase 6 UI spec before writing a single line. See Phase 6 spec below.
+- [ ] **Phase 6.4 — Nav + cleanup** — add Briefcase nav item to layout; write `docs/phase6-setup.md` with migration SQL; update CLAUDE.md log.
+- [ ] **Manual:** run `supabase/migrations/003_jobs.sql` against real Supabase (paste into dashboard SQL editor or `supabase db push`).
+
+---
+
+## Phase 6 — Job Board Spec
+
+> Read this entire section before touching any Phase 6 file. It is the authoritative UI + data contract.
+
+### Purpose
+`/jobs` — a personal job-targeting board. Track companies you want to work at, the application status, interview progress, and notes. Airtable-inspired table density; design system tokens for everything.
+
+---
+
+### Data model
+
+**Migration file:** `supabase/migrations/003_jobs.sql` (next after `002_google_tokens.sql`)
+
+| Column | Type | Constraints |
+|---|---|---|
+| `id` | uuid | PK, `gen_random_uuid()` |
+| `user_id` | uuid NOT NULL | FK → `users(id)` ON DELETE CASCADE |
+| `company` | text NOT NULL | — |
+| `role` | text | nullable |
+| `status` | text NOT NULL DEFAULT `'pending'` | CHECK: see status values below |
+| `interview_stage` | text | nullable, CHECK: see stage values below |
+| `job_url` | text | nullable |
+| `contact` | text | nullable (recruiter / referral name) |
+| `applied_date` | date | nullable |
+| `interviewer` | text | nullable |
+| `notes` | text | nullable, freeform |
+| `created_at` | timestamptz NOT NULL | DEFAULT now() |
+| `updated_at` | timestamptz NOT NULL | DEFAULT now() |
+
+**RLS:** same pattern as all other tables — `FOR ALL TO authenticated USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id)`.
+
+**Index:** `CREATE INDEX jobs_user_created ON public.jobs (user_id, created_at DESC);`
+
+---
+
+### Status values + badge colors
+
+These are the only valid `status` values (CHECK constraint). Color mapping uses existing design tokens — no new tokens needed.
+
+| Value | Label | Badge bg | Badge fg |
+|---|---|---|---|
+| `pending` | Pending | `var(--surface-3)` | `var(--text-secondary)` |
+| `applied` | Applied | `var(--warning-soft)` | `var(--warning)` |
+| `recruiter_screen` | Recruiter Screen | `var(--info-soft)` | `var(--info)` |
+| `interview` | Interview | `var(--accent-soft)` | `var(--accent)` |
+| `offer` | Offer | `var(--success-soft)` | `var(--success)` |
+| `rejected` | Rejected | `var(--danger-soft)` | `var(--danger)` |
+| `ghosted` | Ghosted | `var(--danger-soft)` | `var(--danger)` |
+| `dropped` | Dropped | `var(--surface-3)` | `var(--text-tertiary)` |
+
+All badges: `border-radius: var(--radius-full)`, `padding: 2px 8px`, `font-size: 12px`, `font-weight: 500`, `white-space: nowrap`.
+
+---
+
+### Interview stage values
+
+`interview_stage` is nullable. Only meaningful when `status` is `interview` or `offer`. Show `—` when null.
+
+| Value | Label |
+|---|---|
+| `first_round` | First Round |
+| `second_round` | Second Round |
+| `third_round` | Third Round |
+| `fourth_round` | Fourth Round |
+| `fifth_round` | Fifth Round |
+
+Stage shown as a neutral pill: `background: var(--surface-2)`, `color: var(--text-secondary)`, same sizing as status badge.
+
+---
+
+### TypeScript types (append to `src/lib/types.ts`)
+
+```typescript
+export type JobStatus =
+  | 'pending' | 'applied' | 'recruiter_screen' | 'interview'
+  | 'offer' | 'rejected' | 'ghosted' | 'dropped';
+
+export type JobInterviewStage =
+  | 'first_round' | 'second_round' | 'third_round' | 'fourth_round' | 'fifth_round';
+
+export interface Job {
+  id: string;
+  user_id: string;
+  company: string;
+  role: string | null;
+  status: JobStatus;
+  interview_stage: JobInterviewStage | null;
+  job_url: string | null;
+  contact: string | null;
+  applied_date: string | null;
+  interviewer: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+```
+
+---
+
+### Query helper (append to `src/lib/db.ts`)
+
+```typescript
+export async function getJobs(sb: SupabaseClient, userId: string): Promise<Job[]> {
+  const { data, error } = await sb
+    .from('jobs')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return data ?? [];
+}
+```
+
+---
+
+### Server route: `src/routes/jobs/+page.server.ts`
+
+Three actions: `add`, `update`, `remove`.
+
+- `add`: requires `company` (trim, non-empty), optional `role`. Inserts with `status: 'pending'`.
+- `update`: accepts `id` + any subset of all columns. Loops over known field names, includes only those present in FormData. Always sets `updated_at: new Date().toISOString()`. Used for both full-edit saves and quick status-badge changes (same action, different fields sent).
+- `remove`: requires `id`. Deletes with `.eq('user_id', user.id)` guard.
+
+All actions: auth-check first (`fail(401)`), validate required fields (`fail(400)`), DB error → `fail(500, { error: error.message })`.
+
+---
+
+### Page UI: `src/routes/jobs/+page.svelte`
+
+#### Layout container
+`max-w-7xl` container (matches `/calendar`), `32px 24–40px` responsive page padding. Full-width table inside.
+
+#### Page header
+```
+[h1: Jobs]  [badge: N companies]          [btn-primary sm: + Add]
+```
+- `h1`: 26px, weight 600, `--text-primary`, letter-spacing -0.01em
+- Badge: same pattern as Todos total-badge — `--surface-3` bg, `--text-secondary` fg, 12px, `--radius-full`
+- `+ Add` button: primary `sm` variant, right-aligned. Clicking sets `addingNew = true`.
+
+#### Add row form (shown when `addingNew`)
+Appears between header and table, slides in with `fly={{ y: -8, duration: 180 }}`. Single-line form:
+```
+[input: Company*]  [input: Role]  [btn-primary: Add]  [btn-ghost: Cancel]
+```
+- Company input: autofocus, required, placeholder "Company name"
+- Role input: optional, placeholder "Role / title"
+- Submit inserts row, collapses form (`addingNew = false`) on success
+- Cancel sets `addingNew = false`
+- Uses `use:enhance` — on `result.type === 'success'` collapse form
+
+#### Table structure
+`<table>` with `width: 100%`, `border-collapse: collapse`. Wrapped in a `<div class="table-shell">` with `background: var(--surface-1)`, `border: 1px solid var(--border-subtle)`, `border-radius: var(--radius-xl)`, `overflow: hidden`.
+
+**Column order and approximate widths:**
+
+| # | Column | Width | Notes |
+|---|---|---|---|
+| 1 | Company | 18% | Bold, `--text-primary`, 14px |
+| 2 | Role | 18% | Regular, `--text-secondary`, 13px |
+| 3 | Status | 14% | Color badge pill (clickable — see below) |
+| 4 | Stage | 12% | Neutral pill or `—` |
+| 5 | Applied | 10% | Date string `--text-secondary` 13px, or `—` |
+| 6 | Contact | 10% | `--text-secondary` 13px, or `—` |
+| 7 | Notes | remaining | Truncated 1 line, `--text-tertiary` 13px |
+| 8 | Actions | 36px | Delete button, hover-reveal |
+
+**`<thead>`:**
+- `<th>` cells: 11px, uppercase, letter-spacing 0.05em, `--text-tertiary`, font-weight 500, `padding: 10px 12px`, `border-bottom: 1px solid var(--border-subtle)`, `text-align: left`
+- `background: var(--surface-1)` (sticky optional)
+
+**`<tbody tr>` (normal row):**
+- Height: `min-height: 48px` (via padding `12px 0`)
+- `border-bottom: 1px solid var(--border-subtle)` (last row: none)
+- `cursor: pointer`
+- `transition: background-color 120ms cubic-bezier(0.22, 1, 0.36, 1)`
+- Hover: `background: var(--surface-2)`
+- `<td>` padding: `10px 12px`
+- Clicking a row sets `editingId = job.id` — EXCEPT clicks on the status badge or delete button (those `stopPropagation()`)
+
+**Delete button (column 8):**
+- `opacity: 0` by default; `opacity: 1` on `tr:hover`
+- `transition: opacity 120ms`
+- Icon-only, `aria-label="Delete {job.company}"`
+- Danger style: `color: var(--danger)`, hover `background: var(--danger-soft)`
+- 28×28px, `border-radius: var(--radius-sm)`
+- Submits `?/remove` action via `use:enhance`
+
+#### Status badge — quick update interaction
+The status badge in each row is **not just display** — it's an interactive dropdown. Behavior:
+1. Click badge → `stopPropagation()` (don't open row edit)
+2. Opens a `Select.svelte` dropdown (reuse existing component) positioned inline
+3. On selection, immediately submits `?/update` with `{ id, status: newValue }` via `requestSubmit()` on a hidden form
+4. No full-edit form needed for status changes
+5. `Select` options array: all 8 status values with their labels
+
+This is the most-used action — make it feel instant. Use `use:enhance` so no page reload.
+
+#### Inline edit row (expands below clicked row)
+When `editingId === job.id`, render an additional `<tr class="edit-row">` immediately after that job's normal row:
+- `<td colspan="8">` containing a full edit form
+- `background: var(--surface-2)`, `border-bottom: 1px solid var(--border-subtle)`
+- Normal row above gets `background: var(--surface-2)` (selected state, no hover needed)
+- Animate in: `fly={{ y: -4, duration: 180, easing: cubicOut }}`
+
+**Edit form layout — 2-column CSS grid:**
+```
+[Company*]        [Role]
+[Status Select]   [Stage Select]
+[Job URL]         [Contact]
+[Applied Date]    [Interviewer]
+[Notes — full width, textarea, 3 rows]
+[Save btn] [Cancel btn]  (right-aligned)
+```
+
+- All inputs: design system field style — `background: var(--surface-3)`, `border: 1px solid var(--border-default)`, `border-radius: var(--radius-md)`, `height: 36px`, `padding: 0 10px`, `font-size: 14px`, `color: var(--text-primary)`, focus outline `2px solid var(--border-focus)`
+- Status + Stage use `Select.svelte` component
+- Notes `<textarea>`: `height: auto`, `rows={3}`, `resize: vertical`, `padding: 8px 10px`
+- Hidden `<input type="hidden" name="id" value={job.id} />`
+- On save success: `editingId = null`
+- Cancel: `editingId = null` immediately (no server call)
+- Uses `use:enhance` with custom callback to collapse on success
+
+**Stage Select options** (include blank option first):
+```typescript
+const stageOpts = [
+  { value: '', label: '—' },
+  { value: 'first_round', label: 'First Round' },
+  { value: 'second_round', label: 'Second Round' },
+  { value: 'third_round', label: 'Third Round' },
+  { value: 'fourth_round', label: 'Fourth Round' },
+  { value: 'fifth_round', label: 'Fifth Round' },
+];
+```
+
+#### Empty state
+Shown when `jobs.length === 0`. Centered inside the table-shell (not a separate element — render as a single `<tr>` with `<td colspan="8">`):
+```
+[Briefcase icon, 40px, --text-tertiary]
+[h2: No companies targeted yet]
+[p: Add your first target with the + button above.]
+```
+- Padding: `64px 24px`
+- Title: 17px, weight 600, `--text-primary`
+- Description: 14px, `--text-secondary`, max-width 280px
+
+#### Animations
+- New row added: `fly={{ y: -8, duration: 220, easing: cubicOut }}` in, no out animation needed (list re-renders from server)
+- Edit row: `fly={{ y: -4, duration: 180, easing: cubicOut }}` in, `fly={{ y: -4, duration: 140, easing: cubicIn }}` out
+- Add form: `fly={{ y: -8, duration: 180, easing: cubicOut }}` in/out
+- Do NOT use `animate:flip` on table rows — flip doesn't work correctly with `<tr>` elements
+
+#### Error handling
+- Form action errors → `$page.form?.error` → call `toast(error, 'error')` in `$effect` / reactive statement
+- No inline error banners inside the table
+
+#### States checklist (all four required before shipping)
+1. **Loading** — SSR handles this; data loads before render. No spinner needed.
+2. **Empty** — Briefcase icon + title + description inside table-shell (see above).
+3. **Error** — `fail()` from action → toast via `$page.form?.error`.
+4. **Populated** — Full table with all columns.
+
+---
+
+### Nav item
+Add to `src/routes/+layout.svelte` between Calendar and Settings:
+```svelte
+import { ..., Briefcase } from 'lucide-svelte';
+// nav array:
+{ href: '/jobs', label: 'Jobs', icon: Briefcase },
+```
+
+---
+
+### Phase 6 anti-patterns (do not ship these)
+- Status badge as plain text with no interaction — it must be a clickable quick-update control
+- Opening full edit form just to change status — status badge handles that inline
+- Using `animate:flip` on `<tr>` elements — breaks layout
+- `interview_stage` shown when status is `pending` or `applied` — stage only meaningful from `recruiter_screen` onward; hide/grey it otherwise
+- `updated_at` not set on update — always include it in the update patch
+- Raw Tailwind color classes for status badges — every color via `var(--token)`
+- Mixing the status badge click handler and the row click handler without `stopPropagation()` — they must be independent
+- Textarea inside a `<td>` without `resize: vertical` — horizontal resize breaks table layout
 
 ---
 
@@ -172,6 +465,8 @@ Any task that creates or modifies UI must follow this. No exceptions.
 - 2026-04-25: Auto-create `users` row via Postgres trigger on first sign-in (not in app code).
 - 2026-04-27: Design system at `docs/design-system.md` is canonical. Dark theme is primary. Inter is the single UI font. Accent is rose `#f43f5e` by default; the picker swaps `--accent` and recomputes the soft variants via `color-mix`.
 - 2026-04-27: Phase 2.5 inserted between Phase 2 and Phase 3 — full design-system rollout across existing screens before any new feature work.
+- 2026-04-30: AI assistant (`/assistant`) temporarily disabled — Anthropic SDK calls commented out, nav item commented out. Re-enable by uncommenting `src/routes/api/chat/+server.ts` imports and the layout nav entry, then adding `ANTHROPIC_API_KEY` to `.env`.
+- 2026-04-30: Job board (`/jobs`) data model decided — `jobs` table with 8 status values + 5 interview stage values as CHECK-constrained text columns. Status badge doubles as quick-update control (inline Select, no full-edit needed for status changes). Single `update` action handles both full-edit saves and status-badge quick-changes by only patching fields present in FormData. Table UI (not cards) — `<table>` with `max-w-7xl` container, 8 columns, inline edit row expands below clicked row. Reference: Airtable density, design system tokens.
 
 ---
 
@@ -184,6 +479,18 @@ _(Add when blocked. I review between sessions.)_
 ---
 
 ## Log
+
+### 2026-04-30 (session 10 — Phase 6.1)
+- `supabase/migrations/003_jobs.sql` — `jobs` table with all columns; CHECK constraints on `status` (8 values) and `interview_stage` (5 values); RLS policy `users manage own jobs`; index `jobs_user_created`.
+- `src/lib/types.ts` — appended `JobStatus`, `JobInterviewStage`, `Job` types per spec.
+- `src/lib/db.ts` — added `Job` to import; appended `getJobs` query helper (ordered by `created_at DESC`).
+- Phase 6.1 COMPLETE. Next: Phase 6.2 — server route with `load` + `add`/`update`/`remove` actions.
+
+### 2026-04-30 (session 9 — Phase 6 planning)
+- `src/routes/api/chat/+server.ts` — Anthropic SDK imports commented out; POST handler returns 503. AI assistant disabled until API key available.
+- `src/routes/+layout.svelte` — Bot import + Assistant nav item commented out.
+- `docs/plan-phase6-jobs.md` — full Phase 6 implementation plan written (4 phases, DB schema, server actions, UI spec, anti-patterns, verification checklist).
+- `CLAUDE.md` — Phase 6 spec section added (data model, status + stage values + badge color table, TypeScript types, query helper, server actions contract, full UI spec: table layout, column widths, add-row form, status badge quick-update interaction, inline edit row, edit form grid, empty state, animations, error handling, 4-state checklist, anti-patterns). Task Queue updated with Phase 6.1–6.4 tasks. Decisions updated.
 
 ### 2026-04-29 (session 8 — Phase 5)
 - `bun add @anthropic-ai/sdk@0.91.1` — Anthropic SDK installed.
