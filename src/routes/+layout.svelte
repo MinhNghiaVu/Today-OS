@@ -5,7 +5,7 @@
 	import { settings, ACCENT_PRESETS } from '$lib/stores';
 	import { fly } from 'svelte/transition';
 	import { cubicOut } from 'svelte/easing';
-	import { Sun, CheckSquare, Activity, FileText, Settings2, ChevronUp } from 'lucide-svelte';
+	import { Sun, CheckSquare, Activity, FileText, Settings2, ChevronUp, CalendarDays } from 'lucide-svelte';
 	import Toast from '$lib/components/Toast.svelte';
 
 	export let data: { preferences?: { theme: 'dark' | 'light'; accentIndex: number }; user?: { email?: string } | null };
@@ -24,6 +24,7 @@
 		{ href: '/todos', label: 'Todos', icon: CheckSquare },
 		{ href: '/habits', label: 'Habits', icon: Activity },
 		{ href: '/notes', label: 'Notes', icon: FileText },
+		{ href: '/calendar', label: 'Calendar', icon: CalendarDays },
 		{ href: '/settings', label: 'Settings', icon: Settings2 }
 	];
 

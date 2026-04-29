@@ -3,7 +3,7 @@
 	import { fly } from 'svelte/transition';
 	import { flip } from 'svelte/animate';
 	import { cubicOut, cubicIn } from 'svelte/easing';
-	import { Activity } from 'lucide-svelte';
+	import { Activity, BarChart2 } from 'lucide-svelte';
 	import Select from '$lib/components/Select.svelte';
 	import type { PageData } from './$types';
 	import type { Habit, HabitType } from '$lib/types';
@@ -193,6 +193,9 @@
 						<span class="inactive-badge">Inactive</span>
 					{/if}
 					<div class="actions">
+						<a href="/habits/{habit.id}" class="act-btn act-link" title="View chart" aria-label="View habit chart">
+							<BarChart2 size={14} strokeWidth={2} />
+						</a>
 						<button class="act-btn" on:click={() => startEdit(habit)} title="Edit" aria-label="Edit habit">✎</button>
 
 						<form method="POST" action="?/toggleActive" use:enhance>
@@ -489,6 +492,10 @@
 	.act-btn.danger:hover {
 		color: var(--danger);
 		border-color: var(--danger);
+	}
+
+	.act-link {
+		text-decoration: none;
 	}
 
 	/* ── Buttons ── */

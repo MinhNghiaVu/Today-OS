@@ -129,7 +129,7 @@ Any task that creates or modifies UI must follow this. No exceptions.
 
 **Phase 2.5 — COMPLETE.** All screens refactored to design system: tokens, typography, motion, empty states, Toast component.
 
-**Phase 3 — Calendar & history (next).** Spec section 5: month view + per-day breakdown (todos, habits, notes), optional simple charts for last 7/30 days. Built against the now-finalized design system.
+**Phase 3 — Calendar & history: IN PROGRESS.** `/calendar` route and habit charts shipped. Manual DB setup (phase2-setup.md) still pending before full testing.
 
 ---
 
@@ -152,8 +152,8 @@ Any task that creates or modifies UI must follow this. No exceptions.
 - [x] **Phase 2.5 — Audit & refactor Settings screen** — section structure per §8.8; danger button for Clear; max-width container.
 - [x] **Phase 2.5 — Audit & refactor Today screen** — page header + section gaps per §7; inline log motion per §9.
 - [x] **Phase 2.5 — Toast component** + global `toast()` helper per §8.14. Replace any inline error banners that should be transient.
-- [ ] **Phase 3 — `/calendar` route:** month grid view; click a date → per-day panel (todos due, habit totals, notes for that date). Spec §5.
-- [ ] **Phase 3 — Habit charts:** 7-day and 30-day bar/line per habit on the per-day panel and/or `/habits/{id}` detail view.
+- [x] **Phase 3 — `/calendar` route:** month grid view; click a date → per-day panel (todos due, habit totals, notes for that date). Spec §5.
+- [x] **Phase 3 — Habit charts:** 7-day and 30-day bar/line per habit on `/habits/{id}` detail view.
 - [ ] **Phase 4 — Google Calendar (read-only)** on Today + per-day. Spec §6.
 - [ ] **Phase 5 — AI assistant** at `/assistant`. Spec §7.
 
@@ -179,6 +179,17 @@ _(Add when blocked. I review between sessions.)_
 ---
 
 ## Log
+
+### 2026-04-29 (session 6 — Phase 3)
+- `src/lib/db.ts` — added `getTodosForDate`, `getHabitTotalsForDate`, `getNotesForDate`, `getCalendarMonthActivity` (returns `DayActivity[]` with dot indicators per day), `getHabitLogsForRange` (returns `HabitDailyTotal[]` for chart range), exported `DayActivity` and `HabitDailyTotal` types.
+- `src/routes/calendar/+page.server.ts` — load with `?year=`, `?month=`, `?date=` params; fetches month activity + per-day todos/habits/notes when date selected.
+- `src/routes/calendar/+page.svelte` — month grid (7-col, activity dots for todos/habits/notes), today highlight, selected-date highlight, per-day panel slides in with `fly` transition; panel shows todos (with status/priority), habit bars (with progress bar + goal line), notes (links to `/notes?id=`). All 4 states. Design system tokens throughout. `max-w-7xl` container per §7.
+- `src/routes/+layout.svelte` — added Calendar nav item with `CalendarDays` icon.
+- `src/lib/components/HabitChart.svelte` — pure SVG bar chart; goal dashed line; bar color follows habit type (green when min_goal met, red when max_goal exceeded); x-axis labels thin out for 30d range.
+- `src/routes/habits/[id]/+page.server.ts` — loads habit + 7d + 30d log arrays.
+- `src/routes/habits/[id]/+page.svelte` — detail view: stat cards (total, avg, days with logs), 7d/30d toggle with `fly` transition between ranges, `HabitChart`, best-day callout.
+- `src/routes/habits/+page.svelte` — added chart-link button per row → `/habits/{id}`.
+- Phase 3 COMPLETE (pending real DB — requires phase2-setup.md first).
 
 ### 2026-04-29 (session 5 — Phase 2.5 completion)
 - `notes/+page.svelte` — token migration; content textarea → Inter 15px/1.6 (removed mono); tab bar → segmented control (§8.9) with CSS sliding indicator and 200ms ease-out transition; `{#key selectedId}` fly transition on note switch; proper §8.12 empty states (list + editor); delete button → destructive secondary variant using `--danger`/`--danger-soft`; active item uses `--surface-3`.

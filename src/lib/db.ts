@@ -95,3 +95,140 @@ export async function getNotes(sb: SupabaseClient, userId: string): Promise<Note
 	if (error) throw error;
 	return data ?? [];
 }
+
+// ── Calendar ──────────────────────────────────────────────────
+
+export async function getTodosForDate(
+	sb: SupabaseClient,
+	userId: string,
+	date: string
+): Promise<Todo[]> {
+	const { data, error } = await sb
+		.from('todos')
+		.select('*')
+		.eq('user_id', userId)
+		.eq('due_date', date)
+		.order('created_at');
+	if (error) throw error;
+	const rank: Record<string, number> = { high: 0, medium: 1, low: 2 };
+	return (data ?? []).sort((a, b) => {
+		if (a.status !== b.status) return a.status === 'pending' ? -1 : 1;
+		return (rank[a.priority ?? ''] ?? 3) - (rank[b.priority ?? ''] ?? 3);
+	});
+}
+
+export async function getHabitTotalsForDate(
+	sb: SupabaseClient,
+	userId: string,
+	date: string
+): Promise<HabitWithTotal[]> {
+	const [{ data: habits, error: hErr }, { data: logs, error: lErr }] = await Promise.all([
+		sb.from('habit_definitions').select('*').eq('user_id', userId).eq('is_active', true).order('created_at'),
+		sb.from('habit_logs').select('*').eq('user_id', userId).eq('date', date)
+	]);
+	if (hErr) throw hErr;
+	if (lErr) throw lErr;
+
+	const totals = new Map<string, number>();
+	for (const log of logs ?? []) {
+		totals.set(log.habit_id, (totals.get(log.habit_id) ?? 0) + log.value);
+	}
+	return (habits ?? []).map((h) => ({
+		...h,
+		total: parseFloat(((totals.get(h.id) ?? 0)).toFixed(6))
+	}));
+}
+
+export async function getNotesForDate(
+	sb: SupabaseClient,
+	userId: string,
+	date: string
+): Promise<Note[]> {
+	const { data, error } = await sb
+		.from('notes')
+		.select('*')
+		.eq('user_id', userId)
+		.eq('date', date)
+		.order('updated_at', { ascending: false });
+	if (error) throw error;
+	return data ?? [];
+}
+
+export interface DayActivity {
+	date: string;
+	hasTodos: boolean;
+	hasHabitLogs: boolean;
+	hasNotes: boolean;
+}
+
+export async function getCalendarMonthActivity(
+	sb: SupabaseClient,
+	userId: string,
+	year: number,
+	month: number
+): Promise<DayActivity[]> {
+	const start = `${year}-${String(month).padStart(2, '0')}-01`;
+	const lastDay = new Date(year, month, 0).getDate();
+	const end = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+
+	const [{ data: todos }, { data: logs }, { data: notes }] = await Promise.all([
+		sb.from('todos').select('due_date').eq('user_id', userId).gte('due_date', start).lte('due_date', end),
+		sb.from('habit_logs').select('date').eq('user_id', userId).gte('date', start).lte('date', end),
+		sb.from('notes').select('date').eq('user_id', userId).gte('date', start).lte('date', end).not('date', 'is', null)
+	]);
+
+	const todoSet = new Set((todos ?? []).map((t) => t.due_date));
+	const logSet = new Set((logs ?? []).map((l) => l.date));
+	const noteSet = new Set((notes ?? []).map((n) => n.date));
+
+	const days: DayActivity[] = [];
+	for (let d = 1; d <= lastDay; d++) {
+		const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+		days.push({
+			date: dateStr,
+			hasTodos: todoSet.has(dateStr),
+			hasHabitLogs: logSet.has(dateStr),
+			hasNotes: noteSet.has(dateStr)
+		});
+	}
+	return days;
+}
+
+// ── Habit charts ──────────────────────────────────────────────
+
+export interface HabitDailyTotal {
+	date: string;
+	total: number;
+}
+
+export async function getHabitLogsForRange(
+	sb: SupabaseClient,
+	userId: string,
+	habitId: string,
+	startDate: string,
+	endDate: string
+): Promise<HabitDailyTotal[]> {
+	const { data, error } = await sb
+		.from('habit_logs')
+		.select('date, value')
+		.eq('user_id', userId)
+		.eq('habit_id', habitId)
+		.gte('date', startDate)
+		.lte('date', endDate)
+		.order('date');
+	if (error) throw error;
+
+	const totals = new Map<string, number>();
+	for (const log of data ?? []) {
+		totals.set(log.date, (totals.get(log.date) ?? 0) + log.value);
+	}
+
+	const result: HabitDailyTotal[] = [];
+	const start = new Date(startDate);
+	const end = new Date(endDate);
+	for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+		const dateStr = d.toISOString().slice(0, 10);
+		result.push({ date: dateStr, total: totals.get(dateStr) ?? 0 });
+	}
+	return result;
+}
