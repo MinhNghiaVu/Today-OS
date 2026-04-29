@@ -36,33 +36,39 @@
 </script>
 
 <div class="page">
-	<h1>Settings</h1>
+	<header class="page-header">
+		<h1>Settings</h1>
+	</header>
 
-	<section>
-		<h2>Appearance</h2>
+	<section class="settings-section">
+		<h2 class="section-heading">Appearance</h2>
 
 		<div class="row">
-			<span class="label">Theme</span>
-			<div class="toggle-group">
+			<div class="row-label">
+				<span class="label">Theme</span>
+			</div>
+			<div class="seg-group">
 				<form method="POST" action="?/setTheme" use:enhance={() => {
 					settings.setTheme('dark');
 					return async ({ update }) => update();
 				}}>
 					<input type="hidden" name="theme" value="dark" />
-					<button type="submit" class="toggle-btn" class:active={$settings.theme === 'dark'}>Dark</button>
+					<button type="submit" class="seg-btn" class:active={$settings.theme === 'dark'}>Dark</button>
 				</form>
 				<form method="POST" action="?/setTheme" use:enhance={() => {
 					settings.setTheme('light');
 					return async ({ update }) => update();
 				}}>
 					<input type="hidden" name="theme" value="light" />
-					<button type="submit" class="toggle-btn" class:active={$settings.theme === 'light'}>Light</button>
+					<button type="submit" class="seg-btn" class:active={$settings.theme === 'light'}>Light</button>
 				</form>
 			</div>
 		</div>
 
 		<div class="row">
-			<span class="label">Accent</span>
+			<div class="row-label">
+				<span class="label">Accent color</span>
+			</div>
 			<div class="swatch-row">
 				{#each ACCENT_PRESETS as preset, i}
 					<form method="POST" action="?/setAccent" use:enhance={() => {
@@ -76,6 +82,7 @@
 							class:selected={$settings.accentIndex === i}
 							style="background: {preset.accent};"
 							title={preset.label}
+							aria-label={preset.label}
 						></button>
 					</form>
 				{/each}
@@ -83,129 +90,159 @@
 		</div>
 	</section>
 
-	<section>
-		<h2>Account</h2>
+	<section class="settings-section">
+		<h2 class="section-heading">Account</h2>
+
 		<div class="row">
-			<div class="col">
+			<div class="row-label">
 				<span class="label">Email</span>
 				<span class="hint">{data.email}</span>
 			</div>
 		</div>
 	</section>
 
-	<section>
-		<h2>Data</h2>
+	<section class="settings-section">
+		<h2 class="section-heading">Data</h2>
 
 		<div class="row">
-			<div class="col">
+			<div class="row-label">
 				<span class="label">Export</span>
 				<span class="hint">Download all data as JSON.</span>
 			</div>
-			<button class="action-btn" on:click={exportData}>Export JSON</button>
+			<button class="btn-secondary" on:click={exportData}>Export JSON</button>
 		</div>
 
-		<div class="row danger-row">
-			<div class="col">
+		<div class="row">
+			<div class="row-label">
 				<span class="label">Clear all data</span>
 				<span class="hint">Permanently deletes all todos, habits, and notes.</span>
 			</div>
-			<button class="action-btn danger-btn" on:click={clearData}>Clear</button>
+			<button class="btn-destructive" on:click={clearData}>Clear</button>
 		</div>
 	</section>
 </div>
 
 <style>
 	.page {
-		max-width: 480px;
+		max-width: 640px;
 		display: flex;
 		flex-direction: column;
-		gap: 40px;
+		gap: 0;
+	}
+
+	/* Page header */
+	.page-header {
+		margin-bottom: 32px;
 	}
 
 	h1 {
 		margin: 0;
 		font-size: 24px;
 		font-weight: 600;
+		color: var(--text-primary);
+		letter-spacing: -0.01em;
 	}
 
-	h2 {
-		margin: 0 0 16px;
-		font-size: 13px;
-		font-weight: 600;
-		text-transform: uppercase;
-		letter-spacing: 0.08em;
-		color: var(--muted);
-	}
-
-	section {
+	/* Section */
+	.settings-section {
+		border-top: 1px solid var(--border-subtle);
+		padding: 24px 0;
 		display: flex;
 		flex-direction: column;
-		gap: 2px;
+		gap: 0;
 	}
 
+	.settings-section:last-child {
+		border-bottom: 1px solid var(--border-subtle);
+	}
+
+	.section-heading {
+		margin: 0 0 16px;
+		font-size: 11px;
+		font-weight: 500;
+		text-transform: uppercase;
+		letter-spacing: 0.04em;
+		color: var(--text-tertiary);
+	}
+
+	/* Row */
 	.row {
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
 		gap: 16px;
-		padding: 14px 0;
-		border-bottom: 1px solid var(--border);
+		padding: 12px 0;
 	}
 
-	.row:last-child {
-		border-bottom: none;
+	.row + .row {
+		border-top: 1px solid var(--border-subtle);
 	}
 
-	.col {
+	.row-label {
 		display: flex;
 		flex-direction: column;
 		gap: 2px;
+		min-width: 0;
 	}
 
 	.label {
 		font-size: 14px;
-		color: var(--text);
+		font-weight: 400;
+		color: var(--text-primary);
 	}
 
 	.hint {
-		font-size: 12px;
-		color: var(--muted);
+		font-size: 13px;
+		color: var(--text-secondary);
 	}
 
-	.toggle-group {
+	/* Segmented button group (theme toggle) */
+	.seg-group {
 		display: flex;
+		background: var(--surface-2);
+		border-radius: var(--radius-md);
+		padding: 2px;
 		gap: 2px;
+		flex-shrink: 0;
 	}
 
-	.toggle-group form {
+	.seg-group form {
 		display: contents;
 	}
 
-	.toggle-btn {
+	.seg-btn {
 		background: transparent;
-		border: 1px solid var(--border);
-		border-radius: 5px;
-		padding: 5px 14px;
+		border: none;
+		border-radius: 6px;
+		padding: 0 14px;
+		height: 28px;
 		font-size: 13px;
-		color: var(--muted);
+		font-weight: 500;
+		color: var(--text-secondary);
 		cursor: pointer;
-		transition: background 0.1s, color 0.1s;
+		transition: background 120ms var(--ease-out), color 120ms var(--ease-out);
 	}
 
-	.toggle-btn:hover {
-		background: var(--border);
-		color: var(--text);
+	.seg-btn:hover {
+		color: var(--text-primary);
 	}
 
-	.toggle-btn.active {
-		background: var(--accent);
-		color: #fff;
-		border-color: var(--accent);
+	.seg-btn.active {
+		background: var(--surface-overlay);
+		color: var(--text-primary);
+		box-shadow: var(--shadow-sm);
 	}
 
+	.seg-btn:focus-visible {
+		outline: 2px solid var(--border-focus);
+		outline-offset: 2px;
+	}
+
+	/* Accent swatches */
 	.swatch-row {
 		display: flex;
 		gap: 8px;
+		flex-shrink: 0;
 	}
 
 	.swatch-row form {
@@ -215,10 +252,10 @@
 	.swatch {
 		width: 24px;
 		height: 24px;
-		border-radius: 50%;
+		border-radius: var(--radius-full);
 		border: 2px solid transparent;
 		cursor: pointer;
-		transition: transform 0.1s, border-color 0.1s;
+		transition: transform 120ms var(--ease-out), border-color 120ms var(--ease-out);
 	}
 
 	.swatch:hover {
@@ -226,32 +263,69 @@
 	}
 
 	.swatch.selected {
-		border-color: var(--text);
+		border-color: var(--text-primary);
 	}
 
-	.action-btn {
+	.swatch:focus-visible {
+		outline: 2px solid var(--border-focus);
+		outline-offset: 2px;
+	}
+
+	/* Action buttons */
+	.btn-secondary {
 		background: transparent;
-		border: 1px solid var(--border);
-		border-radius: 6px;
-		padding: 7px 16px;
+		border: 1px solid var(--border-default);
+		border-radius: var(--radius-md);
+		padding: 0 16px;
+		height: 36px;
 		font-size: 13px;
-		color: var(--text);
+		font-weight: 500;
+		color: var(--text-primary);
 		cursor: pointer;
 		flex-shrink: 0;
-		transition: background 0.1s;
+		transition: background 120ms var(--ease-out), border-color 120ms var(--ease-out);
 	}
 
-	.action-btn:hover {
-		background: var(--border);
+	.btn-secondary:hover {
+		background: var(--surface-2);
+		border-color: var(--border-strong);
 	}
 
-	.danger-btn {
-		color: #ef4444;
-		border-color: #ef444440;
+	.btn-secondary:active {
+		transform: translateY(1px);
 	}
 
-	.danger-btn:hover {
-		background: #ef444415;
-		border-color: #ef4444;
+	.btn-secondary:focus-visible {
+		outline: 2px solid var(--border-focus);
+		outline-offset: 2px;
+	}
+
+	/* Destructive button §8.1 */
+	.btn-destructive {
+		background: transparent;
+		border: 1px solid color-mix(in oklab, var(--danger) 40%, transparent);
+		border-radius: var(--radius-md);
+		padding: 0 16px;
+		height: 36px;
+		font-size: 13px;
+		font-weight: 500;
+		color: var(--danger);
+		cursor: pointer;
+		flex-shrink: 0;
+		transition: background 120ms var(--ease-out), border-color 120ms var(--ease-out);
+	}
+
+	.btn-destructive:hover {
+		background: var(--danger-soft);
+		border-color: var(--danger);
+	}
+
+	.btn-destructive:active {
+		transform: translateY(1px);
+	}
+
+	.btn-destructive:focus-visible {
+		outline: 2px solid var(--border-focus);
+		outline-offset: 2px;
 	}
 </style>

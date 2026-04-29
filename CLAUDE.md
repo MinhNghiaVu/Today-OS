@@ -127,9 +127,9 @@ Any task that creates or modifies UI must follow this. No exceptions.
 
 **Phase 2 — Supabase + Auth: COMPLETE pending manual setup.** I need to follow `docs/phase2-setup.md` to wire keys, run the migration, and enable Google OAuth. After that, Phase 3 begins.
 
-**Phase 2.5 — Design system rollout (next, before Phase 3).** Wire `docs/design-system.md` tokens into `src/app.css`, refactor existing screens (Today, Todos, Habits, Notes, Settings, Sidebar) to match the system. Audit each screen against the design doc, list issues, fix top-down. No new features in this phase.
+**Phase 2.5 — COMPLETE.** All screens refactored to design system: tokens, typography, motion, empty states, Toast component.
 
-**Phase 3 — Calendar & history.** Spec section 5: month view + per-day breakdown (todos, habits, notes), optional simple charts for last 7/30 days. Built against the now-finalized design system.
+**Phase 3 — Calendar & history (next).** Spec section 5: month view + per-day breakdown (todos, habits, notes), optional simple charts for last 7/30 days. Built against the now-finalized design system.
 
 ---
 
@@ -148,10 +148,10 @@ Any task that creates or modifies UI must follow this. No exceptions.
 - [x] **Phase 2.5 — `src/lib/components/Select.svelte`** — reusable animated dropdown (fly in/out, chevron rotation, check icon on selected, keyboard nav, hidden input for form submission). Used on Todos priority fields.
 - [x] **Phase 2.5 — Audit & refactor Habits screen** — same container/padding fix; row density set to Default; New Habit button is primary `md`; empty state per §8.12.
 - [x] **Phase 2.5 — Apply `Select` component to Habits screen** — replace native `<select>` for habit type on the Habits add/edit form.
-- [ ] **Phase 2.5 — Audit & refactor Notes screen** — Inter for note body (not mono); editor/preview as a segmented control per §8.9; selected-note crossfade per §9.
-- [ ] **Phase 2.5 — Audit & refactor Settings screen** — section structure per §8.8; danger button for Clear; max-width container.
-- [ ] **Phase 2.5 — Audit & refactor Today screen** — page header + section gaps per §7; inline log motion per §9.
-- [ ] **Phase 2.5 — Toast component** + global `toast()` helper per §8.14. Replace any inline error banners that should be transient.
+- [x] **Phase 2.5 — Audit & refactor Notes screen** — Inter for note body (not mono); editor/preview as a segmented control per §8.9; selected-note crossfade per §9.
+- [x] **Phase 2.5 — Audit & refactor Settings screen** — section structure per §8.8; danger button for Clear; max-width container.
+- [x] **Phase 2.5 — Audit & refactor Today screen** — page header + section gaps per §7; inline log motion per §9.
+- [x] **Phase 2.5 — Toast component** + global `toast()` helper per §8.14. Replace any inline error banners that should be transient.
 - [ ] **Phase 3 — `/calendar` route:** month grid view; click a date → per-day panel (todos due, habit totals, notes for that date). Spec §5.
 - [ ] **Phase 3 — Habit charts:** 7-day and 30-day bar/line per habit on the per-day panel and/or `/habits/{id}` detail view.
 - [ ] **Phase 4 — Google Calendar (read-only)** on Today + per-day. Spec §6.
@@ -179,6 +179,15 @@ _(Add when blocked. I review between sessions.)_
 ---
 
 ## Log
+
+### 2026-04-29 (session 5 — Phase 2.5 completion)
+- `notes/+page.svelte` — token migration; content textarea → Inter 15px/1.6 (removed mono); tab bar → segmented control (§8.9) with CSS sliding indicator and 200ms ease-out transition; `{#key selectedId}` fly transition on note switch; proper §8.12 empty states (list + editor); delete button → destructive secondary variant using `--danger`/`--danger-soft`; active item uses `--surface-3`.
+- `settings/+page.svelte` — full token migration; section structure per §8.8 (border-top separators, 11px uppercase headings); theme toggle → segmented control style (`--surface-overlay` + `--shadow-sm`); export button → proper secondary; clear button → destructive secondary with `--danger`/`--danger-soft`/`color-mix` border.
+- `today/+page.svelte` — full token migration; priority badges use semantic tokens (`--danger-soft`/`--warning-soft`/`--info-soft`); input focus → outline not border; todo list `fly` + `flip` animate:flip transitions; log row `fly` in/out; bar-warn uses `var(--danger)` not inline hex; input radius → `--radius-md` (8px).
+- `src/lib/toast.ts` — writable store with `add()`/`dismiss()`; auto-dismiss 4s success/info, 6s error; max 3 visible.
+- `src/lib/components/Toast.svelte` — bottom-right fixed; `fly={{ y: 12 }}` in / `fly={{ y: 8 }}` out; `flip` animate for stacking; icon per variant; dismiss button; `aria-live="polite"`.
+- `+layout.svelte` — imported and mounted `<Toast />`.
+- Phase 2.5 COMPLETE. All screens on design system tokens + motion.
 
 ### 2026-04-25 (session 4 — Phase 2)
 - Installed `@supabase/supabase-js` + `@supabase/ssr`.

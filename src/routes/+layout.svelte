@@ -6,6 +6,7 @@
 	import { fly } from 'svelte/transition';
 	import { cubicOut } from 'svelte/easing';
 	import { Sun, CheckSquare, Activity, FileText, Settings2, ChevronUp } from 'lucide-svelte';
+	import Toast from '$lib/components/Toast.svelte';
 
 	export let data: { preferences?: { theme: 'dark' | 'light'; accentIndex: number }; user?: { email?: string } | null };
 
@@ -126,6 +127,8 @@
 		<slot />
 	</main>
 </div>
+
+<Toast />
 
 <style>
 	.layout {

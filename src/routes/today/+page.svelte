@@ -1,5 +1,8 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { fly } from 'svelte/transition';
+	import { flip } from 'svelte/animate';
+	import { cubicOut, cubicIn } from 'svelte/easing';
 	import type { PageData } from './$types';
 	import type { TodoPriority } from '$lib/types';
 
@@ -34,11 +37,13 @@
 </script>
 
 <div class="page">
-	<h1>{dateLabel}</h1>
+	<header class="page-header">
+		<h1>{dateLabel}</h1>
+	</header>
 
 	<!-- Todos -->
 	<section>
-		<h2>Todos</h2>
+		<h2 class="section-label">Todos</h2>
 
 		<form
 			method="POST"
@@ -53,13 +58,24 @@
 				};
 			}}
 		>
-			<input bind:value={newTodo} name="title" placeholder="Add a task…" autocomplete="off" />
-			<button type="submit">Add</button>
+			<input
+				bind:value={newTodo}
+				name="title"
+				placeholder="Add a task…"
+				autocomplete="off"
+				aria-label="New task"
+			/>
+			<button type="submit" class="btn-primary">Add</button>
 		</form>
 
 		<ul class="todo-list">
 			{#each data.todosToday as todo (todo.id)}
-				<li class:done={todo.status === 'done'}>
+				<li
+					class:done={todo.status === 'done'}
+					in:fly={{ y: -8, duration: 220, easing: cubicOut }}
+					out:fly={{ y: 4, duration: 160, easing: cubicIn }}
+					animate:flip={{ duration: 220, easing: cubicOut }}
+				>
 					{#if editingId === todo.id}
 						<form
 							method="POST"
@@ -71,7 +87,7 @@
 							}}
 						>
 							<input type="hidden" name="id" value={todo.id} />
-							<input class="edit-title" name="title" value={todo.title} required />
+							<input class="edit-title" name="title" value={todo.title} required aria-label="Edit task title" />
 							<div class="edit-meta">
 								<input type="date" class="meta-input" name="due_date" value={todo.due_date ?? todayStr} />
 								<select class="meta-input" name="priority">
@@ -81,15 +97,15 @@
 								</select>
 							</div>
 							<div class="edit-actions">
-								<button type="submit" class="btn-primary">Save</button>
-								<button type="button" class="btn-ghost" on:click={() => (editingId = null)}>Cancel</button>
+								<button type="submit" class="btn-primary-sm">Save</button>
+								<button type="button" class="btn-ghost-sm" on:click={() => (editingId = null)}>Cancel</button>
 							</div>
 						</form>
 					{:else}
 						<form method="POST" action="?/toggleTodo" use:enhance>
 							<input type="hidden" name="id" value={todo.id} />
 							<input type="hidden" name="status" value={todo.status} />
-							<button type="submit" class="check" class:checked={todo.status === 'done'} aria-label="toggle">
+							<button type="submit" class="check" class:checked={todo.status === 'done'} aria-label="Toggle done">
 								{#if todo.status === 'done'}✓{/if}
 							</button>
 						</form>
@@ -103,7 +119,7 @@
 						<div class="actions">
 							<form method="POST" action="?/removeTodo" use:enhance>
 								<input type="hidden" name="id" value={todo.id} />
-								<button type="submit" class="del" aria-label="delete">×</button>
+								<button type="submit" class="del" aria-label="Delete task">×</button>
 							</form>
 						</div>
 					{/if}
@@ -114,59 +130,62 @@
 
 	<!-- Habits -->
 	<section>
-		<h2>Habits</h2>
+		<h2 class="section-label">Habits</h2>
 
 		<div class="habits-box">
-		<ul class="habit-list">
-			{#each data.habitTotals as habit (habit.id)}
-				<li>
-					<div class="habit-info">
-						<span class="habit-name">{habit.name}</span>
-						<div class="habit-right">
-							<span class="habit-count">
-								{habit.total}{habit.daily_goal !== null ? ` / ${habit.daily_goal}` : ''} {habit.unit}
-							</span>
-							<button class="log-btn" on:click={() => openLog(habit.id)} aria-label="log">+</button>
+			<ul class="habit-list">
+				{#each data.habitTotals as habit (habit.id)}
+					<li>
+						<div class="habit-info">
+							<span class="habit-name">{habit.name}</span>
+							<div class="habit-right">
+								<span class="habit-count">
+									{habit.total}{habit.daily_goal !== null ? ` / ${habit.daily_goal}` : ''} {habit.unit}
+								</span>
+								<button class="log-btn" on:click={() => openLog(habit.id)} aria-label="Log {habit.name}">+</button>
+							</div>
 						</div>
-					</div>
-					<div class="bar-track">
-						<div
-							class="bar-fill"
-							class:bar-met={habit.type === 'min_goal' && habit.daily_goal !== null && habit.total >= habit.daily_goal}
-							class:bar-warn={habit.type === 'max_goal' && habit.daily_goal !== null && habit.total > habit.daily_goal}
-							style="
-								width: {habit.daily_goal ? Math.min(100, (habit.total / habit.daily_goal) * 100) : 100}%;
-								background: {habit.color};
-							"
-						></div>
-					</div>
-					{#if activeHabitId === habit.id}
-						<form
-							method="POST"
-							action="?/logHabit"
-							class="log-row"
-							use:enhance={() => {
-								logAmount = '';
-								activeHabitId = null;
-								return async ({ update }) => update();
-							}}
-						>
-							<input type="hidden" name="habit_id" value={habit.id} />
-							<input
-								type="number"
-								name="value"
-								min="0"
-								step="any"
-								bind:value={logAmount}
-								placeholder="Amount…"
-						/>
-							<button type="submit">Log</button>
-							<button type="button" on:click={() => (activeHabitId = null)}>Cancel</button>
-						</form>
-					{/if}
-				</li>
-			{/each}
-		</ul>
+						<div class="bar-track">
+							<div
+								class="bar-fill"
+								class:bar-met={habit.type === 'min_goal' && habit.daily_goal !== null && habit.total >= habit.daily_goal}
+								class:bar-warn={habit.type === 'max_goal' && habit.daily_goal !== null && habit.total > habit.daily_goal}
+								style="
+									width: {habit.daily_goal ? Math.min(100, (habit.total / habit.daily_goal) * 100) : 100}%;
+									background: {habit.color};
+								"
+							></div>
+						</div>
+						{#if activeHabitId === habit.id}
+							<form
+								method="POST"
+								action="?/logHabit"
+								class="log-row"
+								in:fly={{ y: -6, duration: 180, easing: cubicOut }}
+								out:fly={{ y: -4, duration: 140, easing: cubicIn }}
+								use:enhance={() => {
+									logAmount = '';
+									activeHabitId = null;
+									return async ({ update }) => update();
+								}}
+							>
+								<input type="hidden" name="habit_id" value={habit.id} />
+								<input
+									type="number"
+									name="value"
+									min="0"
+									step="any"
+									bind:value={logAmount}
+									placeholder="Amount…"
+									aria-label="Log amount"
+								/>
+								<button type="submit" class="btn-primary-sm">Log</button>
+								<button type="button" class="btn-ghost-sm" on:click={() => (activeHabitId = null)}>Cancel</button>
+							</form>
+						{/if}
+					</li>
+				{/each}
+			</ul>
 		</div>
 	</section>
 </div>
@@ -179,19 +198,26 @@
 		gap: 40px;
 	}
 
+	/* Page header */
+	.page-header {
+		margin-bottom: -8px;
+	}
+
 	h1 {
 		margin: 0;
 		font-size: 24px;
 		font-weight: 600;
+		color: var(--text-primary);
+		letter-spacing: -0.01em;
 	}
 
-	h2 {
-		margin: 0 0 16px;
-		font-size: 13px;
-		font-weight: 600;
+	.section-label {
+		margin: 0 0 12px;
+		font-size: 11px;
+		font-weight: 500;
 		text-transform: uppercase;
-		letter-spacing: 0.08em;
-		color: var(--muted);
+		letter-spacing: 0.04em;
+		color: var(--text-tertiary);
 	}
 
 	section {
@@ -203,36 +229,61 @@
 	.add-row {
 		display: flex;
 		gap: 8px;
-		margin-bottom: 12px;
+		margin-bottom: 8px;
 	}
 
 	.add-row input {
 		flex: 1;
-		background: var(--surface);
-		border: 1px solid var(--border);
-		border-radius: 6px;
-		padding: 8px 12px;
-		color: var(--text);
+		background: var(--surface-2);
+		border: 1px solid var(--border-default);
+		border-radius: var(--radius-md);
+		padding: 0 12px;
+		height: 36px;
+		color: var(--text-primary);
 		font-size: 14px;
+		font-family: inherit;
 		outline: none;
+		transition: border-color 120ms var(--ease-out);
+	}
+
+	.add-row input::placeholder {
+		color: var(--text-tertiary);
+	}
+
+	.add-row input:hover {
+		border-color: var(--border-strong);
 	}
 
 	.add-row input:focus {
-		border-color: var(--accent);
+		outline: 2px solid var(--border-focus);
+		outline-offset: 2px;
 	}
 
-	.add-row button {
+	.btn-primary {
 		background: var(--accent);
-		color: #fff;
+		color: var(--text-on-accent);
 		border: none;
-		border-radius: 6px;
-		padding: 8px 16px;
+		border-radius: var(--radius-md);
+		padding: 0 16px;
+		height: 36px;
 		font-size: 14px;
+		font-weight: 500;
 		cursor: pointer;
+		transition: background 120ms var(--ease-out), transform 120ms var(--ease-out);
 	}
 
-	.add-row button:hover {
+	.btn-primary:hover {
 		background: var(--accent-hover);
+	}
+
+	.btn-primary:active {
+		background: var(--accent-pressed);
+		transform: translateY(1px);
+	}
+
+	.btn-primary:focus-visible {
+		outline: 2px solid var(--border-focus);
+		outline-offset: 2px;
 	}
 
 	.todo-list {
@@ -249,12 +300,12 @@
 		align-items: center;
 		gap: 10px;
 		padding: 8px 10px;
-		border-radius: 8px;
-		transition: background 0.15s;
+		border-radius: var(--radius-md);
+		transition: background 120ms var(--ease-out);
 	}
 
 	.todo-list li:hover {
-		background: var(--surface);
+		background: var(--surface-2);
 	}
 
 	.todo-list li.done {
@@ -268,17 +319,17 @@
 	.check {
 		width: 20px;
 		height: 20px;
-		border: 1.5px solid var(--border);
-		border-radius: 50%;
+		border: 1.5px solid var(--border-strong);
+		border-radius: var(--radius-full);
 		background: transparent;
-		color: #fff;
+		color: var(--text-on-accent);
 		font-size: 11px;
 		cursor: pointer;
 		display: flex;
 		align-items: center;
 		justify-content: center;
 		flex-shrink: 0;
-		transition: background 0.1s, border-color 0.1s;
+		transition: background 120ms var(--ease-out), border-color 120ms var(--ease-out);
 	}
 
 	.check.checked {
@@ -288,6 +339,11 @@
 
 	.check:hover:not(.checked) {
 		border-color: var(--accent);
+	}
+
+	.check:focus-visible {
+		outline: 2px solid var(--border-focus);
+		outline-offset: 2px;
 	}
 
 	.todo-body {
@@ -301,25 +357,27 @@
 
 	.todo-title {
 		font-size: 14px;
+		color: var(--text-primary);
 	}
 
+	/* Priority badges — semantic tokens */
 	.p-badge {
 		font-size: 11px;
 		font-weight: 500;
 		padding: 1px 6px;
-		border-radius: 999px;
+		border-radius: var(--radius-full);
 		flex-shrink: 0;
 	}
 
-	.p-high { background: #ef444420; color: #ef4444; }
-	.p-medium { background: #f59e0b20; color: #f59e0b; }
-	.p-low { background: #3b82f620; color: #3b82f6; }
+	.p-high   { background: var(--danger-soft);  color: var(--danger); }
+	.p-medium { background: var(--warning-soft); color: var(--warning); }
+	.p-low    { background: var(--info-soft);    color: var(--info); }
 
 	.actions {
 		display: flex;
 		gap: 4px;
 		opacity: 0;
-		transition: opacity 0.1s;
+		transition: opacity 120ms var(--ease-out);
 		flex-shrink: 0;
 	}
 
@@ -332,14 +390,15 @@
 	.del {
 		background: transparent;
 		border: none;
-		color: var(--muted);
+		color: var(--text-tertiary);
 		font-size: 18px;
 		cursor: pointer;
 		line-height: 1;
 		padding: 0 2px;
+		transition: color 120ms var(--ease-out);
 	}
 
-	.del:hover { color: #ef4444; }
+	.del:hover { color: var(--danger); }
 
 	.edit-form {
 		flex: 1;
@@ -350,14 +409,21 @@
 	}
 
 	.edit-title {
-		background: var(--bg);
+		background: var(--surface-2);
 		border: 1px solid var(--accent);
-		border-radius: 6px;
-		padding: 6px 10px;
-		color: var(--text);
+		border-radius: var(--radius-md);
+		padding: 0 10px;
+		height: 36px;
+		color: var(--text-primary);
 		font-size: 14px;
+		font-family: inherit;
 		outline: none;
 		width: 100%;
+	}
+
+	.edit-title:focus {
+		outline: 2px solid var(--border-focus);
+		outline-offset: 2px;
 	}
 
 	.edit-meta {
@@ -366,49 +432,64 @@
 	}
 
 	.meta-input {
-		background: var(--bg);
-		border: 1px solid var(--border);
-		border-radius: 6px;
-		padding: 5px 8px;
-		color: var(--text);
+		background: var(--surface-2);
+		border: 1px solid var(--border-default);
+		border-radius: var(--radius-md);
+		padding: 0 8px;
+		height: 32px;
+		color: var(--text-primary);
 		font-size: 13px;
+		font-family: inherit;
 		outline: none;
+		transition: border-color 120ms var(--ease-out);
 	}
 
-	.meta-input:focus { border-color: var(--accent); }
+	.meta-input:focus {
+		outline: 2px solid var(--border-focus);
+		outline-offset: 2px;
+	}
 
 	.edit-actions {
 		display: flex;
 		gap: 8px;
 	}
 
-	.btn-primary {
+	.btn-primary-sm {
 		background: var(--accent);
-		color: #fff;
+		color: var(--text-on-accent);
 		border: none;
-		border-radius: 6px;
-		padding: 6px 14px;
+		border-radius: var(--radius-md);
+		padding: 0 14px;
+		height: 28px;
 		font-size: 13px;
+		font-weight: 500;
 		cursor: pointer;
+		transition: background 120ms var(--ease-out), transform 120ms var(--ease-out);
 	}
 
-	.btn-primary:hover { background: var(--accent-hover); }
+	.btn-primary-sm:hover { background: var(--accent-hover); }
+	.btn-primary-sm:active { background: var(--accent-pressed); transform: translateY(1px); }
 
-	.btn-ghost {
-		background: var(--border);
-		color: var(--text);
+	.btn-ghost-sm {
+		background: var(--surface-2);
+		color: var(--text-primary);
 		border: none;
-		border-radius: 6px;
-		padding: 6px 14px;
+		border-radius: var(--radius-md);
+		padding: 0 14px;
+		height: 28px;
 		font-size: 13px;
+		font-weight: 500;
 		cursor: pointer;
+		transition: background 120ms var(--ease-out);
 	}
+
+	.btn-ghost-sm:hover { background: var(--surface-3); }
 
 	/* Habits */
 	.habits-box {
-		background: var(--surface);
-		border: 1px solid var(--border);
-		border-radius: 10px;
+		background: var(--surface-1);
+		border: 1px solid var(--border-subtle);
+		border-radius: var(--radius-lg);
 		overflow: hidden;
 	}
 
@@ -425,15 +506,19 @@
 	}
 
 	.habit-list li + li {
-		border-top: 1px solid var(--border);
+		border-top: 1px solid var(--border-subtle);
 	}
 
 	.habit-info {
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
-		margin-bottom: 6px;
+		margin-bottom: 8px;
+	}
+
+	.habit-name {
 		font-size: 14px;
+		color: var(--text-primary);
 	}
 
 	.habit-right {
@@ -443,15 +528,15 @@
 	}
 
 	.habit-count {
-		color: var(--muted);
+		color: var(--text-secondary);
 		font-size: 13px;
 	}
 
 	.log-btn {
-		width: 22px;
-		height: 22px;
-		border: 1px solid var(--border);
-		border-radius: 4px;
+		width: 24px;
+		height: 24px;
+		border: 1px solid var(--border-default);
+		border-radius: var(--radius-sm);
 		background: transparent;
 		color: var(--accent);
 		font-size: 16px;
@@ -461,10 +546,20 @@
 		align-items: center;
 		justify-content: center;
 		opacity: 0;
-		transition: opacity 0.1s;
+		transition: opacity 120ms var(--ease-out), background 120ms var(--ease-out);
 	}
 
 	li:hover .log-btn {
+		opacity: 1;
+	}
+
+	.log-btn:hover {
+		background: var(--accent-soft);
+	}
+
+	.log-btn:focus-visible {
+		outline: 2px solid var(--border-focus);
+		outline-offset: 2px;
 		opacity: 1;
 	}
 
@@ -476,48 +571,38 @@
 
 	.log-row input {
 		flex: 1;
-		background: var(--surface);
-		border: 1px solid var(--border);
-		border-radius: 6px;
-		padding: 6px 10px;
-		color: var(--text);
+		background: var(--surface-2);
+		border: 1px solid var(--border-default);
+		border-radius: var(--radius-md);
+		padding: 0 10px;
+		height: 32px;
+		color: var(--text-primary);
 		font-size: 13px;
+		font-family: inherit;
 		outline: none;
+		transition: border-color 120ms var(--ease-out);
+	}
+
+	.log-row input:hover {
+		border-color: var(--border-strong);
 	}
 
 	.log-row input:focus {
-		border-color: var(--accent);
-	}
-
-	.log-row button {
-		border: none;
-		border-radius: 6px;
-		padding: 6px 12px;
-		font-size: 13px;
-		cursor: pointer;
-	}
-
-	.log-row button[type='submit'] {
-		background: var(--accent);
-		color: #fff;
-	}
-
-	.log-row button[type='button'] {
-		background: var(--border);
-		color: var(--text);
+		outline: 2px solid var(--border-focus);
+		outline-offset: 2px;
 	}
 
 	.bar-track {
-		height: 6px;
-		background: var(--border);
-		border-radius: 999px;
+		height: 5px;
+		background: var(--surface-3);
+		border-radius: var(--radius-full);
 		overflow: hidden;
 	}
 
 	.bar-fill {
 		height: 100%;
-		border-radius: 999px;
-		transition: width 0.3s ease, background 0.3s ease;
+		border-radius: var(--radius-full);
+		transition: width 300ms var(--ease-out);
 	}
 
 	.bar-fill.bar-met {
@@ -525,6 +610,6 @@
 	}
 
 	.bar-fill.bar-warn {
-		background: #ef4444 !important;
+		background: var(--danger) !important;
 	}
 </style>
