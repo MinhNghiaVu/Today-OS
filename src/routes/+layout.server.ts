@@ -3,7 +3,7 @@ import type { LayoutServerLoad } from './$types';
 
 const PUBLIC_PATHS = ['/login', '/auth'];
 
-export const load: LayoutServerLoad = async ({ locals, url }) => {
+export const load: LayoutServerLoad = async ({ locals, url, cookies }) => {
 	const { session, user } = locals;
 
 	const isPublic = PUBLIC_PATHS.some((p) => url.pathname.startsWith(p));
@@ -26,6 +26,8 @@ export const load: LayoutServerLoad = async ({ locals, url }) => {
 
 		if (data?.preferences) preferences = data.preferences;
 	}
+
+	cookies.set('theme', preferences.theme, { path: '/', maxAge: 60 * 60 * 24 * 365, sameSite: 'lax' });
 
 	return { session, user, preferences };
 };

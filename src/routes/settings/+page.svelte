@@ -124,7 +124,6 @@
 
 <style>
 	.page {
-		max-width: 640px;
 		display: flex;
 		flex-direction: column;
 		gap: 0;

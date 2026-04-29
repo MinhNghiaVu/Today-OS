@@ -14,6 +14,7 @@
 
 	$: if (browser) {
 		document.documentElement.setAttribute('data-theme', $settings.theme);
+		document.cookie = `theme=${$settings.theme};path=/;max-age=${60 * 60 * 24 * 365};samesite=lax`;
 		const p = ACCENT_PRESETS[$settings.accentIndex];
 		document.documentElement.style.setProperty('--accent', p.accent);
 		document.documentElement.style.setProperty('--accent-hover', p.hover);
