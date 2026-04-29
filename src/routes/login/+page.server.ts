@@ -11,7 +11,11 @@ export const actions: Actions = {
 
 		const { data, error } = await locals.supabase.auth.signInWithOAuth({
 			provider: 'google',
-			options: { redirectTo }
+			options: {
+				redirectTo,
+				scopes: 'openid email profile https://www.googleapis.com/auth/calendar.readonly',
+				queryParams: { access_type: 'offline', prompt: 'consent' }
+			}
 		});
 
 		if (error) return fail(500, { error: error.message });

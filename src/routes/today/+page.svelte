@@ -6,6 +6,14 @@
 	import type { PageData } from './$types';
 	import type { TodoPriority } from '$lib/types';
 
+	function formatTime(iso: string): string {
+		return new Date(iso).toLocaleTimeString('en-US', {
+			hour: 'numeric',
+			minute: '2-digit',
+			hour12: true
+		});
+	}
+
 	export let data: PageData;
 
 	const dateLabel = new Date().toLocaleDateString('en-US', {
@@ -40,6 +48,51 @@
 	<header class="page-header">
 		<h1>{dateLabel}</h1>
 	</header>
+
+	<!-- Schedule -->
+	<section>
+		<h2 class="section-label">Schedule</h2>
+
+		{#if data.calendarState === 'disconnected' || data.calendarState === 'expired'}
+			<div class="cal-connect">
+				<span class="cal-connect-text">
+					{data.calendarState === 'expired' ? 'Google Calendar access expired.' : 'No calendar connected.'}
+				</span>
+				<a href="/auth/connect-calendar" class="btn-connect">
+					{data.calendarState === 'expired' ? 'Reconnect' : 'Connect'}
+				</a>
+			</div>
+		{:else}
+			{#await data.calendarEvents}
+				<div class="cal-loading">Loading events…</div>
+			{:then events}
+				{#if events.length === 0}
+					<p class="cal-none">No events today.</p>
+				{:else}
+					<ul class="event-list">
+						{#each events as event (event.id)}
+							<li class="event-row">
+								<span class="event-time">
+									{event.allDay ? 'All day' : formatTime(event.start)}
+								</span>
+								<div class="event-body">
+									<span class="event-title">{event.title}</span>
+									{#if event.location}
+										<span class="event-loc">{event.location}</span>
+									{/if}
+								</div>
+							</li>
+						{/each}
+					</ul>
+				{/if}
+			{:catch}
+				<div class="cal-connect">
+					<span class="cal-connect-text">Couldn't load calendar events.</span>
+					<a href="/auth/connect-calendar" class="btn-connect">Reconnect</a>
+				</div>
+			{/await}
+		{/if}
+	</section>
 
 	<!-- Todos -->
 	<section>
@@ -192,7 +245,6 @@
 
 <style>
 	.page {
-		max-width: 560px;
 		display: flex;
 		flex-direction: column;
 		gap: 40px;
@@ -611,5 +663,104 @@
 
 	.bar-fill.bar-warn {
 		background: var(--danger) !important;
+	}
+
+	/* Schedule / Google Calendar */
+	.cal-connect {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		padding: 10px 12px;
+		background: var(--surface-1);
+		border: 1px solid var(--border-subtle);
+		border-radius: var(--radius-md);
+	}
+
+	.cal-connect-text {
+		flex: 1;
+		font-size: 13px;
+		color: var(--text-secondary);
+	}
+
+	.btn-connect {
+		font-size: 13px;
+		font-weight: 500;
+		color: var(--accent);
+		text-decoration: none;
+		padding: 4px 10px;
+		border-radius: var(--radius-md);
+		background: var(--accent-soft);
+		transition: background 120ms var(--ease-out);
+		white-space: nowrap;
+	}
+
+	.btn-connect:hover {
+		background: var(--accent-soft-hover);
+	}
+
+	.cal-loading {
+		font-size: 13px;
+		color: var(--text-tertiary);
+		padding: 8px 0;
+	}
+
+	.cal-none {
+		font-size: 13px;
+		color: var(--text-tertiary);
+		margin: 0;
+		padding: 8px 0;
+	}
+
+	.event-list {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+	}
+
+	.event-row {
+		display: flex;
+		align-items: flex-start;
+		gap: 12px;
+		padding: 8px 10px;
+		border-radius: var(--radius-md);
+		transition: background 120ms var(--ease-out);
+	}
+
+	.event-row:hover {
+		background: var(--surface-2);
+	}
+
+	.event-time {
+		font-size: 12px;
+		color: var(--text-tertiary);
+		min-width: 60px;
+		flex-shrink: 0;
+		padding-top: 1px;
+	}
+
+	.event-body {
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+		min-width: 0;
+	}
+
+	.event-title {
+		font-size: 14px;
+		color: var(--text-primary);
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.event-loc {
+		font-size: 12px;
+		color: var(--text-tertiary);
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
 	}
 </style>

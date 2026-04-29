@@ -10,8 +10,17 @@
 		Activity,
 		FileText,
 		Circle,
-		CheckCircle2
+		CheckCircle2,
+		Clock
 	} from 'lucide-svelte';
+
+	function formatTime(iso: string): string {
+		return new Date(iso).toLocaleTimeString('en-US', {
+			hour: 'numeric',
+			minute: '2-digit',
+			hour12: true
+		});
+	}
 	import type { PageData } from './$types';
 
 	export let data: PageData;
@@ -191,6 +200,35 @@
 						</button>
 					</div>
 
+					<!-- Schedule section -->
+					<div class="panel-section">
+						<div class="section-label">
+							<Clock size={13} strokeWidth={2} aria-hidden="true" />
+							Schedule
+						</div>
+						{#if !data.gcConnected}
+							<a href="/auth/connect-calendar" class="gc-connect-link">Connect Google Calendar →</a>
+						{:else if dayData.gcEvents.length === 0}
+							<p class="empty-inline">No events.</p>
+						{:else}
+							<ul class="gc-event-list">
+								{#each dayData.gcEvents as event (event.id)}
+									<li class="gc-event-row">
+										<span class="gc-event-time">
+											{event.allDay ? 'All day' : formatTime(event.start)}
+										</span>
+										<div class="gc-event-body">
+											<span class="gc-event-title">{event.title}</span>
+											{#if event.location}
+												<span class="gc-event-loc">{event.location}</span>
+											{/if}
+										</div>
+									</li>
+								{/each}
+							</ul>
+						{/if}
+					</div>
+
 					<!-- Todos section -->
 					<div class="panel-section">
 						<div class="section-label">
@@ -296,13 +334,8 @@
 	}
 
 	.page-inner {
-		max-width: 1280px;
-		margin: 0 auto;
 		padding: 32px 24px;
 	}
-
-	@media (min-width: 640px) { .page-inner { padding: 32px 32px; } }
-	@media (min-width: 1024px) { .page-inner { padding: 32px 40px; } }
 
 	/* ── Page header ── */
 	.page-header {
@@ -767,5 +800,65 @@
 		color: var(--text-tertiary);
 		margin: 0;
 		text-align: center;
+	}
+
+	/* ── Google Calendar events ── */
+	.gc-connect-link {
+		font-size: 13px;
+		color: var(--accent);
+		text-decoration: none;
+		padding: 4px 0;
+		transition: opacity 120ms cubic-bezier(0.22, 1, 0.36, 1);
+	}
+
+	.gc-connect-link:hover { opacity: 0.8; }
+
+	.gc-event-list {
+		list-style: none;
+		padding: 0;
+		margin: 0;
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+	}
+
+	.gc-event-row {
+		display: flex;
+		align-items: flex-start;
+		gap: 10px;
+		padding: 7px 10px;
+		background: var(--surface-2);
+		border-radius: var(--radius-md);
+	}
+
+	.gc-event-time {
+		font-size: 11px;
+		color: var(--text-tertiary);
+		min-width: 54px;
+		flex-shrink: 0;
+		padding-top: 2px;
+	}
+
+	.gc-event-body {
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+		min-width: 0;
+	}
+
+	.gc-event-title {
+		font-size: 13px;
+		color: var(--text-primary);
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.gc-event-loc {
+		font-size: 11px;
+		color: var(--text-tertiary);
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
 	}
 </style>

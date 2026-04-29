@@ -1,17 +1,38 @@
 import { fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { getTodosToday, getHabitTotalsToday } from '$lib/db';
+import { getEventsForDate, type CalendarEvent } from '$lib/google-calendar';
 
 export const load: PageServerLoad = async ({ locals }) => {
 	const { user } = locals;
 	if (!user) redirect(303, '/login');
 
-	const [todosToday, habitTotals] = await Promise.all([
+	const today = new Date().toISOString().slice(0, 10);
+
+	const [todosToday, habitTotals, tokenRow] = await Promise.all([
 		getTodosToday(locals.supabase, user.id),
-		getHabitTotalsToday(locals.supabase, user.id)
+		getHabitTotalsToday(locals.supabase, user.id),
+		locals.supabase
+			.from('users')
+			.select('google_access_token, google_token_expiry')
+			.eq('id', user.id)
+			.single()
 	]);
 
-	return { todosToday, habitTotals };
+	const token = tokenRow.data?.google_access_token ?? null;
+	const expiry = tokenRow.data?.google_token_expiry ?? null;
+
+	let calendarState: 'ok' | 'disconnected' | 'expired' = 'disconnected';
+	if (token) {
+		calendarState = expiry && new Date(expiry) < new Date() ? 'expired' : 'ok';
+	}
+
+	const calendarEvents: Promise<CalendarEvent[]> =
+		calendarState === 'ok'
+			? getEventsForDate(token!, today).catch(() => [])
+			: Promise.resolve([]);
+
+	return { todosToday, habitTotals, calendarState, calendarEvents };
 };
 
 export const actions: Actions = {
