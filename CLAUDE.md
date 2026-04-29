@@ -144,8 +144,10 @@ Any task that creates or modifies UI must follow this. No exceptions.
 - [ ] **Manual:** follow `docs/phase2-setup.md` (Supabase project, env vars, migration, OAuth) and confirm `/today` loads against real DB.
 - [x] **Phase 2.5 — Wire design tokens into `src/app.css`** per `docs/design-system.md` §2–§6. Add Inter via `@fontsource-variable/inter`. Add easing curves. Add `prefers-reduced-motion` block.
 - [x] **Phase 2.5 — Audit & refactor Sidebar** — replace `email + sign-out button` with bottom account-block popover (design system §8.7). Active nav state via `--surface-3`, no left-border stripes.
-- [ ] **Phase 2.5 — Audit & refactor Todos screen** — split the input/date/priority/submit out of one box per §8.2. Add list-item enter/exit motion per §9. Container max-width + page padding per §7.
-- [ ] **Phase 2.5 — Audit & refactor Habits screen** — same container/padding fix; row density set to Default; New Habit button is primary `md`; empty state per §8.12.
+- [x] **Phase 2.5 — Audit & refactor Todos screen** — split the input/date/priority/submit out of one box per §8.2. Add list-item enter/exit motion per §9. Container max-width + page padding per §7. All tokens + inline hex replaced. Empty state per §8.12.
+- [x] **Phase 2.5 — `src/lib/components/Select.svelte`** — reusable animated dropdown (fly in/out, chevron rotation, check icon on selected, keyboard nav, hidden input for form submission). Used on Todos priority fields.
+- [x] **Phase 2.5 — Audit & refactor Habits screen** — same container/padding fix; row density set to Default; New Habit button is primary `md`; empty state per §8.12.
+- [x] **Phase 2.5 — Apply `Select` component to Habits screen** — replace native `<select>` for habit type on the Habits add/edit form.
 - [ ] **Phase 2.5 — Audit & refactor Notes screen** — Inter for note body (not mono); editor/preview as a segmented control per §8.9; selected-note crossfade per §9.
 - [ ] **Phase 2.5 — Audit & refactor Settings screen** — section structure per §8.8; danger button for Clear; max-width container.
 - [ ] **Phase 2.5 — Audit & refactor Today screen** — page header + section gaps per §7; inline log motion per §9.
