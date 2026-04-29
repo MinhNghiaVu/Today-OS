@@ -135,7 +135,7 @@ Any task that creates or modifies UI must follow this. No exceptions.
 
 **Phase 5 — AI Assistant: COMPLETE** (pending manual setup in phase5-setup.md — just an Anthropic API key). **Note: AI assistant is temporarily disabled** — Anthropic imports commented out in `src/routes/api/chat/+server.ts`, nav item commented out in layout. Re-enable when API key is ready.
 
-**Phase 6 — Job Board: PLANNED.** Full spec in section below. Start with DB migration, then server, then UI. Read the Phase 6 spec section before touching any file.
+**Phase 6 — Job Board: COMPLETE** (pending manual DB migration per `docs/phase6-setup.md` when written). All four sub-phases done: DB migration, server route, page UI, nav item.
 
 ---
 
@@ -165,8 +165,8 @@ Any task that creates or modifies UI must follow this. No exceptions.
 - [ ] **Manual:** follow `docs/phase5-setup.md` (Anthropic API key) and verify streaming chat works.
 - [x] **Phase 6.1 — DB migration** — `supabase/migrations/003_jobs.sql`; types in `src/lib/types.ts`; query helper `getJobs` in `src/lib/db.ts`. See Phase 6 spec below.
 - [x] **Phase 6.2 — Server route** — `src/routes/jobs/+page.server.ts`: load + `add` / `update` / `remove` actions. See Phase 6 spec below.
-- [ ] **Phase 6.3 — Page UI** — `src/routes/jobs/+page.svelte`: table layout, add-row form, inline edit, status badge quick-update, empty state. Read Phase 6 UI spec before writing a single line. See Phase 6 spec below.
-- [ ] **Phase 6.4 — Nav + cleanup** — add Briefcase nav item to layout; write `docs/phase6-setup.md` with migration SQL; update CLAUDE.md log.
+- [x] **Phase 6.3 — Page UI** — `src/routes/jobs/+page.svelte`: table layout, add-row form, inline edit, status badge quick-update, empty state. Read Phase 6 UI spec before writing a single line. See Phase 6 spec below.
+- [x] **Phase 6.4 — Nav + cleanup** — add Briefcase nav item to layout; write `docs/phase6-setup.md` with migration SQL; update CLAUDE.md log.
 - [ ] **Manual:** run `supabase/migrations/003_jobs.sql` against real Supabase (paste into dashboard SQL editor or `supabase db push`).
 
 ---
@@ -479,6 +479,11 @@ _(Add when blocked. I review between sessions.)_
 ---
 
 ## Log
+
+### 2026-04-30 (session 12 — Phase 6.3 + 6.4)
+- `src/routes/jobs/+page.svelte` — full table UI per spec: `max-w-7xl` container; page header with count badge + `+ Add` button; add-row form with `fly` transition; `table-shell` wrapper (surface-1, border, radius-xl, overflow-hidden); 8-column `<table>` (Company, Role, Status, Stage, Applied, Contact, Notes, Actions); status badge as styled Select.svelte trigger (`:global()` CSS overrides per status value — pending/applied/recruiter_screen/interview/offer/rejected/ghosted/dropped); status quick-update via per-row `<form bind:this>` + `requestSubmit()` after `tick()`; stage neutral pill shown only when status is `recruiter_screen` or later; delete button hover-reveal (opacity 0→1 on row hover); inline edit row (`<tr class="edit-row">` with `colspan=8`, `fly` in/out, 2-col CSS grid form with all fields, Select for status + stage, save/cancel); empty state inside table as `<tr>` with Briefcase icon; `$page.form?.error` → `toast(..., 'error')`; all design system tokens throughout.
+- `src/routes/+layout.svelte` — added `Briefcase` import + `{ href: '/jobs', label: 'Jobs', icon: Briefcase }` nav item between Calendar and Settings.
+- Phase 6.3 + 6.4 COMPLETE. Phase 6 fully done. Next: manual DB migration (run `supabase/migrations/003_jobs.sql`).
 
 ### 2026-04-30 (session 11 — Phase 6.2)
 - `src/routes/jobs/+page.server.ts` — `load` (auth-gated, calls `getJobs`); `add` action (requires `company`, optional `role`, inserts `status: 'pending'`); `update` action (patches only FormData-present fields from `JOB_FIELDS` constant + always sets `updated_at`, validates company non-empty if present); `remove` action (`.eq('user_id')` guard). All actions: 401 → not authed, 400 → validation, 500 → DB error.
