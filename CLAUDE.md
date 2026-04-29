@@ -129,7 +129,9 @@ Any task that creates or modifies UI must follow this. No exceptions.
 
 **Phase 2.5 — COMPLETE.** All screens refactored to design system: tokens, typography, motion, empty states, Toast component.
 
-**Phase 3 — Calendar & history: IN PROGRESS.** `/calendar` route and habit charts shipped. Manual DB setup (phase2-setup.md) still pending before full testing.
+**Phase 3 — COMPLETE** (pending manual DB setup in phase2-setup.md).
+
+**Phase 4 — Google Calendar (read-only): COMPLETE** (pending manual setup in phase4-setup.md).
 
 ---
 
@@ -154,7 +156,7 @@ Any task that creates or modifies UI must follow this. No exceptions.
 - [x] **Phase 2.5 — Toast component** + global `toast()` helper per §8.14. Replace any inline error banners that should be transient.
 - [x] **Phase 3 — `/calendar` route:** month grid view; click a date → per-day panel (todos due, habit totals, notes for that date). Spec §5.
 - [x] **Phase 3 — Habit charts:** 7-day and 30-day bar/line per habit on `/habits/{id}` detail view.
-- [ ] **Phase 4 — Google Calendar (read-only)** on Today + per-day. Spec §6.
+- [x] **Phase 4 — Google Calendar (read-only)** on Today + per-day. Spec §6.
 - [ ] **Phase 5 — AI assistant** at `/assistant`. Spec §7.
 
 ---
@@ -179,6 +181,20 @@ _(Add when blocked. I review between sessions.)_
 ---
 
 ## Log
+
+### 2026-04-29 (session 7 — Phase 4)
+- `supabase/migrations/002_google_tokens.sql` — adds `google_access_token`, `google_refresh_token`, `google_token_expiry` columns to `users` table.
+- `src/routes/login/+page.server.ts` — OAuth sign-in now requests `calendar.readonly` scope with `access_type: offline` + `prompt: consent` to obtain refresh token.
+- `src/routes/auth/callback/+server.ts` — after code exchange, stores `provider_token` + `provider_refresh_token` + 55-min expiry in `users` table.
+- `src/routes/auth/connect-calendar/+server.ts` — new GET route; re-initiates OAuth with calendar scope for already-authed users (used by "Connect"/"Reconnect" buttons).
+- `src/lib/google-calendar.ts` — `CalendarEvent` type, `getEventsForDate(token, date)` fetches primary calendar events (throws `TOKEN_EXPIRED` on 401), `formatEventTime()` utility.
+- `src/routes/today/+page.server.ts` — loads `google_access_token`/`google_token_expiry` from DB; derives `calendarState` (`ok`/`disconnected`/`expired`); streams `calendarEvents` Promise so Today page renders without blocking on Calendar API.
+- `src/routes/today/+page.svelte` — new "Schedule" section (above Todos): shows event list with time + title + location, or connect/reconnect prompt, using `{#await}` for streamed events.
+- `src/routes/calendar/+page.server.ts` — loads GC token; adds `gcEvents: CalendarEvent[]` to `dayData` when date selected; adds `gcConnected` boolean to page data.
+- `src/routes/calendar/+page.svelte` — day panel gains "Schedule" section (first, above Todos) showing GC events or a connect link.
+- `docs/phase4-setup.md` — setup guide: enable Calendar API in GCP, add scope in Supabase Auth, re-authenticate; notes on token expiry, timezone limitation, primary-calendar-only.
+- Also committed: theme flash-prevention (inline cookie script in `app.html` + cookie write in layout), and `max-width` removal on Habits/Settings/Todos pages.
+- Phase 4 COMPLETE (pending manual setup per `docs/phase4-setup.md`).
 
 ### 2026-04-29 (session 6 — Phase 3)
 - `src/lib/db.ts` — added `getTodosForDate`, `getHabitTotalsForDate`, `getNotesForDate`, `getCalendarMonthActivity` (returns `DayActivity[]` with dot indicators per day), `getHabitLogsForRange` (returns `HabitDailyTotal[]` for chart range), exported `DayActivity` and `HabitDailyTotal` types.
