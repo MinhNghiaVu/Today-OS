@@ -133,6 +133,8 @@ Any task that creates or modifies UI must follow this. No exceptions.
 
 **Phase 4 — Google Calendar (read-only): COMPLETE** (pending manual setup in phase4-setup.md).
 
+**Phase 5 — AI Assistant: COMPLETE** (pending manual setup in phase5-setup.md — just an Anthropic API key).
+
 ---
 
 ## Task Queue
@@ -157,7 +159,8 @@ Any task that creates or modifies UI must follow this. No exceptions.
 - [x] **Phase 3 — `/calendar` route:** month grid view; click a date → per-day panel (todos due, habit totals, notes for that date). Spec §5.
 - [x] **Phase 3 — Habit charts:** 7-day and 30-day bar/line per habit on `/habits/{id}` detail view.
 - [x] **Phase 4 — Google Calendar (read-only)** on Today + per-day. Spec §6.
-- [ ] **Phase 5 — AI assistant** at `/assistant`. Spec §7.
+- [x] **Phase 5 — AI assistant** at `/assistant`. Spec §7.
+- [ ] **Manual:** follow `docs/phase5-setup.md` (Anthropic API key) and verify streaming chat works.
 
 ---
 
@@ -181,6 +184,16 @@ _(Add when blocked. I review between sessions.)_
 ---
 
 ## Log
+
+### 2026-04-29 (session 8 — Phase 5)
+- `bun add @anthropic-ai/sdk@0.91.1` — Anthropic SDK installed.
+- `src/routes/api/chat/+server.ts` — auth-gated POST endpoint; pulls `getHabitTotalsToday`, `getTodosToday`, `getNotes` from Supabase; builds a system prompt with today's context; streams Claude Haiku response via `ReadableStream`.
+- `src/routes/assistant/+page.server.ts` — minimal load with auth guard.
+- `src/routes/assistant/+page.svelte` — chat UI: empty state (Bot icon + 5 example question chips), message list (user right/accent, assistant left/surface-2), streaming cursor animation, textarea input with Enter-to-send and Shift+Enter for newline, send button (accent, disabled when empty or loading, spinner while streaming), error toast on failure. Design system tokens throughout, `max-w-3xl`, all 4 states.
+- `src/routes/+layout.svelte` — added `Bot` icon import + "Assistant" nav item between Calendar and Settings.
+- `.env.example` — added `ANTHROPIC_API_KEY` placeholder.
+- `docs/phase5-setup.md` — setup guide: get Anthropic API key, add to `.env`, verify.
+- Phase 5 COMPLETE (pending manual setup per `docs/phase5-setup.md`).
 
 ### 2026-04-29 (session 7 — Phase 4)
 - `supabase/migrations/002_google_tokens.sql` — adds `google_access_token`, `google_refresh_token`, `google_token_expiry` columns to `users` table.

@@ -44,8 +44,8 @@
 	}
 
 	.card {
-		background: var(--surface);
-		border: 1px solid var(--border);
+		background: var(--surface-2);
+		border: 1px solid var(--border-default);
 		border-radius: 12px;
 		padding: 40px 48px;
 		display: flex;
@@ -65,7 +65,7 @@
 	.sub {
 		margin: 0;
 		font-size: 14px;
-		color: var(--muted);
+		color: var(--text-secondary);
 	}
 
 	.error {
@@ -79,19 +79,19 @@
 		display: flex;
 		align-items: center;
 		gap: 10px;
-		background: var(--bg);
-		border: 1px solid var(--border);
+		background: var(--surface-3);
+		border: 1px solid var(--border-default);
 		border-radius: 8px;
 		padding: 10px 20px;
 		font-size: 14px;
-		color: var(--text);
+		color: var(--text-primary);
 		cursor: pointer;
 		transition: background 0.1s, border-color 0.1s;
 		margin-top: 8px;
 	}
 
 	.google-btn:hover {
-		background: var(--border);
+		background: var(--border-strong);
 		border-color: var(--accent);
 	}
 </style>
