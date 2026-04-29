@@ -142,8 +142,8 @@ Any task that creates or modifies UI must follow this. No exceptions.
 - [x] Settings page (theme, accent, export, clear).
 - [x] Phase 2 — Supabase + Google Auth code.
 - [ ] **Manual:** follow `docs/phase2-setup.md` (Supabase project, env vars, migration, OAuth) and confirm `/today` loads against real DB.
-- [ ] **Phase 2.5 — Wire design tokens into `src/app.css`** per `docs/design-system.md` §2–§6. Add Inter via `@fontsource-variable/inter`. Add easing curves. Add `prefers-reduced-motion` block.
-- [ ] **Phase 2.5 — Audit & refactor Sidebar** — replace `email + sign-out button` with bottom account-block popover (design system §8.7). Active nav state via `--surface-3`, no left-border stripes.
+- [x] **Phase 2.5 — Wire design tokens into `src/app.css`** per `docs/design-system.md` §2–§6. Add Inter via `@fontsource-variable/inter`. Add easing curves. Add `prefers-reduced-motion` block.
+- [x] **Phase 2.5 — Audit & refactor Sidebar** — replace `email + sign-out button` with bottom account-block popover (design system §8.7). Active nav state via `--surface-3`, no left-border stripes.
 - [ ] **Phase 2.5 — Audit & refactor Todos screen** — split the input/date/priority/submit out of one box per §8.2. Add list-item enter/exit motion per §9. Container max-width + page padding per §7.
 - [ ] **Phase 2.5 — Audit & refactor Habits screen** — same container/padding fix; row density set to Default; New Habit button is primary `md`; empty state per §8.12.
 - [ ] **Phase 2.5 — Audit & refactor Notes screen** — Inter for note body (not mono); editor/preview as a segmented control per §8.9; selected-note crossfade per §9.

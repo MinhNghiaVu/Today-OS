@@ -53,7 +53,7 @@
 			<input class="add-title" name="title" placeholder="Add a task…" autocomplete="off" required />
 		</div>
 		<div class="add-meta">
-			<input type="date" class="meta-input" name="due_date" />
+			<input type="date" class="meta-input" name="due_date" value={todayStr} />
 			<select class="meta-input" name="priority">
 				{#each priorityOpts as opt}
 					<option value={opt.value}>{opt.label}</option>
@@ -137,7 +137,8 @@
 								{#if todo.status === 'done'}✓{/if}
 							</button>
 						</form>
-						<div class="todo-body">
+						<!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
+						<div class="todo-body" on:click={() => (editingId = todo.id)}>
 							<div class="todo-top">
 								<span class="todo-title">{todo.title}</span>
 								{#if todo.priority}
@@ -157,13 +158,12 @@
 							{/if}
 						</div>
 						<div class="actions">
-							<button class="act-btn" on:click={() => (editingId = todo.id)} title="Edit">✎</button>
 							<form method="POST" action="?/remove" use:enhance={({ cancel }) => {
 								if (!confirm(`Delete "${todo.title}"?`)) cancel();
 								return async ({ update }) => update();
 							}}>
 								<input type="hidden" name="id" value={todo.id} />
-								<button type="submit" class="act-btn danger" title="Delete">✕</button>
+								<button type="submit" class="act-btn danger" title="Delete" aria-label="delete">✕</button>
 							</form>
 						</div>
 					{/if}
@@ -288,17 +288,15 @@
 
 	.todo-list li {
 		display: flex;
-		align-items: flex-start;
+		align-items: center;
 		gap: 10px;
 		padding: 10px 12px;
-		background: var(--surface);
-		border: 1px solid var(--border);
 		border-radius: 8px;
-		transition: border-color 0.1s;
+		transition: background 0.15s;
 	}
 
 	.todo-list li:hover {
-		border-color: var(--accent);
+		background: var(--surface);
 	}
 
 	.todo-list li.done {
@@ -318,7 +316,6 @@
 		align-items: center;
 		justify-content: center;
 		flex-shrink: 0;
-		margin-top: 2px;
 		transition: background 0.1s, border-color 0.1s;
 	}
 
@@ -337,6 +334,7 @@
 		display: flex;
 		flex-direction: column;
 		gap: 4px;
+		cursor: pointer;
 	}
 
 	.todo-top {

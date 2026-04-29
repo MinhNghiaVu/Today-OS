@@ -64,7 +64,10 @@ export async function getHabitTotalsToday(
 		totals.set(log.habit_id, (totals.get(log.habit_id) ?? 0) + log.value);
 	}
 
-	return (habits ?? []).map((h) => ({ ...h, total: totals.get(h.id) ?? 0 }));
+	return (habits ?? []).map((h) => ({
+		...h,
+		total: parseFloat(((totals.get(h.id) ?? 0)).toFixed(6))
+	}));
 }
 
 export async function getLogsForHabitToday(

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import type { PageData } from './$types';
+	import type { TodoPriority } from '$lib/types';
 
 	export let data: PageData;
 
@@ -10,7 +11,19 @@
 		day: 'numeric'
 	});
 
+	const todayStr = new Date().toISOString().slice(0, 10);
+
+	const priorityOpts: { value: TodoPriority | ''; label: string }[] = [
+		{ value: '', label: 'No priority' },
+		{ value: 'high', label: 'High' },
+		{ value: 'medium', label: 'Medium' },
+		{ value: 'low', label: 'Low' }
+	];
+
+	const priorityLabels: Record<TodoPriority, string> = { high: 'High', medium: 'Med', low: 'Low' };
+
 	let newTodo = '';
+	let editingId: string | null = null;
 	let activeHabitId: string | null = null;
 	let logAmount = '';
 
@@ -47,21 +60,53 @@
 		<ul class="todo-list">
 			{#each data.todosToday as todo (todo.id)}
 				<li class:done={todo.status === 'done'}>
-					<form method="POST" action="?/toggleTodo" use:enhance>
-						<input type="hidden" name="id" value={todo.id} />
-						<input type="hidden" name="status" value={todo.status} />
-						<button type="submit" class="check" aria-label="toggle">
-							{#if todo.status === 'done'}✓{:else}&nbsp;{/if}
-						</button>
-					</form>
-					<span class="todo-title">{todo.title}</span>
-					{#if todo.priority}
-						<span class="p-badge p-{todo.priority}">{todo.priority[0].toUpperCase()}</span>
+					{#if editingId === todo.id}
+						<form
+							method="POST"
+							action="?/updateTodo"
+							class="edit-form"
+							use:enhance={() => async ({ result, update }) => {
+								if (result.type === 'success') editingId = null;
+								await update();
+							}}
+						>
+							<input type="hidden" name="id" value={todo.id} />
+							<input class="edit-title" name="title" value={todo.title} required />
+							<div class="edit-meta">
+								<input type="date" class="meta-input" name="due_date" value={todo.due_date ?? todayStr} />
+								<select class="meta-input" name="priority">
+									{#each priorityOpts as opt}
+										<option value={opt.value} selected={todo.priority === opt.value || (!todo.priority && opt.value === '')}>{opt.label}</option>
+									{/each}
+								</select>
+							</div>
+							<div class="edit-actions">
+								<button type="submit" class="btn-primary">Save</button>
+								<button type="button" class="btn-ghost" on:click={() => (editingId = null)}>Cancel</button>
+							</div>
+						</form>
+					{:else}
+						<form method="POST" action="?/toggleTodo" use:enhance>
+							<input type="hidden" name="id" value={todo.id} />
+							<input type="hidden" name="status" value={todo.status} />
+							<button type="submit" class="check" class:checked={todo.status === 'done'} aria-label="toggle">
+								{#if todo.status === 'done'}✓{/if}
+							</button>
+						</form>
+						<!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
+						<div class="todo-body" on:click={() => (editingId = todo.id)}>
+							<span class="todo-title">{todo.title}</span>
+							{#if todo.priority}
+								<span class="p-badge p-{todo.priority}">{priorityLabels[todo.priority]}</span>
+							{/if}
+						</div>
+						<div class="actions">
+							<form method="POST" action="?/removeTodo" use:enhance>
+								<input type="hidden" name="id" value={todo.id} />
+								<button type="submit" class="del" aria-label="delete">×</button>
+							</form>
+						</div>
 					{/if}
-					<form method="POST" action="?/removeTodo" use:enhance>
-						<input type="hidden" name="id" value={todo.id} />
-						<button type="submit" class="del" aria-label="delete">×</button>
-					</form>
 				</li>
 			{/each}
 		</ul>
@@ -71,6 +116,7 @@
 	<section>
 		<h2>Habits</h2>
 
+		<div class="habits-box">
 		<ul class="habit-list">
 			{#each data.habitTotals as habit (habit.id)}
 				<li>
@@ -121,6 +167,7 @@
 				</li>
 			{/each}
 		</ul>
+		</div>
 	</section>
 </div>
 
@@ -194,65 +241,93 @@
 		padding: 0;
 		display: flex;
 		flex-direction: column;
-		gap: 4px;
+		gap: 2px;
 	}
 
 	.todo-list li {
 		display: flex;
 		align-items: center;
 		gap: 10px;
-		padding: 10px 12px;
-		background: var(--surface);
-		border: 1px solid var(--border);
-		border-radius: 6px;
+		padding: 8px 10px;
+		border-radius: 8px;
+		transition: background 0.15s;
 	}
 
-	.todo-list li.done span {
+	.todo-list li:hover {
+		background: var(--surface);
+	}
+
+	.todo-list li.done {
+		opacity: 0.5;
+	}
+
+	.todo-list li.done .todo-title {
 		text-decoration: line-through;
-		color: var(--muted);
 	}
 
 	.check {
 		width: 20px;
 		height: 20px;
-		border: 1px solid var(--border);
-		border-radius: 4px;
+		border: 1.5px solid var(--border);
+		border-radius: 50%;
 		background: transparent;
-		color: var(--accent);
-		font-size: 12px;
+		color: #fff;
+		font-size: 11px;
 		cursor: pointer;
 		display: flex;
 		align-items: center;
 		justify-content: center;
 		flex-shrink: 0;
+		transition: background 0.1s, border-color 0.1s;
 	}
 
-	.todo-list li.done .check {
+	.check.checked {
 		background: var(--accent);
 		border-color: var(--accent);
-		color: #fff;
+	}
+
+	.check:hover:not(.checked) {
+		border-color: var(--accent);
+	}
+
+	.todo-body {
+		flex: 1;
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		cursor: pointer;
+		min-width: 0;
 	}
 
 	.todo-title {
-		flex: 1;
 		font-size: 14px;
 	}
 
 	.p-badge {
-		font-size: 10px;
-		font-weight: 600;
-		width: 18px;
-		height: 18px;
-		border-radius: 50%;
-		display: flex;
-		align-items: center;
-		justify-content: center;
+		font-size: 11px;
+		font-weight: 500;
+		padding: 1px 6px;
+		border-radius: 999px;
 		flex-shrink: 0;
 	}
 
 	.p-high { background: #ef444420; color: #ef4444; }
 	.p-medium { background: #f59e0b20; color: #f59e0b; }
 	.p-low { background: #3b82f620; color: #3b82f6; }
+
+	.actions {
+		display: flex;
+		gap: 4px;
+		opacity: 0;
+		transition: opacity 0.1s;
+		flex-shrink: 0;
+	}
+
+	.actions form { display: contents; }
+
+	.todo-list li:hover .actions {
+		opacity: 1;
+	}
 
 	.del {
 		background: transparent;
@@ -262,22 +337,95 @@
 		cursor: pointer;
 		line-height: 1;
 		padding: 0 2px;
-		opacity: 0;
-		transition: opacity 0.1s;
 	}
 
-	.todo-list li:hover .del {
-		opacity: 1;
+	.del:hover { color: #ef4444; }
+
+	.edit-form {
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+		padding: 4px 0;
+	}
+
+	.edit-title {
+		background: var(--bg);
+		border: 1px solid var(--accent);
+		border-radius: 6px;
+		padding: 6px 10px;
+		color: var(--text);
+		font-size: 14px;
+		outline: none;
+		width: 100%;
+	}
+
+	.edit-meta {
+		display: flex;
+		gap: 8px;
+	}
+
+	.meta-input {
+		background: var(--bg);
+		border: 1px solid var(--border);
+		border-radius: 6px;
+		padding: 5px 8px;
+		color: var(--text);
+		font-size: 13px;
+		outline: none;
+	}
+
+	.meta-input:focus { border-color: var(--accent); }
+
+	.edit-actions {
+		display: flex;
+		gap: 8px;
+	}
+
+	.btn-primary {
+		background: var(--accent);
+		color: #fff;
+		border: none;
+		border-radius: 6px;
+		padding: 6px 14px;
+		font-size: 13px;
+		cursor: pointer;
+	}
+
+	.btn-primary:hover { background: var(--accent-hover); }
+
+	.btn-ghost {
+		background: var(--border);
+		color: var(--text);
+		border: none;
+		border-radius: 6px;
+		padding: 6px 14px;
+		font-size: 13px;
+		cursor: pointer;
 	}
 
 	/* Habits */
+	.habits-box {
+		background: var(--surface);
+		border: 1px solid var(--border);
+		border-radius: 10px;
+		overflow: hidden;
+	}
+
 	.habit-list {
 		list-style: none;
 		margin: 0;
 		padding: 0;
 		display: flex;
 		flex-direction: column;
-		gap: 12px;
+	}
+
+	.habit-list li {
+		padding: 14px 16px;
+	}
+
+	.habit-list li + li {
+		border-top: 1px solid var(--border);
 	}
 
 	.habit-info {

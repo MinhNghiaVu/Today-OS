@@ -52,6 +52,27 @@ export const actions: Actions = {
 		if (error) return fail(500, { error: error.message });
 	},
 
+	updateTodo: async ({ locals, request }) => {
+		const { user } = locals;
+		if (!user) return fail(401);
+
+		const form = await request.formData();
+		const id = form.get('id') as string;
+		const title = (form.get('title') as string)?.trim();
+		const due_date = (form.get('due_date') as string) || null;
+		const priority = (form.get('priority') as string) || null;
+
+		if (!id || !title) return fail(400, { error: 'Missing fields' });
+
+		const { error } = await locals.supabase
+			.from('todos')
+			.update({ title, due_date, priority })
+			.eq('id', id)
+			.eq('user_id', user.id);
+
+		if (error) return fail(500, { error: error.message });
+	},
+
 	removeTodo: async ({ locals, request }) => {
 		const { user } = locals;
 		if (!user) return fail(401);
