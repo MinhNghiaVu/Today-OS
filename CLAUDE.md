@@ -164,7 +164,7 @@ Any task that creates or modifies UI must follow this. No exceptions.
 - [x] **Phase 5 — AI assistant** at `/assistant`. Spec §7.
 - [ ] **Manual:** follow `docs/phase5-setup.md` (Anthropic API key) and verify streaming chat works.
 - [x] **Phase 6.1 — DB migration** — `supabase/migrations/003_jobs.sql`; types in `src/lib/types.ts`; query helper `getJobs` in `src/lib/db.ts`. See Phase 6 spec below.
-- [ ] **Phase 6.2 — Server route** — `src/routes/jobs/+page.server.ts`: load + `add` / `update` / `remove` actions. See Phase 6 spec below.
+- [x] **Phase 6.2 — Server route** — `src/routes/jobs/+page.server.ts`: load + `add` / `update` / `remove` actions. See Phase 6 spec below.
 - [ ] **Phase 6.3 — Page UI** — `src/routes/jobs/+page.svelte`: table layout, add-row form, inline edit, status badge quick-update, empty state. Read Phase 6 UI spec before writing a single line. See Phase 6 spec below.
 - [ ] **Phase 6.4 — Nav + cleanup** — add Briefcase nav item to layout; write `docs/phase6-setup.md` with migration SQL; update CLAUDE.md log.
 - [ ] **Manual:** run `supabase/migrations/003_jobs.sql` against real Supabase (paste into dashboard SQL editor or `supabase db push`).
@@ -479,6 +479,10 @@ _(Add when blocked. I review between sessions.)_
 ---
 
 ## Log
+
+### 2026-04-30 (session 11 — Phase 6.2)
+- `src/routes/jobs/+page.server.ts` — `load` (auth-gated, calls `getJobs`); `add` action (requires `company`, optional `role`, inserts `status: 'pending'`); `update` action (patches only FormData-present fields from `JOB_FIELDS` constant + always sets `updated_at`, validates company non-empty if present); `remove` action (`.eq('user_id')` guard). All actions: 401 → not authed, 400 → validation, 500 → DB error.
+- Phase 6.2 COMPLETE. Next: Phase 6.3 — page UI.
 
 ### 2026-04-30 (session 10 — Phase 6.1)
 - `supabase/migrations/003_jobs.sql` — `jobs` table with all columns; CHECK constraints on `status` (8 values) and `interview_stage` (5 values); RLS policy `users manage own jobs`; index `jobs_user_created`.

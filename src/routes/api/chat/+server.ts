@@ -1,7 +1,7 @@
-import { error, json } from '@sveltejs/kit';
-import Anthropic from '@anthropic-ai/sdk';
-import { ANTHROPIC_API_KEY } from '$env/static/private';
-import { getHabitTotalsToday, getTodosToday, getNotes } from '$lib/db';
+import { error } from '@sveltejs/kit';
+// import Anthropic from '@anthropic-ai/sdk';
+// import { ANTHROPIC_API_KEY } from '$env/static/private';
+// import { getHabitTotalsToday, getTodosToday, getNotes } from '$lib/db';
 import type { RequestHandler } from './$types';
 
 const client = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
@@ -86,57 +86,7 @@ ${notesSection}
 - Never make up data. If something wasn't tracked, say so.`;
 }
 
-export const POST: RequestHandler = async ({ request, locals }) => {
-	const user = locals.user;
-	if (!user) throw error(401, 'Unauthorized');
-
-	const body = await request.json().catch(() => null);
-	if (!body || !Array.isArray(body.messages) || body.messages.length === 0) {
-		throw error(400, 'messages array required');
-	}
-
-	const messages: { role: 'user' | 'assistant'; content: string }[] = body.messages;
-
-	const [habitTotals, todos, notes] = await Promise.all([
-		getHabitTotalsToday(locals.supabase, user.id),
-		getTodosToday(locals.supabase, user.id),
-		getNotes(locals.supabase, user.id)
-	]);
-
-	const systemPrompt = buildSystemPrompt(habitTotals, todos, notes);
-
-	const stream = client.messages.stream({
-		model: 'claude-haiku-4-5-20251001',
-		max_tokens: 1024,
-		system: systemPrompt,
-		messages
-	});
-
-	const readable = new ReadableStream({
-		async start(controller) {
-			const encoder = new TextEncoder();
-			try {
-				for await (const chunk of stream) {
-					if (
-						chunk.type === 'content_block_delta' &&
-						chunk.delta.type === 'text_delta'
-					) {
-						controller.enqueue(encoder.encode(chunk.delta.text));
-					}
-				}
-			} catch (e) {
-				controller.error(e);
-			} finally {
-				controller.close();
-			}
-		}
-	});
-
-	return new Response(readable, {
-		headers: {
-			'Content-Type': 'text/plain; charset=utf-8',
-			'Transfer-Encoding': 'chunked',
-			'Cache-Control': 'no-cache'
-		}
-	});
+export const POST: RequestHandler = async ({ locals }) => {
+	if (!locals.user) throw error(401, 'Unauthorized');
+	throw error(503, 'AI assistant temporarily disabled');
 };
