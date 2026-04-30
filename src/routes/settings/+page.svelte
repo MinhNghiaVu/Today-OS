@@ -127,6 +127,7 @@
 		display: flex;
 		flex-direction: column;
 		gap: 0;
+		padding: 32px 24px;
 	}
 
 	/* Page header */

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { fly, fade } from 'svelte/transition';
-	import { cubicOut } from 'svelte/easing';
+	import { cubicOut, cubicIn } from 'svelte/easing';
 	import {
 		ChevronLeft,
 		ChevronRight,
@@ -188,8 +188,8 @@
 			{#if selectedDate && dayData}
 				<div
 					class="day-panel"
-					in:fly={{ x: 20, duration: 220, easing: cubicOut }}
-					out:fade={{ duration: 140 }}
+					in:fly={{ x: 40, duration: 300, easing: cubicOut }}
+					out:fly={{ x: 24, duration: 180, easing: cubicIn }}
 				>
 					<div class="panel-header">
 						<div>
@@ -467,12 +467,29 @@
 		cursor: pointer;
 		color: var(--text-primary);
 		font-size: 13px;
-		transition: background-color 120ms cubic-bezier(0.22, 1, 0.36, 1);
 		padding: 0;
+		position: relative;
+		overflow: hidden;
 	}
 
-	.day-cell:hover {
+	/* Inside-out background animation via ::before */
+	.day-cell::before {
+		content: '';
+		position: absolute;
+		inset: 0;
+		border-radius: var(--radius-md);
 		background: var(--surface-2);
+		transform: scale(0.5);
+		opacity: 0;
+		transition:
+			transform 220ms cubic-bezier(0.34, 1.56, 0.64, 1),
+			opacity 140ms ease;
+		pointer-events: none;
+	}
+
+	.day-cell:hover::before {
+		transform: scale(1);
+		opacity: 1;
 	}
 
 	.day-cell:focus-visible {
@@ -480,7 +497,8 @@
 		outline-offset: 2px;
 	}
 
-	.day-cell.is-today .day-num {
+	/* Today — accent circle on number */
+	.day-cell.is-today:not(.is-selected) .day-num {
 		background: var(--accent);
 		color: var(--text-on-accent);
 		border-radius: var(--radius-full);
@@ -493,13 +511,26 @@
 		font-size: 12px;
 	}
 
-	.day-cell.is-selected {
-		background: var(--accent-soft);
+	/* Selected — full accent box fills from center */
+	.day-cell.is-selected::before {
+		background: var(--accent);
+		transform: scale(1);
+		opacity: 1;
+		transition:
+			transform 260ms cubic-bezier(0.34, 1.56, 0.64, 1),
+			opacity 160ms ease;
 	}
 
 	.day-cell.is-selected .day-num {
-		color: var(--accent);
+		color: #ffffff;
 		font-weight: 600;
+	}
+
+	/* Activity dots above ::before */
+	.day-num,
+	.dot-row {
+		position: relative;
+		z-index: 1;
 	}
 
 	.day-num {

@@ -167,7 +167,7 @@ Any task that creates or modifies UI must follow this. No exceptions.
 - [x] **Phase 6.2 — Server route** — `src/routes/jobs/+page.server.ts`: load + `add` / `update` / `remove` actions. See Phase 6 spec below.
 - [x] **Phase 6.3 — Page UI** — `src/routes/jobs/+page.svelte`: table layout, add-row form, inline edit, status badge quick-update, empty state. Read Phase 6 UI spec before writing a single line. See Phase 6 spec below.
 - [x] **Phase 6.4 — Nav + cleanup** — add Briefcase nav item to layout; write `docs/phase6-setup.md` with migration SQL; update CLAUDE.md log.
-- [ ] **Manual:** run `supabase/migrations/003_jobs.sql` against real Supabase (paste into dashboard SQL editor or `supabase db push`).
+- [x] **Manual:** run `supabase/migrations/003_jobs.sql` against real Supabase (paste into dashboard SQL editor or `supabase db push`).
 
 ---
 

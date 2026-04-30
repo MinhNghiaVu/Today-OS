@@ -36,12 +36,12 @@ Declared in `src/app.css` under `:root` (dark, the default) and overridden under
 
 | Token | Dark | Light | Use |
 |---|---|---|---|
-| `--bg` | `#0a0a0b` | `#fafafa` | App background. The deepest layer. |
-| `--surface-1` | `#131316` | `#ffffff` | Cards, sidebars, primary panels |
-| `--surface-2` | `#1c1c21` | `#f4f4f5` | Inputs, nested cards, hover-on-bg |
-| `--surface-3` | `#26262d` | `#e9e9ec` | Active row, hover-on-card |
-| `--surface-overlay` | `#1c1c21` | `#ffffff` | Popovers, dropdowns, menus (with shadow-md) |
-| `--surface-modal` | `#131316` | `#ffffff` | Modal sheets (with shadow-lg) |
+| `--bg` | `#191919` | `#fafafa` | App background. The deepest layer. |
+| `--surface-1` | `#202020` | `#ffffff` | Cards, sidebars, primary panels |
+| `--surface-2` | `#282828` | `#f4f4f5` | Inputs, nested cards, hover-on-bg |
+| `--surface-3` | `#323232` | `#e9e9ec` | Active row, hover-on-card |
+| `--surface-overlay` | `#2c2c2c` | `#ffffff` | Popovers, dropdowns, menus (with shadow-md) |
+| `--surface-modal` | `#202020` | `#ffffff` | Modal sheets (with shadow-lg) |
 
 Rule: never skip a surface level. A popover sits on `--surface-overlay`, which sits on `--surface-1`, which sits on `--bg`. Don't put `--surface-3` directly on `--bg`.
 
@@ -49,9 +49,9 @@ Rule: never skip a surface level. A popover sits on `--surface-overlay`, which s
 
 | Token | Dark | Light | Use |
 |---|---|---|---|
-| `--border-subtle` | `#1f1f24` | `#ececef` | Row dividers, low-emphasis separators |
-| `--border-default` | `#2a2a31` | `#dcdce0` | Inputs, cards, default boundaries |
-| `--border-strong` | `#3a3a44` | `#c4c4ca` | Hover state for default, emphasized cards |
+| `--border-subtle` | `#2e2e2e` | `#ececef` | Row dividers, low-emphasis separators |
+| `--border-default` | `#3a3a3a` | `#dcdce0` | Inputs, cards, default boundaries |
+| `--border-strong` | `#4e4e4e` | `#c4c4ca` | Hover state for default, emphasized cards |
 | `--border-focus` | `color-mix(in oklab, var(--accent) 50%, transparent)` | same | Focus rings |
 
 ### Text

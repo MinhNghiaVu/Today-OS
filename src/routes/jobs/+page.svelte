@@ -350,18 +350,10 @@
 <style>
 	/* ── Page layout ── */
 	.page {
-		max-width: 1280px;
-		margin: 0 auto;
-		padding: 32px 40px;
+		padding: 32px 24px;
 		display: flex;
 		flex-direction: column;
 		gap: 20px;
-	}
-
-	@media (max-width: 768px) {
-		.page {
-			padding: 24px 16px;
-		}
 	}
 
 	/* ── Header ── */

@@ -185,8 +185,8 @@
 <style>
 	.page {
 		display: flex;
-		height: calc(100vh - 64px);
-		margin: -32px;
+		height: 100vh;
+		margin: 0;
 		overflow: hidden;
 	}
 

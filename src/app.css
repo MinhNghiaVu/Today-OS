@@ -11,18 +11,18 @@
    ============================================================ */
 
 :root {
-	/* Surfaces */
-	--bg:             #0a0a0b;
-	--surface-1:      #131316;
-	--surface-2:      #1c1c21;
-	--surface-3:      #26262d;
-	--surface-overlay: #1c1c21;
-	--surface-modal:  #131316;
+	/* Surfaces — Notion-warmth dark (not pure black) */
+	--bg:             #191919;
+	--surface-1:      #202020;
+	--surface-2:      #282828;
+	--surface-3:      #323232;
+	--surface-overlay: #2c2c2c;
+	--surface-modal:  #202020;
 
 	/* Borders */
-	--border-subtle:  #1f1f24;
-	--border-default: #2a2a31;
-	--border-strong:  #3a3a44;
+	--border-subtle:  #2e2e2e;
+	--border-default: #3a3a3a;
+	--border-strong:  #4e4e4e;
 	--border-focus:   color-mix(in oklab, var(--accent) 50%, transparent);
 
 	/* Text */

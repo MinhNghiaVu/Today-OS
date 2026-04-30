@@ -248,6 +248,7 @@
 		display: flex;
 		flex-direction: column;
 		gap: 40px;
+		padding: 32px 24px;
 	}
 
 	/* Page header */
