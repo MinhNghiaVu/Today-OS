@@ -99,16 +99,12 @@
 </script>
 
 <div class="page">
-	<div class="page-inner">
-		<!-- Page header -->
-		<div class="page-header">
-			<div>
-				<h1 class="page-title">Calendar</h1>
-				<p class="page-subtitle">Browse your history by day</p>
-			</div>
-		</div>
+	<!-- Page header -->
+	<header class="page-header">
+		<h1>Calendar</h1>
+	</header>
 
-		<div class="calendar-layout" class:has-panel={!!selectedDate}>
+	<div class="calendar-layout" class:has-panel={!!selectedDate}>
 			<!-- Month grid -->
 			<div class="month-section">
 				<!-- Month navigation -->
@@ -324,40 +320,30 @@
 				</div>
 			{/if}
 		</div>
-	</div>
 </div>
 
 <style>
 	.page {
 		min-height: 100vh;
 		background: var(--bg);
-	}
-
-	.page-inner {
 		padding: 32px 24px;
 	}
 
 	/* ── Page header ── */
 	.page-header {
 		display: flex;
-		align-items: flex-start;
+		align-items: center;
 		justify-content: space-between;
-		margin-bottom: 32px;
+		margin-bottom: 24px;
 	}
 
-	.page-title {
+	h1 {
 		font-size: 24px;
 		font-weight: 600;
 		color: var(--text-primary);
 		letter-spacing: -0.01em;
 		line-height: 1.2;
 		margin: 0;
-	}
-
-	.page-subtitle {
-		font-size: 14px;
-		color: var(--text-secondary);
-		margin: 4px 0 0;
 	}
 
 	/* ── Calendar layout ── */

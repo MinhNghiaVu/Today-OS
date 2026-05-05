@@ -1,24 +1,15 @@
 <script lang="ts">
 	import '../app.css';
 	import { page } from '$app/stores';
-	import { browser } from '$app/environment';
-	import { settings, ACCENT_PRESETS } from '$lib/stores';
+	import { settings } from '$lib/stores';
 	import { fly } from 'svelte/transition';
 	import { cubicOut } from 'svelte/easing';
-	import { Sun, CheckSquare, Activity, FileText, Settings2, ChevronUp, CalendarDays, Briefcase/*, Bot*/ } from 'lucide-svelte';
+	import { Sun, CheckSquare, Activity, FileText, Settings2, ChevronUp, CalendarDays/*, Bot*/ } from 'lucide-svelte';
 	import Toast from '$lib/components/Toast.svelte';
 
 	export let data: { preferences?: { theme: 'dark' | 'light'; accentIndex: number }; user?: { email?: string } | null };
 
 	$: if (data.preferences) settings.init(data.preferences);
-
-	$: if (browser) {
-		document.documentElement.setAttribute('data-theme', $settings.theme);
-		document.cookie = `theme=${$settings.theme};path=/;max-age=${60 * 60 * 24 * 365};samesite=lax`;
-		const p = ACCENT_PRESETS[$settings.accentIndex];
-		document.documentElement.style.setProperty('--accent', p.accent);
-		document.documentElement.style.setProperty('--accent-hover', p.hover);
-	}
 
 	const nav = [
 		{ href: '/today', label: 'Today', icon: Sun },
@@ -26,7 +17,6 @@
 		{ href: '/habits', label: 'Habits', icon: Activity },
 		{ href: '/notes', label: 'Notes', icon: FileText },
 		{ href: '/calendar', label: 'Calendar', icon: CalendarDays },
-		{ href: '/jobs', label: 'Jobs', icon: Briefcase },
 		// { href: '/assistant', label: 'Assistant', icon: Bot },
 		{ href: '/settings', label: 'Settings', icon: Settings2 }
 	];
@@ -351,5 +341,66 @@
 	.content {
 		flex: 1;
 		overflow-y: auto;
+		animation: content-enter 180ms var(--ease-out);
+	}
+
+	@keyframes content-enter {
+		from {
+			opacity: 0.98;
+			transform: translateY(2px);
+		}
+
+		to {
+			opacity: 1;
+			transform: translateY(0);
+		}
+	}
+
+	@media (max-width: 760px) {
+		.layout {
+			flex-direction: column;
+		}
+
+		.sidebar {
+			width: 100%;
+			padding: 12px 12px 8px;
+			border-right: none;
+			border-bottom: 1px solid var(--border-subtle);
+			position: sticky;
+			top: 0;
+			z-index: 20;
+			box-shadow: var(--shadow-sm);
+		}
+
+		.logo {
+			padding: 0 4px 8px;
+		}
+
+		.nav-list {
+			flex-direction: row;
+			gap: 4px;
+			overflow-x: auto;
+			padding-bottom: 2px;
+			scrollbar-width: none;
+		}
+
+		.nav-list::-webkit-scrollbar {
+			display: none;
+		}
+
+		.nav-list a {
+			white-space: nowrap;
+			padding: 8px 10px;
+		}
+
+		.account-wrapper {
+			display: none;
+		}
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.content {
+			animation: none;
+		}
 	}
 </style>

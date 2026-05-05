@@ -63,10 +63,10 @@
 </script>
 
 <div class="page">
-	<div class="header">
+	<header class="page-header">
 		<h1>Habits</h1>
 		<button class="btn-primary" on:click={startAdd}>+ New habit</button>
-	</div>
+	</header>
 
 	{#if showForm}
 		<form
@@ -238,7 +238,7 @@
 	}
 
 	/* ── Header ── */
-	.header {
+	.page-header {
 		display: flex;
 		justify-content: space-between;
 		align-items: center;

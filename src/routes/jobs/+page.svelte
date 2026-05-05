@@ -67,7 +67,7 @@
 
 <div class="page">
 	<!-- Header -->
-	<div class="page-header">
+	<header class="page-header">
 		<div class="header-left">
 			<h1>Jobs</h1>
 			{#if jobs.length > 0}
@@ -78,7 +78,7 @@
 			{/if}
 		</div>
 		<button class="btn-primary btn-sm" on:click={() => (addingNew = true)}>+ Add</button>
-	</div>
+	</header>
 
 	<!-- Add form -->
 	{#if addingNew}
@@ -259,11 +259,11 @@
 											</div>
 
 											<div class="field-group">
-												<label>Status</label>
+												<span class="field-label">Status</span>
 												<Select name="status" options={statusOpts} value={job.status} />
 											</div>
 											<div class="field-group">
-												<label>Stage</label>
+												<span class="field-label">Stage</span>
 												<Select
 													name="interview_stage"
 													options={stageOpts}
@@ -715,7 +715,8 @@
 		grid-column: 1 / -1;
 	}
 
-	.field-group label {
+	.field-group label,
+	.field-label {
 		font-size: 12px;
 		font-weight: 500;
 		color: var(--text-secondary);

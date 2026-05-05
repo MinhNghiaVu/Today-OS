@@ -15,11 +15,17 @@ export const handle: Handle = async ({ event, resolve }) => {
 	});
 
 	const {
-		data: { user }
-	} = await event.locals.supabase.auth.getUser();
-	const {
 		data: { session }
 	} = await event.locals.supabase.auth.getSession();
+
+	const { data: claimsResult } = session ? await event.locals.supabase.auth.getClaims() : { data: null };
+	const claims = claimsResult?.claims;
+	const user = claims?.sub
+		? {
+				id: claims.sub,
+				email: typeof claims.email === 'string' ? claims.email : session?.user.email
+			}
+		: null;
 
 	event.locals.user = user;
 	event.locals.session = session;

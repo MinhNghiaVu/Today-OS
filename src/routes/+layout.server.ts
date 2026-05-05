@@ -8,7 +8,7 @@ export const load: LayoutServerLoad = async ({ locals, url, cookies }) => {
 
 	const isPublic = PUBLIC_PATHS.some((p) => url.pathname.startsWith(p));
 
-	if (!session && !isPublic) {
+	if (!user && !isPublic) {
 		redirect(303, '/login');
 	}
 
@@ -28,6 +28,11 @@ export const load: LayoutServerLoad = async ({ locals, url, cookies }) => {
 	}
 
 	cookies.set('theme', preferences.theme, { path: '/', maxAge: 60 * 60 * 24 * 365, sameSite: 'lax' });
+	cookies.set('accentIndex', String(preferences.accentIndex), {
+		path: '/',
+		maxAge: 60 * 60 * 24 * 365,
+		sameSite: 'lax'
+	});
 
 	return { session, user, preferences };
 };

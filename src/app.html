@@ -4,10 +4,42 @@
 		<meta charset="utf-8" />
 		<link rel="icon" href="%sveltekit.assets%/favicon.png" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="color-scheme" content="dark light" />
 		<script>
 			(function () {
-				var m = document.cookie.match(/(?:^|;\s*)theme=([^;]+)/);
-				if (m) document.documentElement.setAttribute('data-theme', m[1]);
+				var root = document.documentElement;
+				var accents = [
+					['#6366f1', '#4f52d4'],
+					['#8b5cf6', '#7c3aed'],
+					['#10b981', '#059669'],
+					['#f43f5e', '#e11d48'],
+					['#f59e0b', '#d97706'],
+					['#0ea5e9', '#0284c7']
+				];
+
+				function cookie(name) {
+					var match = document.cookie.match(new RegExp('(?:^|;\\s*)' + name + '=([^;]+)'));
+					return match ? decodeURIComponent(match[1]) : null;
+				}
+
+				var storedTheme = null;
+				var storedAccent = null;
+				try {
+					storedTheme = localStorage.getItem('today-os-theme');
+					storedAccent = localStorage.getItem('today-os-accent-index');
+				} catch (e) {}
+
+				var theme =
+					storedTheme ||
+					cookie('theme') ||
+					(window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+				var accentIndex = Number(storedAccent || cookie('accentIndex') || 0);
+				var accent = accents[accentIndex] || accents[0];
+
+				root.setAttribute('data-theme', theme === 'light' ? 'light' : 'dark');
+				root.style.colorScheme = theme === 'light' ? 'light' : 'dark';
+				root.style.setProperty('--accent', accent[0]);
+				root.style.setProperty('--accent-hover', accent[1]);
 			})();
 		</script>
 		%sveltekit.head%
