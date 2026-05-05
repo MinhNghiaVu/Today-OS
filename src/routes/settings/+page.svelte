@@ -198,11 +198,13 @@
 
 	/* Segmented button group (theme toggle) */
 	.seg-group {
+		position: relative;
 		display: flex;
 		background: var(--surface-2);
-		border-radius: var(--radius-md);
-		padding: 2px;
-		gap: 2px;
+		border: 1px solid var(--border-subtle);
+		border-radius: var(--radius-full);
+		padding: 3px;
+		gap: 0;
 		flex-shrink: 0;
 	}
 
@@ -211,16 +213,19 @@
 	}
 
 	.seg-btn {
+		position: relative;
+		z-index: 1;
 		background: transparent;
 		border: none;
-		border-radius: 6px;
+		border-radius: var(--radius-full);
 		padding: 0 14px;
 		height: 28px;
 		font-size: 13px;
 		font-weight: 500;
-		color: var(--text-secondary);
+		color: var(--text-tertiary);
 		cursor: pointer;
-		transition: background 120ms var(--ease-out), color 120ms var(--ease-out);
+		transition: color 140ms var(--ease-out);
+		font-family: inherit;
 	}
 
 	.seg-btn:hover {
@@ -228,9 +233,12 @@
 	}
 
 	.seg-btn.active {
-		background: var(--surface-overlay);
+		background: var(--surface-1);
 		color: var(--text-primary);
-		box-shadow: var(--shadow-sm);
+		border: 1px solid var(--border-default);
+		box-shadow:
+			0 1px 3px rgba(0, 0, 0, 0.45),
+			0 1px 1px rgba(0, 0, 0, 0.25);
 	}
 
 	.seg-btn:focus-visible {

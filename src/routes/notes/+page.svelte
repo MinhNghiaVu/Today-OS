@@ -4,12 +4,14 @@
 	import { cubicOut, cubicIn } from 'svelte/easing';
 	import { marked } from 'marked';
 	import { FileText, Plus, Trash2 } from 'lucide-svelte';
+	import SegmentedControl from '$lib/components/SegmentedControl.svelte';
 	import type { PageData } from './$types';
 
 	export let data: PageData;
 
 	let selectedId: string | null = data.notes[0]?.id ?? null;
-	let activeTab: 'edit' | 'preview' = 'edit';
+	let activeTab = 'edit';
+	const editorTabs = [{ value: 'edit', label: 'Edit' }, { value: 'preview', label: 'Preview' }];
 	let editTitle = '';
 	let editContent = '';
 	let saveTimer: ReturnType<typeof setTimeout>;
@@ -128,23 +130,10 @@
 					placeholder="Untitled"
 					aria-label="Note title"
 				/>
-				<div class="seg-track" role="tablist" aria-label="Editor mode">
-					<div class="seg-indicator" class:at-preview={activeTab === 'preview'}></div>
-					<button
-						role="tab"
-						aria-selected={activeTab === 'edit'}
-						class="seg-tab"
-						class:active={activeTab === 'edit'}
-						on:click={() => (activeTab = 'edit')}
-					>Edit</button>
-					<button
-						role="tab"
-						aria-selected={activeTab === 'preview'}
-						class="seg-tab"
-						class:active={activeTab === 'preview'}
-						on:click={() => (activeTab = 'preview')}
-					>Preview</button>
-				</div>
+				<SegmentedControl
+					options={editorTabs}
+					bind:value={activeTab}
+				/>
 				<button class="del-btn" on:click={deleteNote} aria-label="Delete note">
 					<Trash2 size={14} aria-hidden="true" />
 					Delete
@@ -334,59 +323,6 @@
 
 	.title-input::placeholder {
 		color: var(--text-tertiary);
-	}
-
-	/* Segmented control §8.9 */
-	.seg-track {
-		position: relative;
-		display: flex;
-		background: var(--surface-2);
-		border-radius: var(--radius-full);
-		padding: 3px;
-		flex-shrink: 0;
-	}
-
-	.seg-indicator {
-		position: absolute;
-		top: 3px;
-		left: 3px;
-		width: calc(50% - 3px);
-		height: calc(100% - 6px);
-		background: var(--surface-overlay);
-		border-radius: var(--radius-full);
-		box-shadow: var(--shadow-sm);
-		transition: transform 200ms var(--ease-out);
-		pointer-events: none;
-	}
-
-	.seg-indicator.at-preview {
-		transform: translateX(100%);
-	}
-
-	.seg-tab {
-		position: relative;
-		z-index: 1;
-		flex: 1;
-		border: none;
-		background: transparent;
-		color: var(--text-secondary);
-		font-size: 13px;
-		font-weight: 500;
-		padding: 0 14px;
-		height: 28px;
-		border-radius: var(--radius-full);
-		cursor: pointer;
-		transition: color 120ms var(--ease-out);
-		white-space: nowrap;
-	}
-
-	.seg-tab.active {
-		color: var(--text-primary);
-	}
-
-	.seg-tab:focus-visible {
-		outline: 2px solid var(--border-focus);
-		outline-offset: 2px;
 	}
 
 	.del-btn {

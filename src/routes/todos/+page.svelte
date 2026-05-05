@@ -5,6 +5,7 @@
 	import { cubicOut, cubicIn } from 'svelte/easing';
 	import { ClipboardList } from 'lucide-svelte';
 	import Select from '$lib/components/Select.svelte';
+	import SegmentedControl from '$lib/components/SegmentedControl.svelte';
 	import type { PageData } from './$types';
 	import type { Todo, TodoPriority, TodoStatus } from '$lib/types';
 
@@ -22,6 +23,11 @@
 	const priorityLabels: Record<TodoPriority, string> = { high: 'High', medium: 'Med', low: 'Low' };
 
 	let filter: Filter = 'all';
+	$: filterTabs = [
+		{ value: 'all', label: `All ${counts.all}` },
+		{ value: 'pending', label: `Pending ${counts.pending}` },
+		{ value: 'done', label: `Done ${counts.done}` }
+	];
 	let editingId: string | null = null;
 
 	$: filtered = data.todos
@@ -42,10 +48,10 @@
 </script>
 
 <div class="page">
-	<div class="header">
+	<header class="page-header">
 		<h1>Todos</h1>
 		<span class="total-badge">{counts.pending} pending</span>
-	</div>
+	</header>
 
 	<!-- Add form: title input standalone, meta row separate per §8.2 -->
 	<form
@@ -68,21 +74,8 @@
 		</div>
 	</form>
 
-	<!-- Filter tabs — segmented control per §8.9 -->
-	<div class="filter-tabs" role="tablist">
-		{#each (['all', 'pending', 'done'] as Filter[]) as tab}
-			<button
-				class="tab"
-				class:active={filter === tab}
-				role="tab"
-				aria-selected={filter === tab}
-				on:click={() => (filter = tab)}
-			>
-				{tab.charAt(0).toUpperCase() + tab.slice(1)}
-				<span class="tab-count">{counts[tab]}</span>
-			</button>
-		{/each}
-	</div>
+	<!-- Filter tabs -->
+	<SegmentedControl options={filterTabs} bind:value={filter} />
 
 	<!-- Todo list -->
 	{#if filtered.length === 0}
@@ -216,7 +209,7 @@
 	}
 
 	/* ── Header ── */
-	.header {
+	.page-header {
 		display: flex;
 		align-items: baseline;
 		gap: 12px;
@@ -295,51 +288,6 @@
 	.meta-input:focus-visible {
 		outline: 2px solid var(--border-focus);
 		outline-offset: 2px;
-	}
-
-	/* ── Filter tabs — segmented control ── */
-	.filter-tabs {
-		display: flex;
-		gap: 2px;
-		background: var(--surface-2);
-		border-radius: var(--radius-md);
-		padding: 4px;
-		width: fit-content;
-	}
-
-	.tab {
-		background: transparent;
-		border: none;
-		border-radius: var(--radius-sm);
-		padding: 0 12px;
-		height: 28px;
-		font-size: 13px;
-		font-weight: 500;
-		font-family: inherit;
-		color: var(--text-secondary);
-		cursor: pointer;
-		display: flex;
-		align-items: center;
-		gap: 6px;
-		transition:
-			background-color 120ms var(--ease-out),
-			color 120ms var(--ease-out);
-	}
-
-	.tab:hover {
-		color: var(--text-primary);
-	}
-
-	.tab.active {
-		background: var(--surface-overlay);
-		color: var(--text-primary);
-		box-shadow: var(--shadow-sm);
-	}
-
-	.tab-count {
-		font-size: 12px;
-		font-weight: 400;
-		color: var(--text-tertiary);
 	}
 
 	/* ── Todo list ── */

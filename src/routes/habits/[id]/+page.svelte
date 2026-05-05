@@ -3,13 +3,15 @@
 	import { cubicOut } from 'svelte/easing';
 	import { ArrowLeft, TrendingUp, Target, BarChart2 } from 'lucide-svelte';
 	import HabitChart from '$lib/components/HabitChart.svelte';
+	import SegmentedControl from '$lib/components/SegmentedControl.svelte';
 	import type { PageData } from './$types';
 
 	export let data: PageData;
 
 	$: ({ habit, logs7, logs30 } = data);
 
-	let range: '7d' | '30d' = '7d';
+	let range = '7d';
+	const rangeTabs = [{ value: '7d', label: '7 days' }, { value: '30d', label: '30 days' }];
 
 	$: activeLogs = range === '7d' ? logs7 : logs30;
 
@@ -83,19 +85,7 @@
 		<div class="chart-card">
 			<div class="chart-header">
 				<span class="section-label">Trend</span>
-				<!-- Range toggle -->
-				<div class="range-tabs" role="group" aria-label="Chart range">
-					<button
-						class="range-tab"
-						class:active={range === '7d'}
-						on:click={() => (range = '7d')}
-					>7 days</button>
-					<button
-						class="range-tab"
-						class:active={range === '30d'}
-						on:click={() => (range = '30d')}
-					>30 days</button>
-				</div>
+				<SegmentedControl options={rangeTabs} bind:value={range} />
 			</div>
 
 			{#key range}
@@ -287,40 +277,6 @@
 		color: var(--text-tertiary);
 		text-transform: uppercase;
 		letter-spacing: 0.04em;
-	}
-
-	/* ── Range tabs ── */
-	.range-tabs {
-		display: flex;
-		background: var(--surface-2);
-		border-radius: var(--radius-md);
-		padding: 3px;
-		gap: 2px;
-	}
-
-	.range-tab {
-		padding: 4px 10px;
-		border-radius: var(--radius-sm);
-		border: none;
-		background: transparent;
-		font-size: 12px;
-		font-weight: 500;
-		color: var(--text-secondary);
-		cursor: pointer;
-		transition: background-color 120ms cubic-bezier(0.22, 1, 0.36, 1), color 120ms cubic-bezier(0.22, 1, 0.36, 1);
-	}
-
-	.range-tab:hover { color: var(--text-primary); }
-
-	.range-tab.active {
-		background: var(--surface-overlay);
-		color: var(--text-primary);
-		box-shadow: var(--shadow-sm);
-	}
-
-	.range-tab:focus-visible {
-		outline: 2px solid var(--border-focus);
-		outline-offset: 2px;
 	}
 
 	.chart-empty {
