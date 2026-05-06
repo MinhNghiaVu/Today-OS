@@ -368,9 +368,9 @@
 	.month-section {
 		background: var(--surface-1);
 		border-radius: var(--radius-xl);
-		padding: 20px;
+		padding: 20px 16px 16px;
 		box-shadow: var(--shadow-sm);
-		width: 340px;
+		width: 320px;
 		flex-shrink: 0;
 	}
 
@@ -383,13 +383,14 @@
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		margin-bottom: 16px;
+		margin-bottom: 20px;
 	}
 
 	.month-label {
-		font-size: 15px;
+		font-size: 14px;
 		font-weight: 600;
 		color: var(--text-primary);
+		letter-spacing: -0.01em;
 	}
 
 	.nav-btn {
@@ -398,17 +399,18 @@
 		justify-content: center;
 		width: 28px;
 		height: 28px;
-		border-radius: var(--radius-md);
-		border: none;
-		background: transparent;
+		border-radius: var(--radius-full);
+		border: 1px solid var(--border-subtle);
+		background: var(--surface-2);
 		color: var(--text-secondary);
 		cursor: pointer;
-		transition: background-color 120ms cubic-bezier(0.22, 1, 0.36, 1), color 120ms cubic-bezier(0.22, 1, 0.36, 1);
+		transition: background-color 120ms cubic-bezier(0.22, 1, 0.36, 1), color 120ms cubic-bezier(0.22, 1, 0.36, 1), border-color 120ms cubic-bezier(0.22, 1, 0.36, 1);
 	}
 
 	.nav-btn:hover {
-		background: var(--surface-2);
+		background: var(--surface-3);
 		color: var(--text-primary);
+		border-color: var(--border-default);
 	}
 
 	.nav-btn:focus-visible {
@@ -420,7 +422,7 @@
 	.cal-grid {
 		display: grid;
 		grid-template-columns: repeat(7, 1fr);
-		gap: 2px;
+		gap: 0;
 	}
 
 	.dow-label {
@@ -428,9 +430,8 @@
 		font-size: 11px;
 		font-weight: 500;
 		color: var(--text-tertiary);
-		letter-spacing: 0.04em;
-		text-transform: uppercase;
-		padding: 4px 0 8px;
+		letter-spacing: 0.02em;
+		padding: 0 0 10px;
 	}
 
 	.cal-cell {
@@ -440,7 +441,6 @@
 		align-items: center;
 		justify-content: center;
 		gap: 3px;
-		border-radius: var(--radius-md);
 	}
 
 	.cal-cell.empty {
@@ -455,21 +455,20 @@
 		font-size: 13px;
 		padding: 0;
 		position: relative;
-		overflow: hidden;
 	}
 
-	/* Inside-out background animation via ::before */
+	/* Circular hover target */
 	.day-cell::before {
 		content: '';
 		position: absolute;
-		inset: 0;
-		border-radius: var(--radius-md);
+		inset: 15%;
+		border-radius: var(--radius-full);
 		background: var(--surface-2);
-		transform: scale(0.5);
+		transform: scale(0.7);
 		opacity: 0;
 		transition:
-			transform 220ms cubic-bezier(0.34, 1.56, 0.64, 1),
-			opacity 140ms ease;
+			transform 200ms cubic-bezier(0.34, 1.56, 0.64, 1),
+			opacity 120ms ease;
 		pointer-events: none;
 	}
 
@@ -480,31 +479,33 @@
 
 	.day-cell:focus-visible {
 		outline: 2px solid var(--border-focus);
-		outline-offset: 2px;
+		outline-offset: -4px;
+		border-radius: var(--radius-full);
 	}
 
-	/* Today — accent circle on number */
+	/* Today — accent ring, not filled */
 	.day-cell.is-today:not(.is-selected) .day-num {
-		background: var(--accent);
-		color: var(--text-on-accent);
+		box-shadow: inset 0 0 0 1.5px var(--accent);
 		border-radius: var(--radius-full);
-		width: 24px;
-		height: 24px;
+		width: 28px;
+		height: 28px;
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		font-weight: 600;
-		font-size: 12px;
+		font-weight: 700;
+		color: var(--accent);
+		font-size: 13px;
 	}
 
-	/* Selected — full accent box fills from center */
+	/* Selected — filled accent circle from center */
 	.day-cell.is-selected::before {
 		background: var(--accent);
 		transform: scale(1);
 		opacity: 1;
+		inset: 10%;
 		transition:
-			transform 260ms cubic-bezier(0.34, 1.56, 0.64, 1),
-			opacity 160ms ease;
+			transform 240ms cubic-bezier(0.34, 1.56, 0.64, 1),
+			opacity 150ms ease;
 	}
 
 	.day-cell.is-selected .day-num {
@@ -522,6 +523,11 @@
 	.day-num {
 		font-size: 13px;
 		line-height: 1;
+		width: 28px;
+		height: 28px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
 	}
 
 	/* ── Activity dots ── */
