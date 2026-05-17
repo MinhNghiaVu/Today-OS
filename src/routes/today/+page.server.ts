@@ -1,6 +1,6 @@
 import { fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
-import { getTodosToday, getHabitTotalsToday } from '$lib/db';
+import { getTodosToday, getHabitSummariesToday, getNotesForDate } from '$lib/db';
 import { getEventsForDate, type CalendarEvent } from '$lib/google-calendar';
 
 export const load: PageServerLoad = async ({ locals }) => {
@@ -9,9 +9,10 @@ export const load: PageServerLoad = async ({ locals }) => {
 
 	const today = new Date().toISOString().slice(0, 10);
 
-	const [todosToday, habitTotals, tokenRow] = await Promise.all([
+	const [todosToday, habitTotals, notesToday, tokenRow] = await Promise.all([
 		getTodosToday(locals.supabase, user.id),
-		getHabitTotalsToday(locals.supabase, user.id),
+		getHabitSummariesToday(locals.supabase, user.id),
+		getNotesForDate(locals.supabase, user.id, today),
 		locals.supabase
 			.from('users')
 			.select('google_access_token, google_token_expiry')
@@ -32,7 +33,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 			? getEventsForDate(token!, today).catch(() => [])
 			: Promise.resolve([]);
 
-	return { todosToday, habitTotals, calendarState, calendarEvents };
+	return { todosToday, habitTotals, notesToday, calendarState, calendarEvents };
 };
 
 export const actions: Actions = {
@@ -125,6 +126,26 @@ export const actions: Actions = {
 		const { error } = await locals.supabase
 			.from('habit_logs')
 			.insert({ user_id: user.id, habit_id, date: today, value });
+
+		if (error) return fail(500, { error: error.message });
+	},
+
+	addNote: async ({ locals, request }) => {
+		const { user } = locals;
+		if (!user) return fail(401);
+
+		const form = await request.formData();
+		const content = (form.get('content') as string)?.trim();
+
+		if (!content) return fail(400, { error: 'Write something first' });
+
+		const today = new Date().toISOString().slice(0, 10);
+		const firstLine = content.split('\n').find(Boolean)?.trim() ?? 'Quick note';
+		const title = firstLine.length > 60 ? `${firstLine.slice(0, 57)}...` : firstLine;
+
+		const { error } = await locals.supabase
+			.from('notes')
+			.insert({ user_id: user.id, title, content, date: today, type: 'note' });
 
 		if (error) return fail(500, { error: error.message });
 	}

@@ -201,6 +201,72 @@ export interface HabitDailyTotal {
 	total: number;
 }
 
+export interface HabitWithTodaySummary extends HabitWithTotal {
+	daysLogged: number;
+	daysMet: number;
+}
+
+export async function getHabitSummariesToday(
+	sb: SupabaseClient,
+	userId: string
+): Promise<HabitWithTodaySummary[]> {
+	const todayDate = today();
+	const start = new Date(`${todayDate}T00:00:00`);
+	start.setDate(start.getDate() - 6);
+	const startDate = start.toISOString().slice(0, 10);
+
+	const [{ data: habits, error: hErr }, { data: logs, error: lErr }] = await Promise.all([
+		sb
+			.from('habit_definitions')
+			.select('*')
+			.eq('user_id', userId)
+			.eq('is_active', true)
+			.order('created_at'),
+		sb
+			.from('habit_logs')
+			.select('habit_id, date, value')
+			.eq('user_id', userId)
+			.gte('date', startDate)
+			.lte('date', todayDate)
+	]);
+
+	if (hErr) throw hErr;
+	if (lErr) throw lErr;
+
+	const totalsByHabitDate = new Map<string, number>();
+	for (const log of logs ?? []) {
+		const key = `${log.habit_id}:${log.date}`;
+		totalsByHabitDate.set(key, (totalsByHabitDate.get(key) ?? 0) + log.value);
+	}
+
+	return (habits ?? []).map((habit) => {
+		let daysLogged = 0;
+		let daysMet = 0;
+		let todayTotal = 0;
+
+		for (let offset = 0; offset < 7; offset++) {
+			const d = new Date(`${startDate}T00:00:00`);
+			d.setDate(d.getDate() + offset);
+			const date = d.toISOString().slice(0, 10);
+			const total = totalsByHabitDate.get(`${habit.id}:${date}`) ?? 0;
+
+			if (date === todayDate) todayTotal = total;
+			if (total > 0) daysLogged += 1;
+			if (habit.daily_goal !== null) {
+				if (habit.type === 'min_goal' && total >= habit.daily_goal) daysMet += 1;
+				if (habit.type === 'max_goal' && total > 0 && total <= habit.daily_goal) daysMet += 1;
+			}
+		}
+
+		return {
+			...habit,
+			total: parseFloat(todayTotal.toFixed(6)),
+			daysLogged,
+			daysMet
+		};
+	});
+}
+
 export async function getHabitLogsForRange(
 	sb: SupabaseClient,
 	userId: string,
