@@ -2,6 +2,15 @@ import type { Cookies } from '@sveltejs/kit';
 import { env } from '$env/dynamic/private';
 
 const COOKIE_PREFIX = '__Secure-neon-auth';
+const SESSION_CACHE_MS = 15_000;
+
+type SessionResult = {
+	session: AuthSession | null;
+	user: AuthUser | null;
+	headers: Headers;
+};
+
+const sessionCache = new Map<string, { expires: number; result: Omit<SessionResult, 'headers'> }>();
 
 export interface AuthUser {
 	id: string;
@@ -130,11 +139,21 @@ export async function proxyAuthRequest(request: Request, path: string) {
 	});
 }
 
-export async function fetchSession(cookieHeader: string | null, origin: string) {
+export async function fetchSession(cookieHeader: string | null, _origin: string) {
+	const authCookies = neonCookieHeader(cookieHeader);
+	if (!authCookies) {
+		return { session: null, user: null, headers: new Headers() };
+	}
+
+	const cached = sessionCache.get(authCookies);
+	if (cached && cached.expires > Date.now()) {
+		return { ...cached.result, headers: new Headers() };
+	}
+
 	const headers = new Headers({
 		'x-neon-auth-middleware': 'true'
 	});
-	setNeonCookieHeader(headers, cookieHeader);
+	headers.set('cookie', authCookies);
 
 	const response = await fetch(`${authBaseUrl()}/get-session`, {
 		method: 'GET',
@@ -143,11 +162,18 @@ export async function fetchSession(cookieHeader: string | null, origin: string) 
 	const json = response.ok ? await response.json().catch(() => null) : null;
 	const session = json?.session ?? null;
 	const user = json?.user ?? session?.user ?? null;
-	return {
+	const result = {
 		session,
 		user: user?.id ? { id: String(user.id), email: user.email ? String(user.email) : undefined } : null,
 		headers: response.headers
 	};
+
+	sessionCache.set(authCookies, {
+		expires: Date.now() + SESSION_CACHE_MS,
+		result: { session: result.session, user: result.user }
+	});
+
+	return result;
 }
 
 export async function authPost(path: string, body: Record<string, unknown>, origin: string, cookieHeader: string | null) {

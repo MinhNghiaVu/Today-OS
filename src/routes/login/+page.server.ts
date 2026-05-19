@@ -75,6 +75,6 @@ export const actions: Actions = {
 			return fail(400, { error: message });
 		}
 
-		return { success: true, message: 'Account created. You can sign in now.' };
+		redirect(303, '/today');
 	}
 };

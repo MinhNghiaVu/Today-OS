@@ -240,6 +240,7 @@ Page-level structure (top to bottom):
 Fixed width 240–260px, `--surface-1` background, 1px right border (`--border-subtle`). Inside:
 
 - **Brand mark** — top, 20px height, 16–20px page padding around it.
+- **Collapse state** — desktop sidebar may collapse to a 64px icon rail. The collapse/expand control stays in the sidebar header, labels fade away, nav items keep their icon targets centered, and the account popover opens beside the rail instead of being clipped.
 - **Nav section** — 8px padding, 2px gap between items. Section labels (uppercase, 11px) above grouped items if there are multiple groups.
 - **Spacer** — `flex-1`, pushes the account block to the bottom.
 - **Account block** — single button at the bottom (see Component specs §8.7).

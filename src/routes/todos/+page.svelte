@@ -23,6 +23,8 @@
 	const priorityLabels: Record<TodoPriority, string> = { high: 'High', medium: 'Med', low: 'Low' };
 
 	let filter: Filter = 'all';
+	let todos: Todo[] = data.todos;
+	let optimisticTodoSeq = 0;
 	$: filterTabs = [
 		{ value: 'all', label: `All ${counts.all}` },
 		{ value: 'pending', label: `Pending ${counts.pending}` },
@@ -30,7 +32,8 @@
 	];
 	let editingId: string | null = null;
 
-	$: filtered = data.todos
+	$: if (data.todos) todos = data.todos;
+	$: filtered = todos
 		.filter((t) => filter === 'all' || t.status === filter)
 		.sort((a, b) => {
 			if (a.status !== b.status) return a.status === 'pending' ? -1 : 1;
@@ -39,12 +42,30 @@
 		});
 
 	$: counts = {
-		all: data.todos.length,
-		pending: data.todos.filter((t) => t.status === 'pending').length,
-		done: data.todos.filter((t) => t.status === 'done').length
+		all: todos.length,
+		pending: todos.filter((t) => t.status === 'pending').length,
+		done: todos.filter((t) => t.status === 'done').length
 	};
 
 	const todayStr = new Date().toISOString().slice(0, 10);
+
+	function makeOptimisticTodo(
+		title: string,
+		dueDate: string | null,
+		priority: TodoPriority | null
+	): Todo {
+		const now = new Date().toISOString();
+		optimisticTodoSeq += 1;
+		return {
+			id: `optimistic-todo-${Date.now()}-${optimisticTodoSeq}`,
+			user_id: 'optimistic',
+			title,
+			status: 'pending',
+			due_date: dueDate ?? undefined,
+			priority: priority ?? undefined,
+			created_at: now
+		};
+	}
 </script>
 
 <div class="page">
@@ -58,7 +79,21 @@
 		method="POST"
 		action="?/add"
 		class="add-form"
-		use:enhance={() => async ({ update }) => update()}
+		use:enhance={({ formData, formElement }) => {
+			const title = String(formData.get('title') ?? '').trim();
+			const dueDate = String(formData.get('due_date') ?? '') || null;
+			const priority = (String(formData.get('priority') ?? '') || null) as TodoPriority | null;
+			const optimistic = title ? makeOptimisticTodo(title, dueDate, priority) : null;
+			if (optimistic) todos = [optimistic, ...todos];
+			formElement.reset();
+			return async ({ result, update }) => {
+				if (result.type === 'failure' || result.type === 'error') {
+					if (optimistic) todos = todos.filter((todo) => todo.id !== optimistic.id);
+					return;
+				}
+				await update();
+			};
+		}}
 	>
 		<input
 			class="add-title"
@@ -108,9 +143,25 @@
 							method="POST"
 							action="?/update"
 							class="edit-form"
-							use:enhance={() => async ({ result, update }) => {
-								if (result.type === 'success') editingId = null;
-								await update();
+							use:enhance={({ formData }) => {
+								const previous = todos;
+								const title = String(formData.get('title') ?? '').trim();
+								const description = String(formData.get('description') ?? '').trim() || undefined;
+								const dueDate = String(formData.get('due_date') ?? '') || undefined;
+								const priority = (String(formData.get('priority') ?? '') || undefined) as TodoPriority | undefined;
+								if (title) {
+									todos = todos.map((item) =>
+										item.id === todo.id ? { ...item, title, description, due_date: dueDate, priority } : item
+									);
+								}
+								return async ({ result, update }) => {
+									if (result.type === 'success') editingId = null;
+									if (result.type === 'failure' || result.type === 'error') {
+										todos = previous;
+										return;
+									}
+									await update();
+								};
 							}}
 						>
 							<input type="hidden" name="id" value={todo.id} />
@@ -144,7 +195,30 @@
 							</div>
 						</form>
 					{:else}
-						<form method="POST" action="?/toggle" use:enhance>
+						<form
+							method="POST"
+							action="?/toggle"
+							use:enhance={() => {
+								const previous = todos;
+								const nowDone = todo.status !== 'done';
+								todos = todos.map((item) =>
+									item.id === todo.id
+										? {
+												...item,
+												status: nowDone ? 'done' : 'pending',
+												completed_at: nowDone ? new Date().toISOString() : undefined
+											}
+										: item
+								);
+								return async ({ result, update }) => {
+									if (result.type === 'failure' || result.type === 'error') {
+										todos = previous;
+										return;
+									}
+									await update();
+								};
+							}}
+						>
 							<input type="hidden" name="id" value={todo.id} />
 							<input type="hidden" name="status" value={todo.status} />
 							<button
@@ -183,8 +257,19 @@
 								method="POST"
 								action="?/remove"
 								use:enhance={({ cancel }) => {
-									if (!confirm(`Delete "${todo.title}"?`)) cancel();
-									return async ({ update }) => update();
+									if (!confirm(`Delete "${todo.title}"?`)) {
+										cancel();
+										return;
+									}
+									const previous = todos;
+									todos = todos.filter((item) => item.id !== todo.id);
+									return async ({ result, update }) => {
+										if (result.type === 'failure' || result.type === 'error') {
+											todos = previous;
+											return;
+										}
+										await update();
+									};
 								}}
 							>
 								<input type="hidden" name="id" value={todo.id} />

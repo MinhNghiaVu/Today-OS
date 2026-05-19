@@ -49,6 +49,7 @@ const COLUMNS = new Set([
 
 let sql: ReturnType<typeof neon> | null = null;
 let schemaReady: Promise<void> | null = null;
+const ensuredUserIds = new Set<string>();
 
 const SCHEMA = [
 	'create extension if not exists pgcrypto',
@@ -170,7 +171,6 @@ function errorResult(error: unknown) {
 }
 
 export async function query<T = Record<string, unknown>>(text: string, values: unknown[] = []) {
-	await ensureSchema();
 	const rows = await getSql().query(text, values);
 	return normalizeRows(rows as T[]);
 }
@@ -185,12 +185,14 @@ export async function ensureSchema() {
 }
 
 export async function ensureUser(user: { id: string; email?: string | null }) {
+	if (ensuredUserIds.has(user.id)) return;
 	await query(
 		`insert into "users" ("id", "email", "display_name")
 		 values ($1, $2, $3)
 		 on conflict ("id") do update set "email" = excluded."email"`,
 		[user.id, user.email ?? '', user.email ?? 'Today OS user']
 	);
+	ensuredUserIds.add(user.id);
 }
 
 class QueryBuilder {

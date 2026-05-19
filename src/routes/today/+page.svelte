@@ -17,7 +17,7 @@
 		Trash2
 	} from 'lucide-svelte';
 	import type { PageData } from './$types';
-	import type { HabitType, TodoPriority } from '$lib/types';
+	import type { HabitLog, HabitType, HabitWithTodayLogs, Note, Todo, TodoPriority } from '$lib/types';
 
 	export let data: PageData;
 
@@ -49,11 +49,62 @@
 	let logAmount = '';
 	let editingLogId: string | null = null;
 	let editingLogValue = '';
+	let todosToday: Todo[] = data.todosToday;
+	let habitTotals: HabitWithTodayLogs[] = data.habitTotals;
+	let notesToday: Note[] = data.notesToday;
+	let optimisticTodoSeq = 0;
+	let optimisticLogSeq = 0;
+	let optimisticNoteSeq = 0;
 
-	$: pendingTodos = data.todosToday.filter((todo) => todo.status === 'pending');
-	$: doneTodos = data.todosToday.filter((todo) => todo.status === 'done');
-	$: habitsOnTrack = data.habitTotals.filter(isHabitOnTrack);
-	$: notesPreview = data.notesToday.slice(0, 3);
+	$: if (data.todosToday) todosToday = data.todosToday;
+	$: if (data.habitTotals) habitTotals = data.habitTotals;
+	$: if (data.notesToday) notesToday = data.notesToday;
+	$: pendingTodos = todosToday.filter((todo) => todo.status === 'pending');
+	$: doneTodos = todosToday.filter((todo) => todo.status === 'done');
+	$: habitsOnTrack = habitTotals.filter(isHabitOnTrack);
+	$: notesPreview = notesToday.slice(0, 3);
+
+	function makeOptimisticTodo(title: string, dueDate = todayStr, priority: TodoPriority | null = null): Todo {
+		const now = new Date().toISOString();
+		optimisticTodoSeq += 1;
+		return {
+			id: `optimistic-todo-${Date.now()}-${optimisticTodoSeq}`,
+			user_id: 'optimistic',
+			title,
+			status: 'pending',
+			due_date: dueDate,
+			priority: priority ?? undefined,
+			created_at: now
+		};
+	}
+
+	function makeOptimisticLog(habitId: string, value: number): HabitLog {
+		optimisticLogSeq += 1;
+		return {
+			id: `optimistic-log-${Date.now()}-${optimisticLogSeq}`,
+			user_id: 'optimistic',
+			habit_id: habitId,
+			date: todayStr,
+			value,
+			created_at: new Date().toISOString()
+		};
+	}
+
+	function makeOptimisticNote(content: string): Note {
+		const now = new Date().toISOString();
+		const firstLine = content.split('\n').find(Boolean)?.trim() ?? 'Quick note';
+		optimisticNoteSeq += 1;
+		return {
+			id: `optimistic-note-${Date.now()}-${optimisticNoteSeq}`,
+			user_id: 'optimistic',
+			title: firstLine.length > 60 ? `${firstLine.slice(0, 57)}...` : firstLine,
+			content,
+			type: 'note',
+			date: todayStr,
+			created_at: now,
+			updated_at: now
+		};
+	}
 
 	function formatTime(iso: string): string {
 		return new Date(iso).toLocaleTimeString('en-US', {
@@ -143,12 +194,12 @@
 					<span class="stat-label">todo{pendingTodos.length === 1 ? '' : 's'} left</span>
 				</div>
 				<div class="hero-stat">
-					<span class="stat-value">{habitsOnTrack.length}/{data.habitTotals.length}</span>
+					<span class="stat-value">{habitsOnTrack.length}/{habitTotals.length}</span>
 					<span class="stat-label">habits on track</span>
 				</div>
 				<div class="hero-stat">
-					<span class="stat-value">{data.notesToday.length}</span>
-					<span class="stat-label">note{data.notesToday.length === 1 ? '' : 's'}</span>
+					<span class="stat-value">{notesToday.length}</span>
+					<span class="stat-label">note{notesToday.length === 1 ? '' : 's'}</span>
 				</div>
 			</div>
 		</header>
@@ -168,9 +219,18 @@
 						method="POST"
 						action="?/addTodo"
 						class="quick-add"
-						use:enhance={() => {
+						use:enhance={({ formData }) => {
+							const title = String(formData.get('title') ?? '').trim();
+							const optimistic = title ? makeOptimisticTodo(title) : null;
+							if (optimistic) todosToday = [optimistic, ...todosToday];
 							newTodo = '';
-							return async ({ update }) => update();
+							return async ({ result, update }) => {
+								if (result.type === 'failure' || result.type === 'error') {
+									if (optimistic) todosToday = todosToday.filter((todo) => todo.id !== optimistic.id);
+									return;
+								}
+								await update();
+							};
 						}}
 					>
 						<input
@@ -185,7 +245,7 @@
 						</button>
 					</form>
 
-					{#if data.todosToday.length === 0}
+					{#if todosToday.length === 0}
 						<div class="empty-state">
 							<CheckCircle2 class="empty-icon" size={22} strokeWidth={1.8} aria-hidden="true" />
 							<div>
@@ -195,7 +255,7 @@
 						</div>
 					{:else}
 						<ul class="todo-list">
-							{#each data.todosToday as todo (todo.id)}
+							{#each todosToday as todo (todo.id)}
 								<li
 									class:done={todo.status === 'done'}
 									in:fly={{ y: -8, duration: 220, easing: cubicOut }}
@@ -207,9 +267,26 @@
 											method="POST"
 											action="?/updateTodo"
 											class="edit-form"
-											use:enhance={() => async ({ result, update }) => {
+											use:enhance={({ formData }) => {
+												const previous = todosToday;
+												const title = String(formData.get('title') ?? '').trim();
+												const dueDate = String(formData.get('due_date') ?? '') || null;
+												const priority = (String(formData.get('priority') ?? '') || null) as TodoPriority | null;
+												if (title) {
+													todosToday = todosToday.map((item) =>
+														item.id === todo.id
+															? { ...item, title, due_date: dueDate ?? undefined, priority: priority ?? undefined }
+															: item
+													);
+												}
+												return async ({ result, update }) => {
 												if (result.type === 'success') editingId = null;
+												if (result.type === 'failure' || result.type === 'error') {
+													todosToday = previous;
+													return;
+												}
 												await update();
+											};
 											}}
 										>
 											<input type="hidden" name="id" value={todo.id} />
@@ -228,7 +305,30 @@
 											</div>
 										</form>
 									{:else}
-										<form method="POST" action="?/toggleTodo" use:enhance>
+										<form
+											method="POST"
+											action="?/toggleTodo"
+											use:enhance={() => {
+												const previous = todosToday;
+												const nowDone = todo.status !== 'done';
+												todosToday = todosToday.map((item) =>
+													item.id === todo.id
+														? {
+																...item,
+																status: nowDone ? 'done' : 'pending',
+																completed_at: nowDone ? new Date().toISOString() : undefined
+															}
+														: item
+												);
+												return async ({ result, update }) => {
+													if (result.type === 'failure' || result.type === 'error') {
+														todosToday = previous;
+														return;
+													}
+													await update();
+												};
+											}}
+										>
 											<input type="hidden" name="id" value={todo.id} />
 											<input type="hidden" name="status" value={todo.status} />
 											<button
@@ -246,7 +346,21 @@
 												<span class="priority-badge priority-{todo.priority}">{priorityLabels[todo.priority]}</span>
 											{/if}
 										</button>
-										<form method="POST" action="?/removeTodo" use:enhance>
+										<form
+											method="POST"
+											action="?/removeTodo"
+											use:enhance={() => {
+												const previous = todosToday;
+												todosToday = todosToday.filter((item) => item.id !== todo.id);
+												return async ({ result, update }) => {
+													if (result.type === 'failure' || result.type === 'error') {
+														todosToday = previous;
+														return;
+													}
+													await update();
+												};
+											}}
+										>
 											<input type="hidden" name="id" value={todo.id} />
 											<button type="submit" class="delete-button" aria-label="Delete task">×</button>
 										</form>
@@ -269,7 +383,7 @@
 						</a>
 					</div>
 
-					{#if data.habitTotals.length === 0}
+					{#if habitTotals.length === 0}
 						<div class="empty-state">
 							<Activity class="empty-icon" size={22} strokeWidth={1.8} aria-hidden="true" />
 							<div>
@@ -279,7 +393,7 @@
 						</div>
 					{:else}
 						<ul class="habit-list">
-							{#each data.habitTotals as habit (habit.id)}
+							{#each habitTotals as habit (habit.id)}
 								<li>
 									<div class="habit-main">
 										<div class="habit-icon" style="color: {habit.color}">
@@ -321,10 +435,39 @@
 											class="log-row"
 											in:fly={{ y: -6, duration: 180, easing: cubicOut }}
 											out:fly={{ y: -4, duration: 140, easing: cubicIn }}
-											use:enhance={() => {
+											use:enhance={({ formData }) => {
+												const value = parseFloat(String(formData.get('value') ?? ''));
+												const optimistic = value > 0 ? makeOptimisticLog(habit.id, value) : null;
+												if (optimistic) {
+													habitTotals = habitTotals.map((item) =>
+														item.id === habit.id
+															? {
+																	...item,
+																	total: parseFloat((item.total + optimistic.value).toFixed(6)),
+																	todayLogs: [optimistic, ...item.todayLogs]
+																}
+															: item
+													);
+												}
 												logAmount = '';
 												activeHabitId = null;
-												return async ({ update }) => update();
+												return async ({ result, update }) => {
+													if (result.type === 'failure' || result.type === 'error') {
+														if (optimistic) {
+															habitTotals = habitTotals.map((item) =>
+																item.id === habit.id
+																	? {
+																			...item,
+																			total: parseFloat((item.total - optimistic.value).toFixed(6)),
+																			todayLogs: item.todayLogs.filter((log) => log.id !== optimistic.id)
+																		}
+																	: item
+															);
+														}
+														return;
+													}
+													await update();
+												};
 											}}
 										>
 											<input type="hidden" name="habit_id" value={habit.id} />
@@ -351,9 +494,32 @@
 															method="POST"
 															action="?/updateHabitLog"
 															class="log-edit-form"
-															use:enhance={() => async ({ result, update }) => {
-																if (result.type === 'success') editingLogId = null;
-																await update();
+															use:enhance={({ formData }) => {
+																const previous = habitTotals;
+																const nextValue = parseFloat(String(formData.get('value') ?? ''));
+																if (nextValue > 0) {
+																	habitTotals = habitTotals.map((item) =>
+																		item.id === habit.id
+																			? {
+																					...item,
+																					total: parseFloat(
+																						(item.total - log.value + nextValue).toFixed(6)
+																					),
+																					todayLogs: item.todayLogs.map((itemLog) =>
+																						itemLog.id === log.id ? { ...itemLog, value: nextValue } : itemLog
+																					)
+																				}
+																			: item
+																	);
+																}
+																return async ({ result, update }) => {
+																	if (result.type === 'success') editingLogId = null;
+																	if (result.type === 'failure' || result.type === 'error') {
+																		habitTotals = previous;
+																		return;
+																	}
+																	await update();
+																};
 															}}
 														>
 															<input type="hidden" name="id" value={log.id} />
@@ -382,7 +548,29 @@
 															>
 																<Pencil size={13} strokeWidth={2} />
 															</button>
-															<form method="POST" action="?/removeHabitLog" use:enhance>
+															<form
+																method="POST"
+																action="?/removeHabitLog"
+																use:enhance={() => {
+																	const previous = habitTotals;
+																	habitTotals = habitTotals.map((item) =>
+																		item.id === habit.id
+																			? {
+																					...item,
+																					total: parseFloat((item.total - log.value).toFixed(6)),
+																					todayLogs: item.todayLogs.filter((itemLog) => itemLog.id !== log.id)
+																				}
+																			: item
+																	);
+																	return async ({ result, update }) => {
+																		if (result.type === 'failure' || result.type === 'error') {
+																			habitTotals = previous;
+																			return;
+																		}
+																		await update();
+																	};
+																}}
+															>
 																<input type="hidden" name="id" value={log.id} />
 																<button type="submit" class="mini-icon-button danger" aria-label="Delete {habit.name} log">
 																	<Trash2 size={13} strokeWidth={2} />
@@ -470,9 +658,18 @@
 						method="POST"
 						action="?/addNote"
 						class="note-form"
-						use:enhance={() => {
+						use:enhance={({ formData }) => {
+							const content = String(formData.get('content') ?? '').trim();
+							const optimistic = content ? makeOptimisticNote(content) : null;
+							if (optimistic) notesToday = [optimistic, ...notesToday];
 							noteContent = '';
-							return async ({ update }) => update();
+							return async ({ result, update }) => {
+								if (result.type === 'failure' || result.type === 'error') {
+									if (optimistic) notesToday = notesToday.filter((note) => note.id !== optimistic.id);
+									return;
+								}
+								await update();
+							};
 						}}
 					>
 						<textarea

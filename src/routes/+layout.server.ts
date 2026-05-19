@@ -2,6 +2,7 @@ import { redirect } from '@sveltejs/kit';
 import type { LayoutServerLoad } from './$types';
 
 const PUBLIC_PATHS = ['/login', '/auth'];
+const THEMES = new Set(['dark', 'light']);
 
 export const load: LayoutServerLoad = async ({ locals, url, cookies }) => {
 	const { session, user } = locals;
@@ -16,8 +17,16 @@ export const load: LayoutServerLoad = async ({ locals, url, cookies }) => {
 		theme: 'dark',
 		accentIndex: 0
 	};
+	const cookieTheme = cookies.get('theme');
+	const cookieAccentIndex = Number(cookies.get('accentIndex'));
+	const hasCookiePreferences = THEMES.has(cookieTheme ?? '') && Number.isInteger(cookieAccentIndex);
 
-	if (user) {
+	if (hasCookiePreferences) {
+		preferences = {
+			theme: cookieTheme as 'dark' | 'light',
+			accentIndex: cookieAccentIndex
+		};
+	} else if (user) {
 		const { data } = await locals.supabase
 			.from('users')
 			.select('preferences')

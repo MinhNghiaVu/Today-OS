@@ -14,8 +14,10 @@ type Preferences = { theme: 'dark' | 'light'; accentIndex: number };
 
 const STORAGE_THEME_KEY = 'today-os-theme';
 const STORAGE_ACCENT_KEY = 'today-os-accent-index';
+const STORAGE_SIDEBAR_KEY = 'today-os-sidebar-collapsed';
 
 const _settings = writable({ theme: 'dark' as 'dark' | 'light', accentIndex: 0 });
+const _sidebarCollapsed = writable(false);
 
 function persistPreferences(prefs: Preferences): void {
 	if (!browser) return;
@@ -54,5 +56,20 @@ export const settings = {
 	},
 	init(prefs: Preferences) {
 		setPreferences(prefs);
+	}
+};
+
+if (browser) {
+	_sidebarCollapsed.set(localStorage.getItem(STORAGE_SIDEBAR_KEY) === 'true');
+}
+
+export const sidebarCollapsed = {
+	subscribe: _sidebarCollapsed.subscribe,
+	toggle() {
+		_sidebarCollapsed.update((collapsed) => {
+			const next = !collapsed;
+			if (browser) localStorage.setItem(STORAGE_SIDEBAR_KEY, String(next));
+			return next;
+		});
 	}
 };
