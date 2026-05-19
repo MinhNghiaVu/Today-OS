@@ -29,7 +29,9 @@ export async function getTodosToday(sb: AppDbClient, userId: string): Promise<To
 	const rank: Record<string, number> = { high: 0, medium: 1, low: 2 };
 	return ((data ?? []) as Todo[]).sort((a, b) => {
 		if (a.status !== b.status) return a.status === 'pending' ? -1 : 1;
-		return (rank[a.priority ?? ''] ?? 3) - (rank[b.priority ?? ''] ?? 3);
+		const priorityDiff = (rank[a.priority ?? ''] ?? 3) - (rank[b.priority ?? ''] ?? 3);
+		if (priorityDiff !== 0) return priorityDiff;
+		return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
 	});
 }
 
@@ -133,7 +135,9 @@ export async function getTodosForDate(
 	const rank: Record<string, number> = { high: 0, medium: 1, low: 2 };
 	return ((data ?? []) as Todo[]).sort((a, b) => {
 		if (a.status !== b.status) return a.status === 'pending' ? -1 : 1;
-		return (rank[a.priority ?? ''] ?? 3) - (rank[b.priority ?? ''] ?? 3);
+		const priorityDiff = (rank[a.priority ?? ''] ?? 3) - (rank[b.priority ?? ''] ?? 3);
+		if (priorityDiff !== 0) return priorityDiff;
+		return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
 	});
 }
 

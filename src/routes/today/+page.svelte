@@ -222,7 +222,7 @@
 						use:enhance={({ formData }) => {
 							const title = String(formData.get('title') ?? '').trim();
 							const optimistic = title ? makeOptimisticTodo(title) : null;
-							if (optimistic) todosToday = [optimistic, ...todosToday];
+							if (optimistic) todosToday = [...todosToday, optimistic];
 							newTodo = '';
 							return async ({ result, update }) => {
 								if (result.type === 'failure' || result.type === 'error') {
