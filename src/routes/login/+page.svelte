@@ -15,9 +15,7 @@
 		{ label: 'One special character', valid: () => /[^A-Za-z0-9]/.test(password) }
 	];
 
-	$: passwordComplete = passwordChecks.every((check) => check.valid());
 	$: passwordsMatch = confirmPassword.length > 0 && password === confirmPassword;
-	$: canSubmit = mode === 'signin' || (passwordComplete && passwordsMatch);
 </script>
 
 <div class="login-page">
@@ -90,7 +88,7 @@
 						</div>
 					{/if}
 				{/if}
-				<button type="submit" class="btn-primary" disabled={!canSubmit}>
+				<button type="submit" class="btn-primary">
 					{mode === 'signin' ? 'Sign in' : 'Create account'}
 				</button>
 			</form>
@@ -119,7 +117,7 @@
 		justify-content: center;
 		min-height: 100vh;
 		width: 100%;
-		padding: 24px;
+		padding: 24px 16px;
 	}
 
 	.card {
@@ -272,13 +270,6 @@
 		transform: translateY(1px);
 	}
 
-	.btn-primary:disabled {
-		background: var(--surface-3);
-		color: var(--text-disabled);
-		cursor: not-allowed;
-		transform: none;
-	}
-
 	.divider {
 		display: flex;
 		align-items: center;
@@ -317,5 +308,49 @@
 	.google-btn:hover {
 		background: var(--surface-3);
 		border-color: var(--border-strong);
+	}
+
+	@media (min-width: 768px) {
+		.login-page {
+			padding: 40px;
+		}
+
+		.card {
+			max-width: 520px;
+			padding: 48px 56px;
+			gap: 24px;
+		}
+
+		h1 {
+			font-size: 30px;
+		}
+
+		.sub {
+			font-size: 15px;
+		}
+
+		.email-form {
+			gap: 16px;
+		}
+
+		.field {
+			gap: 8px;
+		}
+
+		.field-label {
+			font-size: 13px;
+		}
+
+		.field input,
+		.btn-primary,
+		.google-btn {
+			height: 46px;
+			font-size: 15px;
+		}
+
+		.password-check {
+			font-size: 13px;
+			min-height: 20px;
+		}
 	}
 </style>
