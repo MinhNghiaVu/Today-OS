@@ -1,4 +1,4 @@
-import { Pool } from '@neondatabase/serverless';
+import { neon } from '@neondatabase/serverless';
 import { env } from '$env/dynamic/private';
 
 type Filter =
@@ -47,7 +47,7 @@ const COLUMNS = new Set([
 	'notes'
 ]);
 
-let pool: Pool | null = null;
+let sql: ReturnType<typeof neon> | null = null;
 let schemaReady: Promise<void> | null = null;
 
 const SCHEMA = [
@@ -129,11 +129,11 @@ const SCHEMA = [
 	'create index if not exists jobs_user_created on public.jobs (user_id, created_at desc)'
 ];
 
-function getPool() {
-	const connectionString = env.DATABASE_URL;
-	if (!connectionString) throw new Error('DATABASE_URL is not configured.');
-	pool ??= new Pool({ connectionString });
-	return pool;
+function getSql() {
+	const connectionString = env.DATABASE_URL || env.POSTGRES_URL || env.POSTGRES_PRISMA_URL;
+	if (!connectionString) throw new Error('DATABASE_URL, POSTGRES_URL, or POSTGRES_PRISMA_URL is not configured.');
+	sql ??= neon(connectionString);
+	return sql;
 }
 
 function ident(value: string) {
@@ -171,14 +171,14 @@ function errorResult(error: unknown) {
 
 export async function query<T = Record<string, unknown>>(text: string, values: unknown[] = []) {
 	await ensureSchema();
-	const result = await getPool().query(text, values);
-	return normalizeRows(result.rows as T[]);
+	const rows = await getSql().query(text, values);
+	return normalizeRows(rows as T[]);
 }
 
 export async function ensureSchema() {
 	if (schemaReady) return schemaReady;
 	schemaReady = (async () => {
-		const db = getPool();
+		const db = getSql();
 		for (const statement of SCHEMA) await db.query(statement);
 	})();
 	return schemaReady;

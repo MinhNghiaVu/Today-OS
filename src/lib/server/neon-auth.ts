@@ -19,10 +19,8 @@ function authBaseUrl() {
 	return baseUrl.replace(/\/$/, '');
 }
 
-function authOrigin(requestOrigin: string) {
-	if (env.NEON_AUTH_ORIGIN) return env.NEON_AUTH_ORIGIN.replace(/\/$/, '');
-	if (env.VERCEL_URL) return `https://${env.VERCEL_URL}`;
-	return requestOrigin;
+function authServiceOrigin() {
+	return new URL(authBaseUrl()).origin;
 }
 
 function neonCookieHeader(cookieHeader: string | null) {
@@ -47,12 +45,20 @@ function getSetCookie(headers: Headers) {
 	return single ? [single] : [];
 }
 
+function decodeCookieValue(value: string) {
+	try {
+		return decodeURIComponent(value);
+	} catch {
+		return value;
+	}
+}
+
 function parseSetCookie(header: string) {
 	const [nameValue, ...attrs] = header.split(';').map((part) => part.trim());
 	const separator = nameValue.indexOf('=');
 	if (separator === -1) return null;
 	const name = nameValue.slice(0, separator);
-	const value = nameValue.slice(separator + 1);
+	const value = decodeCookieValue(nameValue.slice(separator + 1));
 	const options: Parameters<Cookies['set']>[2] = {
 		path: '/',
 		httpOnly: true,
@@ -126,7 +132,6 @@ export async function proxyAuthRequest(request: Request, path: string) {
 
 export async function fetchSession(cookieHeader: string | null, origin: string) {
 	const headers = new Headers({
-		origin: authOrigin(origin),
 		'x-neon-auth-middleware': 'true'
 	});
 	setNeonCookieHeader(headers, cookieHeader);
@@ -146,10 +151,9 @@ export async function fetchSession(cookieHeader: string | null, origin: string) 
 }
 
 export async function authPost(path: string, body: Record<string, unknown>, origin: string, cookieHeader: string | null) {
-	const neonOrigin = authOrigin(origin);
 	const headers = new Headers({
 		'content-type': 'application/json',
-		origin: neonOrigin,
+		origin: authServiceOrigin(),
 		'x-neon-auth-middleware': 'true'
 	});
 	setNeonCookieHeader(headers, cookieHeader);
@@ -171,7 +175,6 @@ export function logAuthFailure(path: string, origin: string, status: number, mes
 	console.warn('Neon Auth request failed', {
 		path,
 		appOrigin: origin,
-		authOrigin: authOrigin(origin),
 		status,
 		message
 	});

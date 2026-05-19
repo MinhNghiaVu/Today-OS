@@ -7,7 +7,7 @@ export const GET: RequestHandler = async ({ cookies, locals, request, url }) => 
 
 	const response = await authPost('sign-in/social', {
 		provider: 'google',
-		callbackURL: '/today',
+		callbackURL: `${url.origin}/today`,
 		scopes: ['openid', 'email', 'profile', 'https://www.googleapis.com/auth/calendar.readonly']
 	}, url.origin, request.headers.get('cookie'));
 	applyAuthCookies(cookies, response.headers);
