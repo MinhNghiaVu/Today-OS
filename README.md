@@ -62,9 +62,10 @@ Create a `.env` file at the repo root:
 DATABASE_URL=postgres://...
 NEON_AUTH_BASE_URL=https://.../auth
 VITE_NEON_AUTH_URL=https://.../auth
+NEON_AUTH_ORIGIN=https://today-os-five.vercel.app
 ```
 
-The server uses `DATABASE_URL` and `NEON_AUTH_BASE_URL`; `VITE_NEON_AUTH_URL` is a fallback for the same Neon Auth URL. Add the exact deployed app origin to Neon Auth trusted domains before testing sign-up or OAuth in production.
+The server uses `DATABASE_URL` and `NEON_AUTH_BASE_URL`; `VITE_NEON_AUTH_URL` is a fallback for the same Neon Auth URL. `NEON_AUTH_ORIGIN` is optional and lets the app send Neon a known trusted origin when Vercel's stable alias differs from the deployment URL Neon auto-trusted. Add the exact deployed app origin to Neon Auth trusted domains before testing sign-up or OAuth in production.
 
 Full setup — including Google OAuth, migrations, Google Calendar, and the Anthropic key — is covered in the docs below.
 

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { Eye, EyeOff } from 'lucide-svelte';
 	import SegmentedControl from '$lib/components/SegmentedControl.svelte';
 
 	export let form: { error?: string; success?: boolean; message?: string } | null = null;
@@ -7,6 +8,8 @@
 	let mode = 'signin';
 	let password = '';
 	let confirmPassword = '';
+	let showPassword = false;
+	let showConfirmPassword = false;
 	const modeTabs = [{ value: 'signin', label: 'Sign in' }, { value: 'signup', label: 'Sign up' }];
 	const passwordChecks = [
 		{ label: 'At least 8 characters', valid: () => password.length >= 8 },
@@ -52,14 +55,29 @@
 				</label>
 				<label class="field">
 					<span class="field-label">Password</span>
-					<input
-						type="password"
-						name="password"
-						placeholder={mode === 'signup' ? '8+ chars, number, symbol' : '••••••••'}
-						autocomplete={mode === 'signin' ? 'current-password' : 'new-password'}
-						bind:value={password}
-						required
-					/>
+					<span class="password-input">
+						<input
+							type={showPassword ? 'text' : 'password'}
+							name="password"
+							placeholder={mode === 'signup' ? '8+ chars, number, symbol' : '••••••••'}
+							autocomplete={mode === 'signin' ? 'current-password' : 'new-password'}
+							bind:value={password}
+							required
+						/>
+						<button
+							type="button"
+							class="password-toggle"
+							aria-label={showPassword ? 'Hide password' : 'Show password'}
+							aria-pressed={showPassword}
+							on:click={() => (showPassword = !showPassword)}
+						>
+							{#if showPassword}
+								<EyeOff size={16} strokeWidth={1.8} aria-hidden="true" />
+							{:else}
+								<Eye size={16} strokeWidth={1.8} aria-hidden="true" />
+							{/if}
+						</button>
+					</span>
 				</label>
 				{#if mode === 'signup'}
 					<div class="password-checks" aria-live="polite">
@@ -72,14 +90,29 @@
 					</div>
 					<label class="field">
 						<span class="field-label">Confirm password</span>
-						<input
-							type="password"
-							name="confirmPassword"
-							placeholder="Repeat password"
-							autocomplete="new-password"
-							bind:value={confirmPassword}
-							required
-						/>
+						<span class="password-input">
+							<input
+								type={showConfirmPassword ? 'text' : 'password'}
+								name="confirmPassword"
+								placeholder="Repeat password"
+								autocomplete="new-password"
+								bind:value={confirmPassword}
+								required
+							/>
+							<button
+								type="button"
+								class="password-toggle"
+								aria-label={showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'}
+								aria-pressed={showConfirmPassword}
+								on:click={() => (showConfirmPassword = !showConfirmPassword)}
+							>
+								{#if showConfirmPassword}
+									<EyeOff size={16} strokeWidth={1.8} aria-hidden="true" />
+								{:else}
+									<Eye size={16} strokeWidth={1.8} aria-hidden="true" />
+								{/if}
+							</button>
+						</span>
 					</label>
 					{#if confirmPassword}
 						<div class:met={passwordsMatch} class="password-check">
@@ -213,6 +246,63 @@
 		box-shadow: 0 0 0 1px var(--border-focus);
 	}
 
+	.password-input {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) 40px;
+		align-items: center;
+		background: var(--surface-2);
+		border: 1px solid var(--border-default);
+		border-radius: var(--radius-md);
+		height: 40px;
+		transition: border-color 120ms var(--ease-out), box-shadow 120ms var(--ease-out);
+	}
+
+	.password-input:hover {
+		border-color: var(--border-strong);
+	}
+
+	.password-input:focus-within {
+		border-color: var(--accent);
+		box-shadow: 0 0 0 1px var(--border-focus);
+	}
+
+	.password-input input {
+		background: transparent;
+		border: 0;
+		height: 100%;
+		padding-right: 4px;
+	}
+
+	.password-input input:hover,
+	.password-input input:focus {
+		border-color: transparent;
+		box-shadow: none;
+	}
+
+	.password-toggle {
+		display: grid;
+		place-items: center;
+		width: 40px;
+		height: 100%;
+		border: 0;
+		border-left: 1px solid var(--border-subtle);
+		border-radius: 0 var(--radius-md) var(--radius-md) 0;
+		background: transparent;
+		color: var(--text-tertiary);
+		cursor: pointer;
+		transition: background 120ms var(--ease-out), color 120ms var(--ease-out);
+	}
+
+	.password-toggle:hover {
+		background: var(--surface-3);
+		color: var(--text-secondary);
+	}
+
+	.password-toggle:focus-visible {
+		outline: 2px solid var(--border-focus);
+		outline-offset: -2px;
+	}
+
 	.password-checks {
 		display: grid;
 		gap: 8px;
@@ -341,6 +431,7 @@
 		}
 
 		.field input,
+		.password-input,
 		.btn-primary,
 		.google-btn {
 			height: 48px;

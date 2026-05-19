@@ -19,6 +19,12 @@ function authBaseUrl() {
 	return baseUrl.replace(/\/$/, '');
 }
 
+function authOrigin(requestOrigin: string) {
+	if (env.NEON_AUTH_ORIGIN) return env.NEON_AUTH_ORIGIN.replace(/\/$/, '');
+	if (env.VERCEL_URL) return `https://${env.VERCEL_URL}`;
+	return requestOrigin;
+}
+
 function neonCookieHeader(cookieHeader: string | null) {
 	if (!cookieHeader) return '';
 	return cookieHeader
@@ -120,7 +126,7 @@ export async function proxyAuthRequest(request: Request, path: string) {
 
 export async function fetchSession(cookieHeader: string | null, origin: string) {
 	const headers = new Headers({
-		origin,
+		origin: authOrigin(origin),
 		'x-neon-auth-middleware': 'true'
 	});
 	setNeonCookieHeader(headers, cookieHeader);
@@ -140,9 +146,10 @@ export async function fetchSession(cookieHeader: string | null, origin: string) 
 }
 
 export async function authPost(path: string, body: Record<string, unknown>, origin: string, cookieHeader: string | null) {
+	const neonOrigin = authOrigin(origin);
 	const headers = new Headers({
 		'content-type': 'application/json',
-		origin,
+		origin: neonOrigin,
 		'x-neon-auth-middleware': 'true'
 	});
 	setNeonCookieHeader(headers, cookieHeader);
@@ -161,5 +168,11 @@ export async function authErrorMessage(response: Response, fallback: string) {
 }
 
 export function logAuthFailure(path: string, origin: string, status: number, message: string) {
-	console.warn('Neon Auth request failed', { path, origin, status, message });
+	console.warn('Neon Auth request failed', {
+		path,
+		appOrigin: origin,
+		authOrigin: authOrigin(origin),
+		status,
+		message
+	});
 }
