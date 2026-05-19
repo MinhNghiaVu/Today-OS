@@ -35,6 +35,7 @@ Never use `npm` or `pnpm` in this repo.
 ## Working Style
 
 - Make small, complete changes and verify them before handing back.
+- After completing changes, commit and push to the current upstream branch unless the user explicitly says not to.
 - Do not leave logs, completed phase histories, or long decision diaries in this file.
 - Before large edits, read the most relevant doc first, then inspect current code. Docs may be stale; code and user direction win.
 - Do not add code comments unless the code is genuinely hard to understand without one.
