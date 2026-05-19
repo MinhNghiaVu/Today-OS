@@ -1,40 +1,37 @@
-# Phase 2 Setup Guide — Supabase + Auth
+# Phase 2 Setup Guide — Neon + Auth
 
-Follow these steps to activate the backend. Claude has written all the code; you wire up the accounts and keys.
+Follow these steps to activate the backend. Today OS now uses Neon Postgres plus Neon Auth.
 
 ---
 
-## Step 1 — Create a Supabase project
+## Step 1 — Create or connect Neon
 
-1. Go to [supabase.com](https://supabase.com) → **New project**.
-2. Choose a name (e.g. `today-os`), set a strong DB password, pick a region close to you.
-3. Wait ~2 minutes for provisioning.
-4. In the dashboard sidebar: **Project Settings → API**.
-   - Copy **Project URL** → this is `PUBLIC_SUPABASE_URL`
-   - Copy **anon / public** key → this is `PUBLIC_SUPABASE_ANON_KEY`
+1. Install Neon from the Vercel Marketplace and connect it to the Today OS Vercel project.
+2. Enable Neon Auth in the Neon console.
+3. Enable email sign-up/sign-in, and add Google as an OAuth provider if Google login is desired.
+4. Add the production app domain to Neon Auth trusted domains, for example `https://today-os-five.vercel.app`.
 
 ---
 
 ## Step 2 — Add environment variables
 
-Create a `.env` file at the project root (copy from `.env.example`):
+For Vercel, the Marketplace integration should inject these automatically:
 
 ```
-PUBLIC_SUPABASE_URL=https://xxxxxxxxxxxx.supabase.co
-PUBLIC_SUPABASE_ANON_KEY=eyJ...
+DATABASE_URL=postgres://...
+NEON_AUTH_BASE_URL=https://.../auth
+VITE_NEON_AUTH_URL=https://.../auth
 ```
 
 > `.env` is git-ignored. Never commit it.
 
 ---
 
-## Step 3 — Run the database migration
+## Step 3 — Database schema
 
-1. In the Supabase dashboard: **SQL Editor → New query**.
-2. Paste the full contents of `supabase/migrations/001_initial_schema.sql`.
-3. Click **Run**.
+The deployed app bootstraps the required Neon tables on first authenticated request. The schema is also saved as `neon/migrations/001_today_os_schema.sql` for review or manual application.
 
-This creates all tables (`users`, `todos`, `habit_definitions`, `habit_logs`, `notes`), enables Row Level Security on all of them, and sets up the trigger that auto-creates a `users` row on first sign-in.
+This creates `users`, `todos`, `habit_definitions`, `habit_logs`, `notes`, and `jobs`.
 
 ---
 
@@ -47,17 +44,13 @@ This creates all tables (`users`, `todos`, `habit_definitions`, `habit_logs`, `n
 3. Enable the **Google+ API** (or **Google Identity** API).
 4. Go to **APIs & Services → Credentials → Create Credentials → OAuth 2.0 Client ID**.
    - Application type: **Web application**
-   - Authorized redirect URIs — add:
-     ```
-     https://<your-project-ref>.supabase.co/auth/v1/callback
-     ```
-   - (You can also add `http://localhost:5173` for local dev if Supabase supports it — it does via its own OAuth proxy.)
+   - Authorized redirect URIs should match the redirect URL required by Neon Auth for the Google provider.
 5. Copy **Client ID** and **Client Secret**.
 
-### In Supabase dashboard
+### In Neon Auth
 
-1. Go to **Authentication → Providers → Google**.
-2. Toggle **Enable**.
+1. Go to Neon Auth OAuth providers.
+2. Confirm Google is enabled.
 3. Paste **Client ID** and **Client Secret**.
 4. Save.
 
@@ -65,12 +58,7 @@ This creates all tables (`users`, `todos`, `habit_definitions`, `habit_logs`, `n
 
 ## Step 5 — Set the redirect URL (local dev)
 
-In Supabase dashboard: **Authentication → URL Configuration**.
-
-- **Site URL**: `http://localhost:5173`
-- **Redirect URLs**: add `http://localhost:5173/auth/callback`
-
-For production later, add your deployed URL here too.
+In Neon Auth trusted domains, keep localhost enabled for local development and add the production Vercel domain.
 
 ---
 
@@ -80,7 +68,7 @@ For production later, add your deployed URL here too.
 bun run dev
 ```
 
-Open [http://localhost:5173](http://localhost:5173). You'll be redirected to `/login`. Click **Sign in with Google**. After auth, you land on `/today` with a real DB backend.
+Open [http://localhost:5173](http://localhost:5173). You'll be redirected to `/login`. Sign in with email or Google. After auth, you land on `/today` with a real DB backend.
 
 ---
 
@@ -88,14 +76,14 @@ Open [http://localhost:5173](http://localhost:5173). You'll be redirected to `/l
 
 | File | What it does |
 |------|-------------|
-| `src/hooks.server.ts` | Creates Supabase server client per request, attaches session + user to `event.locals` |
+| `src/hooks.server.ts` | Creates Neon-backed request locals, attaches session + user to `event.locals` |
 | `src/routes/+layout.server.ts` | Redirects unauthenticated users to `/login`; loads user preferences |
-| `src/routes/login/+page.server.ts` | Initiates Google OAuth redirect |
-| `src/routes/auth/callback/+server.ts` | Exchanges OAuth code for session, redirects to `/today` |
+| `src/routes/login/+page.server.ts` | Handles email auth and initiates Google OAuth |
+| `src/routes/api/auth/[...path]/+server.ts` | Proxies Neon Auth requests |
 | `src/routes/logout/+server.ts` | Signs out, redirects to `/login` |
-| `src/routes/*/+page.server.ts` | Each route now loads from Supabase + handles CRUD via form actions |
-| `src/lib/db.ts` | Shared Supabase query helpers |
-| `supabase/migrations/001_initial_schema.sql` | Full schema with RLS |
+| `src/routes/*/+page.server.ts` | Each route loads from Neon + handles CRUD via form actions |
+| `src/lib/db.ts` | Shared query helpers |
+| `neon/migrations/001_today_os_schema.sql` | Full app schema |
 
 ---
 
@@ -103,8 +91,9 @@ Open [http://localhost:5173](http://localhost:5173). You'll be redirected to `/l
 
 | Problem | Fix |
 |---------|-----|
-| "No authorization code" on callback | Check redirect URL matches exactly in both Google Console and Supabase dashboard |
+| `Invalid origin` during sign-up or OAuth | Confirm `NEON_AUTH_BASE_URL` is set and add the exact app origin, such as `https://today-os-five.vercel.app`, to Neon Auth trusted domains |
+| OAuth does not redirect back | Check trusted domains and Google provider redirect URL in Neon Auth |
 | Blank page after login | Check browser console; likely missing env vars |
 | `AUTH_SESSION_MISSING` errors | Clear cookies and sign in again |
-| Data not showing | Verify SQL migration ran; check RLS policies in Supabase Dashboard → Table Editor |
-| `relation "public.users" does not exist` | Migration didn't run — go back to Step 3 |
+| Data not showing | Verify `DATABASE_URL` exists in Vercel and the schema bootstrap ran |
+| `relation "public.users" does not exist` | Apply `neon/migrations/001_today_os_schema.sql` manually or trigger a fresh authenticated request |

@@ -38,9 +38,9 @@ Expected manual doc:
 
 Important behavior:
 
-- Auth/session work uses Supabase SSR helpers.
-- User-owned data must stay behind RLS.
-- Server routes use `event.locals.supabase`.
+- Auth/session work now uses Neon Auth through the SvelteKit auth proxy.
+- User-owned data is keyed by the Neon Auth user id.
+- Server routes use `event.locals.supabase` as a Neon-backed compatibility client.
 
 ### Phase 2.5 — Design-System Rollout
 
@@ -104,7 +104,7 @@ Expected behavior:
 - Add row form is inline.
 - Row click opens inline edit.
 - Status badge is a quick-update dropdown.
-- Jobs schema lives in `supabase/migrations/003_jobs.sql`.
+- Jobs schema now lives in `neon/migrations/001_today_os_schema.sql` with the rest of the Neon schema.
 
 ### Polish Pass — Performance + First Paint
 

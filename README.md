@@ -45,7 +45,7 @@ A personal daily operating system built with SvelteKit. Open it and immediately 
 ### Prerequisites
 
 - [Bun](https://bun.sh) v1+
-- A [Supabase](https://supabase.com) project
+- A Neon Postgres project with Neon Auth enabled, usually through the Vercel Marketplace
 - (Optional) Google Cloud project with Calendar API enabled
 
 ### Install
@@ -59,8 +59,9 @@ bun install
 Create a `.env` file at the repo root:
 
 ```env
-PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+DATABASE_URL=postgres://...
+NEON_AUTH_BASE_URL=https://.../auth
+VITE_NEON_AUTH_URL=https://.../auth
 ```
 
 Full setup — including Google OAuth, migrations, Google Calendar, and the Anthropic key — is covered in the docs below.
@@ -85,7 +86,7 @@ bun run preview      # preview production build
 
 | Doc | Covers |
 |---|---|
-| `docs/phase2-setup.md` | Supabase project, env vars, DB migrations, Google OAuth |
+| `docs/phase2-setup.md` | Neon project, env vars, schema bootstrap, Neon Auth |
 | `docs/phase4-setup.md` | Google Calendar read-only integration |
 | `docs/phase5-setup.md` | Anthropic API key / AI assistant |
 | `docs/phase6-setup.md` | Jobs table migration |
@@ -99,13 +100,13 @@ src/
   routes/          # SvelteKit routes (one folder per page)
   lib/
     components/    # Reusable Svelte components
-    db.ts          # Supabase query helpers
+    db.ts          # Shared data query helpers
     stores.ts      # Client-only UI state
     types.ts       # Shared domain types
     utils/         # Pure helpers
   app.css          # Design tokens + global styles
-supabase/
-  migrations/      # DB schema and RLS policies
+neon/
+  migrations/      # Neon Postgres schema reference
 docs/              # Specs, setup guides, design system
 ```
 
@@ -119,4 +120,4 @@ Warm dark surfaces, restrained density, strong alignment — closer to Linear or
 
 ## Status
 
-Phase 1–6 complete. Core routes are functional end-to-end with Supabase auth and RLS. The AI assistant route is intentionally disabled until an Anthropic key is ready.
+Phase 1–6 complete. Core routes are functional end-to-end with Neon Postgres and Neon Auth. The AI assistant route is intentionally disabled until an Anthropic key is ready.

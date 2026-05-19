@@ -7,16 +7,8 @@
 	export let data: PageData;
 
 	async function exportData() {
-		const sb = (await import('$lib/supabase')).supabase;
-		const [todos, habits, habitLogs, notes] = await Promise.all([
-			sb.from('todos').select('*'),
-			sb.from('habit_definitions').select('*'),
-			sb.from('habit_logs').select('*'),
-			sb.from('notes').select('*')
-		]);
-
 		const blob = new Blob(
-			[JSON.stringify({ exportedAt: new Date().toISOString(), todos: todos.data, habits: habits.data, habitLogs: habitLogs.data, notes: notes.data }, null, 2)],
+			[JSON.stringify({ exportedAt: new Date().toISOString(), ...data.exportData }, null, 2)],
 			{ type: 'application/json' }
 		);
 		const url = URL.createObjectURL(blob);

@@ -50,6 +50,18 @@
 						required
 					/>
 				</label>
+				{#if mode === 'signup'}
+					<label class="field">
+						<span class="field-label">Confirm password</span>
+						<input
+							type="password"
+							name="confirmPassword"
+							placeholder="Repeat password"
+							autocomplete="new-password"
+							required
+						/>
+					</label>
+				{/if}
 				<button type="submit" class="btn-primary">
 					{mode === 'signin' ? 'Sign in' : 'Create account'}
 				</button>
@@ -172,8 +184,7 @@
 
 	.field input:focus {
 		border-color: var(--accent);
-		outline: 2px solid var(--border-focus);
-		outline-offset: 2px;
+		box-shadow: 0 0 0 1px var(--border-focus);
 	}
 
 	.btn-primary {

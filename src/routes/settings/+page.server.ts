@@ -11,9 +11,22 @@ export const load: PageServerLoad = async ({ locals }) => {
 		.eq('id', user.id)
 		.single();
 
+	const [todos, habits, habitLogs, notes] = await Promise.all([
+		locals.supabase.from('todos').select('*').eq('user_id', user.id),
+		locals.supabase.from('habit_definitions').select('*').eq('user_id', user.id),
+		locals.supabase.from('habit_logs').select('*').eq('user_id', user.id),
+		locals.supabase.from('notes').select('*').eq('user_id', user.id)
+	]);
+
 	return {
 		email: data?.email ?? user.email ?? '',
-		preferences: data?.preferences ?? { theme: 'dark', accentIndex: 0 }
+		preferences: data?.preferences ?? { theme: 'dark', accentIndex: 0 },
+		exportData: {
+			todos: todos.data ?? [],
+			habits: habits.data ?? [],
+			habitLogs: habitLogs.data ?? [],
+			notes: notes.data ?? []
+		}
 	};
 };
 

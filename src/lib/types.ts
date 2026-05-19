@@ -53,6 +53,12 @@ export interface HabitWithTotal extends Habit {
 	total: number;
 }
 
+export interface HabitWithTodayLogs extends HabitWithTotal {
+	daysLogged: number;
+	daysMet: number;
+	todayLogs: HabitLog[];
+}
+
 export type JobStatus =
 	| 'pending' | 'applied' | 'recruiter_screen' | 'interview'
 	| 'offer' | 'rejected' | 'ghosted' | 'dropped';

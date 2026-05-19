@@ -1,10 +1,12 @@
 <script lang="ts">
+	import { enhance } from '$app/forms';
 	import { fly } from 'svelte/transition';
 	import { cubicOut } from 'svelte/easing';
-	import { ArrowLeft, TrendingUp, Target, BarChart2 } from 'lucide-svelte';
+	import { ArrowLeft, BarChart2, Pencil, Plus, Target, Trash2, TrendingUp } from 'lucide-svelte';
 	import HabitChart from '$lib/components/HabitChart.svelte';
 	import SegmentedControl from '$lib/components/SegmentedControl.svelte';
 	import type { PageData } from './$types';
+	import type { HabitLog } from '$lib/types';
 
 	export let data: PageData;
 
@@ -12,8 +14,18 @@
 
 	let range = '7d';
 	const rangeTabs = [{ value: '7d', label: '7 days' }, { value: '30d', label: '30 days' }];
+	let newLogDate = new Date().toISOString().slice(0, 10);
+	let newLogValue = '';
+	let editingLogId: string | null = null;
+	let editingLogValue = '';
+	let editingLogDate = '';
 
 	$: activeLogs = range === '7d' ? logs7 : logs30;
+	$: visibleLogEntries =
+		range === '7d'
+			? data.logEntries.filter((log) => activeLogs.some((day) => day.date === log.date))
+			: data.logEntries;
+	$: logGroups = groupLogsByDate(visibleLogEntries);
 
 	$: totalForRange = activeLogs.reduce((s, d) => s + d.total, 0);
 	$: daysWithData = activeLogs.filter((d) => d.total > 0).length;
@@ -25,6 +37,45 @@
 		max_goal: 'Maximum goal',
 		info_only: 'Info only'
 	};
+
+	function groupLogsByDate(logs: HabitLog[]): { date: string; total: number; logs: HabitLog[] }[] {
+		const grouped = new Map<string, HabitLog[]>();
+		for (const log of logs) {
+			grouped.set(log.date, [...(grouped.get(log.date) ?? []), log]);
+		}
+
+		return [...grouped.entries()].map(([date, entries]) => ({
+			date,
+			total: entries.reduce((sum, log) => sum + log.value, 0),
+			logs: entries
+		}));
+	}
+
+	function startEditLog(log: HabitLog) {
+		editingLogId = log.id;
+		editingLogValue = String(log.value);
+		editingLogDate = log.date;
+	}
+
+	function formatDay(date: string): string {
+		return new Date(`${date}T00:00:00`).toLocaleDateString('en-AU', {
+			weekday: 'short',
+			day: 'numeric',
+			month: 'short'
+		});
+	}
+
+	function formatLogTime(iso: string): string {
+		return new Date(iso).toLocaleTimeString('en-AU', {
+			hour: 'numeric',
+			minute: '2-digit',
+			hour12: true
+		});
+	}
+
+	function formattedAmount(value: number): string {
+		return Number.isInteger(value) ? String(value) : value.toFixed(1);
+	}
 </script>
 
 <div class="page">
@@ -124,6 +175,101 @@
 				<span class="best-value" style="color: {habit.color}">{maxDay.total} {habit.unit}</span>
 			</div>
 		{/if}
+
+		<div class="log-history-card">
+			<div class="log-history-header">
+				<div>
+					<span class="section-label">Log history</span>
+					<h2>Entries add up to the daily total</h2>
+				</div>
+				<form
+					method="POST"
+					action="?/addLog"
+					class="add-log-form"
+					use:enhance={() => {
+						newLogValue = '';
+						return async ({ update }) => update();
+					}}
+				>
+					<input type="date" name="date" bind:value={newLogDate} aria-label="Log date" />
+					<input
+						type="number"
+						name="value"
+						min="0"
+						step="any"
+						bind:value={newLogValue}
+						placeholder={habit.unit}
+						aria-label="Log amount"
+					/>
+					<button type="submit" class="icon-button primary" aria-label="Add log">
+						<Plus size={16} strokeWidth={2.2} />
+					</button>
+				</form>
+			</div>
+
+			{#if logGroups.length === 0}
+				<div class="history-empty">
+					<p>No entries in this period.</p>
+				</div>
+			{:else}
+				<div class="log-groups">
+					{#each logGroups as group (group.date)}
+						<section class="log-day">
+							<div class="log-day-header">
+								<span>{formatDay(group.date)}</span>
+								<strong>{formattedAmount(group.total)} {habit.unit}</strong>
+							</div>
+							<ul class="log-entry-list">
+								{#each group.logs as log (log.id)}
+									<li>
+										{#if editingLogId === log.id}
+											<form
+												method="POST"
+												action="?/updateLog"
+												class="edit-log-form"
+												use:enhance={() => async ({ result, update }) => {
+													if (result.type === 'success') editingLogId = null;
+													await update();
+												}}
+											>
+												<input type="hidden" name="id" value={log.id} />
+												<input type="date" name="date" bind:value={editingLogDate} aria-label="Edit log date" />
+												<input
+													type="number"
+													name="value"
+													min="0"
+													step="any"
+													bind:value={editingLogValue}
+													aria-label="Edit log amount"
+												/>
+												<button type="submit" class="small-button primary-fill">Save</button>
+												<button type="button" class="small-button" on:click={() => (editingLogId = null)}>Cancel</button>
+											</form>
+										{:else}
+											<div class="log-copy">
+												<span>+{formattedAmount(log.value)} {habit.unit}</span>
+												<time>{formatLogTime(log.created_at)}</time>
+											</div>
+											<div class="log-actions">
+												<button type="button" class="mini-icon-button" on:click={() => startEditLog(log)} aria-label="Edit log">
+													<Pencil size={13} strokeWidth={2} />
+												</button>
+												<form method="POST" action="?/removeLog" use:enhance>
+													<input type="hidden" name="id" value={log.id} />
+													<button type="submit" class="mini-icon-button danger" aria-label="Delete log">
+														<Trash2 size={13} strokeWidth={2} />
+													</button>
+												</form>
+											</div>
+										{/if}
+									</li>
+								{/each}
+							</ul>
+						</section>
+					{/each}
+				</div>
+			{/if}
+		</div>
 	</div>
 </div>
 
@@ -343,5 +489,236 @@
 	.best-value {
 		font-size: 15px;
 		font-weight: 600;
+	}
+
+	.log-history-card {
+		background: var(--surface-1);
+		border-radius: var(--radius-xl);
+		padding: 20px;
+		box-shadow: var(--shadow-sm);
+		display: flex;
+		flex-direction: column;
+		gap: 16px;
+	}
+
+	.log-history-header {
+		display: flex;
+		align-items: flex-start;
+		justify-content: space-between;
+		gap: 16px;
+	}
+
+	.log-history-header h2 {
+		margin: 3px 0 0;
+		font-size: 16px;
+		font-weight: 600;
+		color: var(--text-primary);
+	}
+
+	.add-log-form,
+	.edit-log-form {
+		display: flex;
+		gap: 8px;
+	}
+
+	input {
+		height: 34px;
+		background: var(--surface-2);
+		border: 1px solid var(--border-default);
+		border-radius: var(--radius-md);
+		padding: 0 10px;
+		color: var(--text-primary);
+		font-family: inherit;
+		font-size: 13px;
+		outline: none;
+		transition: border-color 120ms var(--ease-out);
+	}
+
+	input:hover {
+		border-color: var(--border-strong);
+	}
+
+	input:focus-visible,
+	button:focus-visible {
+		outline: 2px solid var(--border-focus);
+		outline-offset: 2px;
+	}
+
+	.add-log-form input[type='number'] {
+		width: 96px;
+	}
+
+	.icon-button {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 34px;
+		height: 34px;
+		border: none;
+		border-radius: var(--radius-md);
+		cursor: pointer;
+		transition: background 120ms var(--ease-out), transform 120ms var(--ease-out);
+	}
+
+	.primary,
+	.primary-fill {
+		background: var(--accent);
+		color: var(--text-on-accent);
+	}
+
+	.primary:hover,
+	.primary-fill:hover {
+		background: var(--accent-hover);
+	}
+
+	.primary:active,
+	.primary-fill:active {
+		background: var(--accent-pressed);
+		transform: translateY(1px);
+	}
+
+	.history-empty {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		min-height: 72px;
+		border-radius: var(--radius-lg);
+		background: var(--surface-2);
+		color: var(--text-tertiary);
+		font-size: 13px;
+	}
+
+	.history-empty p {
+		margin: 0;
+	}
+
+	.log-groups,
+	.log-entry-list {
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+	}
+
+	.log-day {
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+	}
+
+	.log-day-header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 12px;
+		color: var(--text-secondary);
+		font-size: 13px;
+	}
+
+	.log-day-header strong {
+		color: var(--text-primary);
+		font-size: 13px;
+		font-weight: 600;
+	}
+
+	.log-entry-list {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+	}
+
+	.log-entry-list li {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 10px;
+		min-height: 36px;
+		padding: 8px 10px;
+		border-radius: var(--radius-md);
+		background: var(--surface-2);
+	}
+
+	.log-copy {
+		display: flex;
+		align-items: baseline;
+		gap: 8px;
+	}
+
+	.log-copy span {
+		color: var(--text-primary);
+		font-size: 13px;
+		font-weight: 500;
+	}
+
+	.log-copy time {
+		color: var(--text-tertiary);
+		font-size: 12px;
+	}
+
+	.log-actions {
+		display: flex;
+		align-items: center;
+		gap: 4px;
+	}
+
+	.mini-icon-button {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 26px;
+		height: 26px;
+		border: none;
+		border-radius: var(--radius-sm);
+		background: transparent;
+		color: var(--text-tertiary);
+		cursor: pointer;
+		transition: background 120ms var(--ease-out), color 120ms var(--ease-out);
+	}
+
+	.mini-icon-button:hover {
+		background: var(--surface-3);
+		color: var(--text-primary);
+	}
+
+	.mini-icon-button.danger:hover {
+		background: var(--danger-soft);
+		color: var(--danger);
+	}
+
+	.small-button {
+		height: 34px;
+		padding: 0 12px;
+		border: none;
+		border-radius: var(--radius-md);
+		background: var(--surface-2);
+		color: var(--text-primary);
+		font-size: 13px;
+		font-weight: 500;
+		cursor: pointer;
+	}
+
+	.edit-log-form {
+		flex: 1;
+	}
+
+	@media (max-width: 640px) {
+		.log-history-header,
+		.add-log-form,
+		.edit-log-form,
+		.log-entry-list li {
+			flex-direction: column;
+		}
+
+		.add-log-form,
+		.edit-log-form {
+			width: 100%;
+		}
+
+		.add-log-form input[type='number'] {
+			width: 100%;
+		}
+
+		.icon-button {
+			width: 100%;
+		}
 	}
 </style>

@@ -11,8 +11,10 @@
 		Clock3,
 		Droplets,
 		FileText,
+		Pencil,
 		Plus,
-		Target
+		Target,
+		Trash2
 	} from 'lucide-svelte';
 	import type { PageData } from './$types';
 	import type { HabitType, TodoPriority } from '$lib/types';
@@ -45,6 +47,8 @@
 	let editingId: string | null = null;
 	let activeHabitId: string | null = null;
 	let logAmount = '';
+	let editingLogId: string | null = null;
+	let editingLogValue = '';
 
 	$: pendingTodos = data.todosToday.filter((todo) => todo.status === 'pending');
 	$: doneTodos = data.todosToday.filter((todo) => todo.status === 'done');
@@ -70,6 +74,19 @@
 	function openLog(id: string) {
 		activeHabitId = id;
 		logAmount = '';
+	}
+
+	function startEditLog(id: string, value: number) {
+		editingLogId = id;
+		editingLogValue = String(value);
+	}
+
+	function formatLogTime(iso: string): string {
+		return new Date(iso).toLocaleTimeString('en-AU', {
+			hour: 'numeric',
+			minute: '2-digit',
+			hour12: true
+		});
 	}
 
 	function isHabitOnTrack(habit: {
@@ -106,6 +123,10 @@
 	function barWidth(habit: { daily_goal: number | null; total: number }): number {
 		if (!habit.daily_goal) return habit.total > 0 ? 100 : 0;
 		return Math.min(100, (habit.total / habit.daily_goal) * 100);
+	}
+
+	function formattedTotal(total: number): string {
+		return Number.isInteger(total) ? String(total) : total.toFixed(1);
 	}
 </script>
 
@@ -319,6 +340,59 @@
 											<button type="submit" class="small-button primary-fill">Log</button>
 											<button type="button" class="small-button" on:click={() => (activeHabitId = null)}>Cancel</button>
 										</form>
+									{/if}
+
+									{#if habit.todayLogs.length > 0}
+										<ul class="habit-log-list" aria-label="{habit.name} logs">
+											{#each habit.todayLogs as log (log.id)}
+												<li>
+													{#if editingLogId === log.id}
+														<form
+															method="POST"
+															action="?/updateHabitLog"
+															class="log-edit-form"
+															use:enhance={() => async ({ result, update }) => {
+																if (result.type === 'success') editingLogId = null;
+																await update();
+															}}
+														>
+															<input type="hidden" name="id" value={log.id} />
+															<input
+																type="number"
+																name="value"
+																min="0"
+																step="any"
+																bind:value={editingLogValue}
+																aria-label="Edit log value"
+															/>
+															<button type="submit" class="small-button primary-fill">Save</button>
+															<button type="button" class="small-button" on:click={() => (editingLogId = null)}>Cancel</button>
+														</form>
+													{:else}
+														<div class="log-entry-copy">
+															<span class="log-value">+{formattedTotal(log.value)} {habit.unit}</span>
+															<span class="log-time">{formatLogTime(log.created_at)}</span>
+														</div>
+														<div class="log-entry-actions">
+															<button
+																type="button"
+																class="mini-icon-button"
+																on:click={() => startEditLog(log.id, log.value)}
+																aria-label="Edit {habit.name} log"
+															>
+																<Pencil size={13} strokeWidth={2} />
+															</button>
+															<form method="POST" action="?/removeHabitLog" use:enhance>
+																<input type="hidden" name="id" value={log.id} />
+																<button type="submit" class="mini-icon-button danger" aria-label="Delete {habit.name} log">
+																	<Trash2 size={13} strokeWidth={2} />
+																</button>
+															</form>
+														</div>
+													{/if}
+												</li>
+											{/each}
+										</ul>
 									{/if}
 								</li>
 							{/each}
@@ -782,7 +856,8 @@
 
 	.edit-meta,
 	.edit-actions,
-	.log-row {
+	.log-row,
+	.log-edit-form {
 		display: flex;
 		gap: 8px;
 	}
@@ -938,6 +1013,78 @@
 	.log-row {
 		margin-top: 10px;
 		padding-left: 46px;
+	}
+
+	.habit-log-list {
+		list-style: none;
+		margin: 10px 0 0;
+		padding: 0 0 0 46px;
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+	}
+
+	.habit-log-list li {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 10px;
+		min-height: 34px;
+		padding: 7px 9px;
+		border-radius: var(--radius-md);
+		background: var(--surface-3);
+	}
+
+	.log-entry-copy {
+		display: flex;
+		align-items: baseline;
+		gap: 8px;
+		min-width: 0;
+	}
+
+	.log-value {
+		color: var(--text-primary);
+		font-size: 13px;
+		font-weight: 500;
+	}
+
+	.log-time {
+		color: var(--text-tertiary);
+		font-size: 12px;
+	}
+
+	.log-entry-actions {
+		display: flex;
+		align-items: center;
+		gap: 4px;
+	}
+
+	.mini-icon-button {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 26px;
+		height: 26px;
+		border: none;
+		border-radius: var(--radius-sm);
+		background: transparent;
+		color: var(--text-tertiary);
+		cursor: pointer;
+		transition: background 120ms var(--ease-out), color 120ms var(--ease-out);
+	}
+
+	.mini-icon-button:hover {
+		background: var(--surface-2);
+		color: var(--text-primary);
+	}
+
+	.mini-icon-button.danger:hover {
+		background: var(--danger-soft);
+		color: var(--danger);
+	}
+
+	.log-edit-form {
+		flex: 1;
 	}
 
 	.callout {
@@ -1109,12 +1256,19 @@
 
 		.edit-meta,
 		.edit-actions,
-		.log-row {
+		.log-row,
+		.log-edit-form {
 			flex-direction: column;
 		}
 
-		.log-row {
+		.log-row,
+		.habit-log-list {
 			padding-left: 0;
+		}
+
+		.habit-log-list li {
+			align-items: flex-start;
+			flex-direction: column;
 		}
 
 		.event-list li {

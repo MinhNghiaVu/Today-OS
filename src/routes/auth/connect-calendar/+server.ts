@@ -1,19 +1,18 @@
 import { redirect } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
+import { applyAuthCookies, authPost } from '$lib/server/neon-auth';
 
-export const GET: RequestHandler = async ({ locals, url }) => {
+export const GET: RequestHandler = async ({ cookies, locals, request, url }) => {
 	if (!locals.user) redirect(303, '/login');
 
-	const redirectTo = `${url.origin}/auth/callback`;
-	const { data, error } = await locals.supabase.auth.signInWithOAuth({
+	const response = await authPost('sign-in/social', {
 		provider: 'google',
-		options: {
-			redirectTo,
-			scopes: 'openid email profile https://www.googleapis.com/auth/calendar.readonly',
-			queryParams: { access_type: 'offline', prompt: 'consent' }
-		}
-	});
+		callbackURL: '/today',
+		scopes: ['openid', 'email', 'profile', 'https://www.googleapis.com/auth/calendar.readonly']
+	}, url.origin, request.headers.get('cookie'));
+	applyAuthCookies(cookies, response.headers);
 
-	if (error) redirect(303, '/today');
-	redirect(303, data.url);
+	const location = response.headers.get('location');
+	const json = await response.clone().json().catch(() => null);
+	redirect(303, location ?? json?.url ?? '/today');
 };

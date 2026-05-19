@@ -1,5 +1,5 @@
-import type { SupabaseClient } from '@supabase/supabase-js';
-import type { Todo, Habit, HabitLog, HabitWithTotal, Note, Job } from './types';
+import type { AppDbClient } from '$lib/server/neon-client';
+import type { Todo, Habit, HabitLog, HabitWithTotal, HabitWithTodayLogs, Note, Job } from './types';
 
 function today(): string {
 	return new Date().toISOString().slice(0, 10);
@@ -7,17 +7,17 @@ function today(): string {
 
 // ── Todos ─────────────────────────────────────────────────────
 
-export async function getTodos(sb: SupabaseClient, userId: string): Promise<Todo[]> {
+export async function getTodos(sb: AppDbClient, userId: string): Promise<Todo[]> {
 	const { data, error } = await sb
 		.from('todos')
 		.select('*')
 		.eq('user_id', userId)
 		.order('created_at', { ascending: false });
 	if (error) throw error;
-	return data ?? [];
+	return (data ?? []) as any;
 }
 
-export async function getTodosToday(sb: SupabaseClient, userId: string): Promise<Todo[]> {
+export async function getTodosToday(sb: AppDbClient, userId: string): Promise<Todo[]> {
 	const d = today();
 	const { data, error } = await sb
 		.from('todos')
@@ -27,7 +27,7 @@ export async function getTodosToday(sb: SupabaseClient, userId: string): Promise
 	if (error) throw error;
 
 	const rank: Record<string, number> = { high: 0, medium: 1, low: 2 };
-	return (data ?? []).sort((a, b) => {
+	return ((data ?? []) as Todo[]).sort((a, b) => {
 		if (a.status !== b.status) return a.status === 'pending' ? -1 : 1;
 		return (rank[a.priority ?? ''] ?? 3) - (rank[b.priority ?? ''] ?? 3);
 	});
@@ -35,18 +35,18 @@ export async function getTodosToday(sb: SupabaseClient, userId: string): Promise
 
 // ── Habits ────────────────────────────────────────────────────
 
-export async function getHabits(sb: SupabaseClient, userId: string): Promise<Habit[]> {
+export async function getHabits(sb: AppDbClient, userId: string): Promise<Habit[]> {
 	const { data, error } = await sb
 		.from('habit_definitions')
 		.select('*')
 		.eq('user_id', userId)
 		.order('created_at');
 	if (error) throw error;
-	return data ?? [];
+	return (data ?? []) as any;
 }
 
 export async function getHabitTotalsToday(
-	sb: SupabaseClient,
+	sb: AppDbClient,
 	userId: string
 ): Promise<HabitWithTotal[]> {
 	const d = today();
@@ -60,18 +60,18 @@ export async function getHabitTotalsToday(
 	if (lErr) throw lErr;
 
 	const totals = new Map<string, number>();
-	for (const log of logs ?? []) {
+	for (const log of ((logs ?? []) as HabitLog[])) {
 		totals.set(log.habit_id, (totals.get(log.habit_id) ?? 0) + log.value);
 	}
 
-	return (habits ?? []).map((h) => ({
+	return ((habits ?? []) as Habit[]).map((h) => ({
 		...h,
 		total: parseFloat(((totals.get(h.id) ?? 0)).toFixed(6))
 	}));
 }
 
 export async function getLogsForHabitToday(
-	sb: SupabaseClient,
+	sb: AppDbClient,
 	habitId: string
 ): Promise<HabitLog[]> {
 	const { data, error } = await sb
@@ -81,25 +81,45 @@ export async function getLogsForHabitToday(
 		.eq('date', today())
 		.order('created_at', { ascending: false });
 	if (error) throw error;
-	return data ?? [];
+	return (data ?? []) as any;
+}
+
+export async function getHabitLogEntriesForRange(
+	sb: AppDbClient,
+	userId: string,
+	habitId: string,
+	startDate: string,
+	endDate: string
+): Promise<HabitLog[]> {
+	const { data, error } = await sb
+		.from('habit_logs')
+		.select('*')
+		.eq('user_id', userId)
+		.eq('habit_id', habitId)
+		.gte('date', startDate)
+		.lte('date', endDate)
+		.order('date', { ascending: false })
+		.order('created_at', { ascending: false });
+	if (error) throw error;
+	return (data ?? []) as any;
 }
 
 // ── Notes ─────────────────────────────────────────────────────
 
-export async function getNotes(sb: SupabaseClient, userId: string): Promise<Note[]> {
+export async function getNotes(sb: AppDbClient, userId: string): Promise<Note[]> {
 	const { data, error } = await sb
 		.from('notes')
 		.select('*')
 		.eq('user_id', userId)
 		.order('updated_at', { ascending: false });
 	if (error) throw error;
-	return data ?? [];
+	return (data ?? []) as any;
 }
 
 // ── Calendar ──────────────────────────────────────────────────
 
 export async function getTodosForDate(
-	sb: SupabaseClient,
+	sb: AppDbClient,
 	userId: string,
 	date: string
 ): Promise<Todo[]> {
@@ -111,14 +131,14 @@ export async function getTodosForDate(
 		.order('created_at');
 	if (error) throw error;
 	const rank: Record<string, number> = { high: 0, medium: 1, low: 2 };
-	return (data ?? []).sort((a, b) => {
+	return ((data ?? []) as Todo[]).sort((a, b) => {
 		if (a.status !== b.status) return a.status === 'pending' ? -1 : 1;
 		return (rank[a.priority ?? ''] ?? 3) - (rank[b.priority ?? ''] ?? 3);
 	});
 }
 
 export async function getHabitTotalsForDate(
-	sb: SupabaseClient,
+	sb: AppDbClient,
 	userId: string,
 	date: string
 ): Promise<HabitWithTotal[]> {
@@ -130,17 +150,17 @@ export async function getHabitTotalsForDate(
 	if (lErr) throw lErr;
 
 	const totals = new Map<string, number>();
-	for (const log of logs ?? []) {
+	for (const log of ((logs ?? []) as HabitLog[])) {
 		totals.set(log.habit_id, (totals.get(log.habit_id) ?? 0) + log.value);
 	}
-	return (habits ?? []).map((h) => ({
+	return ((habits ?? []) as Habit[]).map((h) => ({
 		...h,
 		total: parseFloat(((totals.get(h.id) ?? 0)).toFixed(6))
 	}));
 }
 
 export async function getNotesForDate(
-	sb: SupabaseClient,
+	sb: AppDbClient,
 	userId: string,
 	date: string
 ): Promise<Note[]> {
@@ -151,7 +171,7 @@ export async function getNotesForDate(
 		.eq('date', date)
 		.order('updated_at', { ascending: false });
 	if (error) throw error;
-	return data ?? [];
+	return (data ?? []) as any;
 }
 
 export interface DayActivity {
@@ -162,7 +182,7 @@ export interface DayActivity {
 }
 
 export async function getCalendarMonthActivity(
-	sb: SupabaseClient,
+	sb: AppDbClient,
 	userId: string,
 	year: number,
 	month: number
@@ -177,9 +197,9 @@ export async function getCalendarMonthActivity(
 		sb.from('notes').select('date').eq('user_id', userId).gte('date', start).lte('date', end).not('date', 'is', null)
 	]);
 
-	const todoSet = new Set((todos ?? []).map((t) => t.due_date));
-	const logSet = new Set((logs ?? []).map((l) => l.date));
-	const noteSet = new Set((notes ?? []).map((n) => n.date));
+	const todoSet = new Set(((todos ?? []) as Pick<Todo, 'due_date'>[]).map((t) => t.due_date));
+	const logSet = new Set(((logs ?? []) as Pick<HabitLog, 'date'>[]).map((l) => l.date));
+	const noteSet = new Set(((notes ?? []) as Pick<Note, 'date'>[]).map((n) => n.date));
 
 	const days: DayActivity[] = [];
 	for (let d = 1; d <= lastDay; d++) {
@@ -201,15 +221,10 @@ export interface HabitDailyTotal {
 	total: number;
 }
 
-export interface HabitWithTodaySummary extends HabitWithTotal {
-	daysLogged: number;
-	daysMet: number;
-}
-
 export async function getHabitSummariesToday(
-	sb: SupabaseClient,
+	sb: AppDbClient,
 	userId: string
-): Promise<HabitWithTodaySummary[]> {
+): Promise<HabitWithTodayLogs[]> {
 	const todayDate = today();
 	const start = new Date(`${todayDate}T00:00:00`);
 	start.setDate(start.getDate() - 6);
@@ -224,25 +239,29 @@ export async function getHabitSummariesToday(
 			.order('created_at'),
 		sb
 			.from('habit_logs')
-			.select('habit_id, date, value')
+			.select('*')
 			.eq('user_id', userId)
 			.gte('date', startDate)
 			.lte('date', todayDate)
+			.order('created_at', { ascending: false })
 	]);
 
 	if (hErr) throw hErr;
 	if (lErr) throw lErr;
 
 	const totalsByHabitDate = new Map<string, number>();
-	for (const log of logs ?? []) {
+	for (const log of ((logs ?? []) as HabitLog[])) {
 		const key = `${log.habit_id}:${log.date}`;
 		totalsByHabitDate.set(key, (totalsByHabitDate.get(key) ?? 0) + log.value);
 	}
 
-	return (habits ?? []).map((habit) => {
+	return ((habits ?? []) as Habit[]).map((habit) => {
 		let daysLogged = 0;
 		let daysMet = 0;
 		let todayTotal = 0;
+		const todayLogs = ((logs ?? []) as HabitLog[]).filter(
+			(log) => log.habit_id === habit.id && log.date === todayDate
+		);
 
 		for (let offset = 0; offset < 7; offset++) {
 			const d = new Date(`${startDate}T00:00:00`);
@@ -262,13 +281,14 @@ export async function getHabitSummariesToday(
 			...habit,
 			total: parseFloat(todayTotal.toFixed(6)),
 			daysLogged,
-			daysMet
+			daysMet,
+			todayLogs
 		};
 	});
 }
 
 export async function getHabitLogsForRange(
-	sb: SupabaseClient,
+	sb: AppDbClient,
 	userId: string,
 	habitId: string,
 	startDate: string,
@@ -285,7 +305,7 @@ export async function getHabitLogsForRange(
 	if (error) throw error;
 
 	const totals = new Map<string, number>();
-	for (const log of data ?? []) {
+	for (const log of ((data ?? []) as Pick<HabitLog, 'date' | 'value'>[])) {
 		totals.set(log.date, (totals.get(log.date) ?? 0) + log.value);
 	}
 
@@ -301,12 +321,12 @@ export async function getHabitLogsForRange(
 
 // ── Jobs ──────────────────────────────────────────────────────
 
-export async function getJobs(sb: SupabaseClient, userId: string): Promise<Job[]> {
+export async function getJobs(sb: AppDbClient, userId: string): Promise<Job[]> {
 	const { data, error } = await sb
 		.from('jobs')
 		.select('*')
 		.eq('user_id', userId)
 		.order('created_at', { ascending: false });
 	if (error) throw error;
-	return data ?? [];
+	return (data ?? []) as any;
 }

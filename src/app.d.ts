@@ -1,19 +1,15 @@
-import type { SupabaseClient, Session } from '@supabase/supabase-js';
-
-interface AuthUser {
-	id: string;
-	email?: string;
-}
+import type { AppDbClient } from '$lib/server/neon-client';
+import type { AuthSession, AuthUser } from '$lib/server/neon-auth';
 
 declare global {
 	namespace App {
 		interface Locals {
-			supabase: SupabaseClient;
-			session: Session | null;
+			supabase: AppDbClient;
+			session: AuthSession | null;
 			user: AuthUser | null;
 		}
 		interface PageData {
-			session: Session | null;
+			session: AuthSession | null;
 			user: AuthUser | null;
 		}
 	}
