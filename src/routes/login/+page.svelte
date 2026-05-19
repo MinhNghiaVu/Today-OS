@@ -124,12 +124,12 @@
 		background: var(--surface-1);
 		border: 1px solid var(--border-default);
 		border-radius: var(--radius-xl);
-		padding: 36px 40px;
+		padding: 40px;
 		display: flex;
 		flex-direction: column;
 		gap: 20px;
 		width: 100%;
-		max-width: 360px;
+		max-width: 384px;
 	}
 
 	.brand {
@@ -138,7 +138,7 @@
 
 	h1 {
 		margin: 0 0 4px;
-		font-size: 22px;
+		font-size: 24px;
 		font-weight: 600;
 		color: var(--text-primary);
 		letter-spacing: -0.01em;
@@ -177,7 +177,7 @@
 	.field {
 		display: flex;
 		flex-direction: column;
-		gap: 5px;
+		gap: 4px;
 	}
 
 	.field-label {
@@ -191,7 +191,7 @@
 		border: 1px solid var(--border-default);
 		border-radius: var(--radius-md);
 		padding: 0 12px;
-		height: 38px;
+		height: 40px;
 		color: var(--text-primary);
 		font-size: 14px;
 		font-family: inherit;
@@ -215,8 +215,7 @@
 
 	.password-checks {
 		display: grid;
-		gap: 6px;
-		padding: 2px 0 0;
+		gap: 8px;
 	}
 
 	.password-check {
@@ -232,7 +231,7 @@
 	.password-check span {
 		display: grid;
 		place-items: center;
-		width: 14px;
+		width: 16px;
 		color: var(--text-tertiary);
 		font-size: 12px;
 	}
@@ -251,7 +250,7 @@
 		border: none;
 		border-radius: var(--radius-md);
 		padding: 0 16px;
-		height: 38px;
+		height: 40px;
 		font-size: 14px;
 		font-weight: 500;
 		cursor: pointer;
@@ -290,12 +289,12 @@
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		gap: 10px;
+		gap: 8px;
 		background: var(--surface-2);
 		border: 1px solid var(--border-default);
 		border-radius: var(--radius-md);
 		padding: 0 16px;
-		height: 38px;
+		height: 40px;
 		font-size: 14px;
 		font-weight: 500;
 		color: var(--text-primary);
@@ -316,8 +315,8 @@
 		}
 
 		.card {
-			max-width: 520px;
-			padding: 48px 56px;
+			max-width: 512px;
+			padding: 48px 64px;
 			gap: 24px;
 		}
 
@@ -344,7 +343,7 @@
 		.field input,
 		.btn-primary,
 		.google-btn {
-			height: 46px;
+			height: 48px;
 			font-size: 15px;
 		}
 
