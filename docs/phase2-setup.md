@@ -23,6 +23,10 @@ NEON_AUTH_BASE_URL=https://.../auth
 VITE_NEON_AUTH_URL=https://.../auth
 ```
 
+`DATABASE_URL` and `NEON_AUTH_BASE_URL` are the runtime variables this SvelteKit app uses. `VITE_NEON_AUTH_URL` is also accepted as a server-side fallback for the auth base URL, but the browser does not call Neon Auth directly in this app.
+
+The official Neon Auth SDK quickstart also documents `NEON_AUTH_COOKIE_SECRET` for apps using `@neondatabase/auth` server helpers. Today OS currently proxies Neon Auth directly through `src/lib/server/neon-auth.ts`, so that cookie secret is not required unless the auth layer is migrated to the official SDK helper.
+
 > `.env` is git-ignored. Never commit it.
 
 ---
@@ -91,7 +95,7 @@ Open [http://localhost:5173](http://localhost:5173). You'll be redirected to `/l
 
 | Problem | Fix |
 |---------|-----|
-| `Invalid origin` during sign-up or OAuth | Confirm `NEON_AUTH_BASE_URL` is set and add the exact app origin, such as `https://today-os-five.vercel.app`, to Neon Auth trusted domains |
+| `Invalid origin` during sign-up or OAuth | Confirm `NEON_AUTH_BASE_URL` is set and add the exact app origin to Neon Auth trusted domains: `https://today-os-five.vercel.app` for production, plus any Vercel preview/deployment URL used for testing. Include `https://` and no trailing slash. |
 | OAuth does not redirect back | Check trusted domains and Google provider redirect URL in Neon Auth |
 | Blank page after login | Check browser console; likely missing env vars |
 | `AUTH_SESSION_MISSING` errors | Clear cookies and sign in again |

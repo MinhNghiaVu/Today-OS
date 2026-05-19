@@ -14,8 +14,8 @@ export interface AuthSession {
 }
 
 function authBaseUrl() {
-	const baseUrl = env.NEON_AUTH_BASE_URL;
-	if (!baseUrl) throw new Error('NEON_AUTH_BASE_URL is not configured.');
+	const baseUrl = env.NEON_AUTH_BASE_URL ?? env.VITE_NEON_AUTH_URL;
+	if (!baseUrl) throw new Error('NEON_AUTH_BASE_URL or VITE_NEON_AUTH_URL is not configured.');
 	return baseUrl.replace(/\/$/, '');
 }
 
@@ -153,4 +153,13 @@ export async function authPost(path: string, body: Record<string, unknown>, orig
 		body: JSON.stringify(body),
 		redirect: 'manual'
 	});
+}
+
+export async function authErrorMessage(response: Response, fallback: string) {
+	const json = await response.clone().json().catch(() => null);
+	return json?.error?.message ?? json?.error ?? json?.message ?? fallback;
+}
+
+export function logAuthFailure(path: string, origin: string, status: number, message: string) {
+	console.warn('Neon Auth request failed', { path, origin, status, message });
 }

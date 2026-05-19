@@ -1,6 +1,6 @@
 import { fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
-import { applyAuthCookies, authPost } from '$lib/server/neon-auth';
+import { applyAuthCookies, authErrorMessage, authPost, logAuthFailure } from '$lib/server/neon-auth';
 
 const PASSWORD_REQUIREMENTS = [
 	{ test: (password: string) => password.length >= 8, message: 'Password must be at least 8 characters.' },
@@ -8,11 +8,6 @@ const PASSWORD_REQUIREMENTS = [
 	{ test: (password: string) => /\d/.test(password), message: 'Password must include at least one number.' },
 	{ test: (password: string) => /[^A-Za-z0-9]/.test(password), message: 'Password must include at least one special character.' }
 ];
-
-async function authErrorMessage(response: Response, fallback: string) {
-	const json = await response.clone().json().catch(() => null);
-	return json?.error?.message ?? json?.error ?? json?.message ?? fallback;
-}
 
 function passwordError(password: string) {
 	return PASSWORD_REQUIREMENTS.find((requirement) => !requirement.test(password))?.message ?? null;
@@ -34,7 +29,9 @@ export const actions: Actions = {
 		const location = response.headers.get('location');
 		const json = await response.clone().json().catch(() => null);
 		if (!response.ok && !location && !json?.url) {
-			return fail(500, { error: json?.error?.message ?? json?.error ?? json?.message ?? 'Could not start Google sign-in.' });
+			const message = json?.error?.message ?? json?.error ?? json?.message ?? 'Could not start Google sign-in.';
+			logAuthFailure('sign-in/social', url.origin, response.status, message);
+			return fail(500, { error: message });
 		}
 		redirect(303, location ?? json?.url ?? '/today');
 	},
@@ -50,7 +47,9 @@ export const actions: Actions = {
 		applyAuthCookies(cookies, response.headers);
 
 		if (!response.ok) {
-			return fail(401, { error: await authErrorMessage(response, 'Invalid email or password.') });
+			const message = await authErrorMessage(response, 'Invalid email or password.');
+			logAuthFailure('sign-in/email', url.origin, response.status, message);
+			return fail(401, { error: message });
 		}
 
 		redirect(303, '/today');
@@ -71,7 +70,9 @@ export const actions: Actions = {
 		applyAuthCookies(cookies, response.headers);
 
 		if (!response.ok) {
-			return fail(400, { error: await authErrorMessage(response, 'Could not create account.') });
+			const message = await authErrorMessage(response, 'Could not create account.');
+			logAuthFailure('sign-up/email', url.origin, response.status, message);
+			return fail(400, { error: message });
 		}
 
 		return { success: true, message: 'Account created. You can sign in now.' };

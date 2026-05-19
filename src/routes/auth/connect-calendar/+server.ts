@@ -1,6 +1,6 @@
 import { redirect } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { applyAuthCookies, authPost } from '$lib/server/neon-auth';
+import { applyAuthCookies, authPost, logAuthFailure } from '$lib/server/neon-auth';
 
 export const GET: RequestHandler = async ({ cookies, locals, request, url }) => {
 	if (!locals.user) redirect(303, '/login');
@@ -14,5 +14,9 @@ export const GET: RequestHandler = async ({ cookies, locals, request, url }) => 
 
 	const location = response.headers.get('location');
 	const json = await response.clone().json().catch(() => null);
+	if (!response.ok && !location && !json?.url) {
+		const message = json?.error?.message ?? json?.error ?? json?.message ?? 'Could not connect Google Calendar.';
+		logAuthFailure('sign-in/social', url.origin, response.status, message);
+	}
 	redirect(303, location ?? json?.url ?? '/today');
 };
