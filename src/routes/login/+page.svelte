@@ -5,7 +5,19 @@
 	export let form: { error?: string; success?: boolean; message?: string } | null = null;
 
 	let mode = 'signin';
+	let password = '';
+	let confirmPassword = '';
 	const modeTabs = [{ value: 'signin', label: 'Sign in' }, { value: 'signup', label: 'Sign up' }];
+	const passwordChecks = [
+		{ label: 'At least 8 characters', valid: () => password.length >= 8 },
+		{ label: 'One capital letter', valid: () => /[A-Z]/.test(password) },
+		{ label: 'One number', valid: () => /\d/.test(password) },
+		{ label: 'One special character', valid: () => /[^A-Za-z0-9]/.test(password) }
+	];
+
+	$: passwordComplete = passwordChecks.every((check) => check.valid());
+	$: passwordsMatch = confirmPassword.length > 0 && password === confirmPassword;
+	$: canSubmit = mode === 'signin' || (passwordComplete && passwordsMatch);
 </script>
 
 <div class="login-page">
@@ -45,12 +57,21 @@
 					<input
 						type="password"
 						name="password"
-						placeholder={mode === 'signup' ? 'At least 8 characters' : '••••••••'}
+						placeholder={mode === 'signup' ? '8+ chars, number, symbol' : '••••••••'}
 						autocomplete={mode === 'signin' ? 'current-password' : 'new-password'}
+						bind:value={password}
 						required
 					/>
 				</label>
 				{#if mode === 'signup'}
+					<div class="password-checks" aria-live="polite">
+						{#each passwordChecks as check}
+							<div class:met={check.valid()} class="password-check">
+								<span aria-hidden="true">{check.valid() ? '✓' : '•'}</span>
+								{check.label}
+							</div>
+						{/each}
+					</div>
 					<label class="field">
 						<span class="field-label">Confirm password</span>
 						<input
@@ -58,11 +79,18 @@
 							name="confirmPassword"
 							placeholder="Repeat password"
 							autocomplete="new-password"
+							bind:value={confirmPassword}
 							required
 						/>
 					</label>
+					{#if confirmPassword}
+						<div class:met={passwordsMatch} class="password-check">
+							<span aria-hidden="true">{passwordsMatch ? '✓' : '•'}</span>
+							Passwords match
+						</div>
+					{/if}
 				{/if}
-				<button type="submit" class="btn-primary">
+				<button type="submit" class="btn-primary" disabled={!canSubmit}>
 					{mode === 'signin' ? 'Sign in' : 'Create account'}
 				</button>
 			</form>
@@ -187,6 +215,38 @@
 		box-shadow: 0 0 0 1px var(--border-focus);
 	}
 
+	.password-checks {
+		display: grid;
+		gap: 6px;
+		padding: 2px 0 0;
+	}
+
+	.password-check {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		min-height: 18px;
+		color: var(--text-tertiary);
+		font-size: 12px;
+		line-height: 1.4;
+	}
+
+	.password-check span {
+		display: grid;
+		place-items: center;
+		width: 14px;
+		color: var(--text-tertiary);
+		font-size: 12px;
+	}
+
+	.password-check.met {
+		color: var(--success);
+	}
+
+	.password-check.met span {
+		color: var(--success);
+	}
+
 	.btn-primary {
 		background: var(--accent);
 		color: var(--text-on-accent);
@@ -210,6 +270,13 @@
 	.btn-primary:active {
 		background: var(--accent-pressed);
 		transform: translateY(1px);
+	}
+
+	.btn-primary:disabled {
+		background: var(--surface-3);
+		color: var(--text-disabled);
+		cursor: not-allowed;
+		transform: none;
 	}
 
 	.divider {

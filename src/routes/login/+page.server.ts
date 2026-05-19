@@ -2,9 +2,20 @@ import { fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { applyAuthCookies, authPost } from '$lib/server/neon-auth';
 
+const PASSWORD_REQUIREMENTS = [
+	{ test: (password: string) => password.length >= 8, message: 'Password must be at least 8 characters.' },
+	{ test: (password: string) => /[A-Z]/.test(password), message: 'Password must include at least one capital letter.' },
+	{ test: (password: string) => /\d/.test(password), message: 'Password must include at least one number.' },
+	{ test: (password: string) => /[^A-Za-z0-9]/.test(password), message: 'Password must include at least one special character.' }
+];
+
 async function authErrorMessage(response: Response, fallback: string) {
 	const json = await response.clone().json().catch(() => null);
 	return json?.error?.message ?? json?.error ?? json?.message ?? fallback;
+}
+
+function passwordError(password: string) {
+	return PASSWORD_REQUIREMENTS.find((requirement) => !requirement.test(password))?.message ?? null;
 }
 
 export const load: PageServerLoad = async ({ locals }) => {
@@ -52,7 +63,8 @@ export const actions: Actions = {
 		const confirmPassword = String(formData.get('confirmPassword') ?? '');
 
 		if (!email || !password || !confirmPassword) return fail(400, { error: 'Email, password, and confirm password are required.' });
-		if (password.length < 8) return fail(400, { error: 'Password must be at least 8 characters.' });
+		const invalidPassword = passwordError(password);
+		if (invalidPassword) return fail(400, { error: invalidPassword });
 		if (password !== confirmPassword) return fail(400, { error: 'Passwords do not match.' });
 
 		const response = await authPost('sign-up/email', { email, password, name: email }, url.origin, null);
