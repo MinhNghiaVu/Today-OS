@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { fly } from 'svelte/transition';
-	import { flip } from 'svelte/animate';
 	import { cubicIn, cubicOut } from 'svelte/easing';
 	import {
 		Activity,
@@ -16,6 +15,8 @@
 		Target,
 		Trash2
 	} from 'lucide-svelte';
+	import TodoAddForm from '$lib/components/TodoAddForm.svelte';
+	import TodoRow from '$lib/components/TodoRow.svelte';
 	import type { PageData } from './$types';
 	import type { HabitLog, HabitType, HabitWithTodayLogs, Note, Todo, TodoPriority } from '$lib/types';
 
@@ -43,7 +44,6 @@
 		low: 'Low'
 	};
 
-	let newTodo = '';
 	let noteContent = '';
 	let editingId: string | null = null;
 	let activeHabitId: string | null = null;
@@ -111,6 +111,51 @@
 
 			return serverTodo;
 		});
+	}
+
+	function addTodo(formData: FormData): () => void {
+		const title = String(formData.get('title') ?? '').trim();
+		const optimistic = title ? makeOptimisticTodo(title) : null;
+		if (optimistic) todosToday = [...todosToday, optimistic];
+		return () => {
+			if (optimistic) todosToday = todosToday.filter((todo) => todo.id !== optimistic.id);
+		};
+	}
+
+	function toggleTodo(todo: TodoView): () => void {
+		const previous = todosToday;
+		const nowDone = todo.status !== 'done';
+		todosToday = todosToday.map((item) =>
+			item.id === todo.id
+				? {
+						...item,
+						status: nowDone ? 'done' : 'pending',
+						completed_at: nowDone ? new Date().toISOString() : undefined
+					}
+				: item
+		);
+		return () => (todosToday = previous);
+	}
+
+	function updateTodo(todo: TodoView, formData: FormData): () => void {
+		const previous = todosToday;
+		const title = String(formData.get('title') ?? '').trim();
+		const dueDate = String(formData.get('due_date') ?? '') || null;
+		const priority = (String(formData.get('priority') ?? '') || null) as TodoPriority | null;
+		if (title) {
+			todosToday = todosToday.map((item) =>
+				item.id === todo.id
+					? { ...item, title, due_date: dueDate ?? undefined, priority: priority ?? undefined }
+					: item
+			);
+		}
+		return () => (todosToday = previous);
+	}
+
+	function removeTodo(todo: TodoView): () => void {
+		const previous = todosToday;
+		todosToday = todosToday.filter((item) => item.id !== todo.id);
+		return () => (todosToday = previous);
 	}
 
 	function makeOptimisticLog(habitId: string, value: number): HabitLog {
@@ -257,33 +302,13 @@
 						<span class="muted">{doneTodos.length} done</span>
 					</div>
 
-					<form
-						method="POST"
+					<TodoAddForm
 						action="?/addTodo"
-						class="quick-add"
-						use:enhance={({ formData }) => {
-							const title = String(formData.get('title') ?? '').trim();
-							const optimistic = title ? makeOptimisticTodo(title) : null;
-							if (optimistic) todosToday = [...todosToday, optimistic];
-							newTodo = '';
-							return async ({ result }) => {
-								if (result.type === 'failure' || result.type === 'error') {
-									if (optimistic) todosToday = todosToday.filter((todo) => todo.id !== optimistic.id);
-								}
-							};
-						}}
-					>
-						<input
-							bind:value={newTodo}
-							name="title"
-							placeholder="Add the next thing..."
-							autocomplete="off"
-							aria-label="New task"
-						/>
-						<button type="submit" class="icon-button primary" aria-label="Add task">
-							<Plus size={17} strokeWidth={2.2} />
-						</button>
-					</form>
+						today={todayStr}
+						priorityOptions={priorityOpts}
+						compact
+						onAdd={addTodo}
+					/>
 
 					{#if todosToday.length === 0}
 						<div class="empty-state">
@@ -296,110 +321,22 @@
 					{:else}
 						<ul class="todo-list">
 							{#each todosToday as todo (todo.ui_id ?? todo.id)}
-								<li
-									class:done={todo.status === 'done'}
-									in:fly={{ y: -8, duration: 220, easing: cubicOut }}
-									out:fly={{ y: 4, duration: 160, easing: cubicIn }}
-									animate:flip={{ duration: 220, easing: cubicOut }}
-								>
-									{#if editingId === todo.id}
-										<form
-											method="POST"
-											action="?/updateTodo"
-											class="edit-form"
-											use:enhance={({ formData }) => {
-												const previous = todosToday;
-												const title = String(formData.get('title') ?? '').trim();
-												const dueDate = String(formData.get('due_date') ?? '') || null;
-												const priority = (String(formData.get('priority') ?? '') || null) as TodoPriority | null;
-												if (title) {
-													todosToday = todosToday.map((item) =>
-														item.id === todo.id
-															? { ...item, title, due_date: dueDate ?? undefined, priority: priority ?? undefined }
-															: item
-													);
-												}
-												return async ({ result }) => {
-													if (result.type === 'success') editingId = null;
-													if (result.type === 'failure' || result.type === 'error') {
-														todosToday = previous;
-													}
-												};
-											}}
-										>
-											<input type="hidden" name="id" value={todo.id} />
-											<input class="edit-title" name="title" value={todo.title} required aria-label="Edit task title" />
-											<div class="edit-meta">
-												<input type="date" class="meta-input" name="due_date" value={dateInputValue(todo.due_date) || todayStr} />
-												<select class="meta-input" name="priority">
-													{#each priorityOpts as opt}
-														<option value={opt.value} selected={todo.priority === opt.value || (!todo.priority && opt.value === '')}>{opt.label}</option>
-													{/each}
-												</select>
-											</div>
-											<div class="edit-actions">
-												<button type="submit" class="small-button primary-fill">Save</button>
-												<button type="button" class="small-button" on:click={() => (editingId = null)}>Cancel</button>
-											</div>
-										</form>
-									{:else}
-										<form
-											method="POST"
-											action="?/toggleTodo"
-											use:enhance={() => {
-												const previous = todosToday;
-												const nowDone = todo.status !== 'done';
-												todosToday = todosToday.map((item) =>
-													item.id === todo.id
-														? {
-																...item,
-																status: nowDone ? 'done' : 'pending',
-																completed_at: nowDone ? new Date().toISOString() : undefined
-															}
-														: item
-												);
-												return async ({ result }) => {
-													if (result.type === 'failure' || result.type === 'error') {
-														todosToday = previous;
-													}
-												};
-											}}
-										>
-											<input type="hidden" name="id" value={todo.id} />
-											<input type="hidden" name="status" value={todo.status} />
-											<button
-												type="submit"
-												class="check"
-												class:checked={todo.status === 'done'}
-												aria-label={todo.status === 'done' ? 'Mark pending' : 'Mark done'}
-											>
-												{#if todo.status === 'done'}✓{/if}
-											</button>
-										</form>
-										<button type="button" class="todo-body" on:click={() => (editingId = todo.id)}>
-											<span class="todo-title">{todo.title}</span>
-											{#if todo.priority}
-												<span class="priority-badge priority-{todo.priority}">{priorityLabels[todo.priority]}</span>
-											{/if}
-										</button>
-										<form
-											method="POST"
-											action="?/removeTodo"
-											use:enhance={() => {
-												const previous = todosToday;
-												todosToday = todosToday.filter((item) => item.id !== todo.id);
-												return async ({ result }) => {
-													if (result.type === 'failure' || result.type === 'error') {
-														todosToday = previous;
-													}
-												};
-											}}
-										>
-											<input type="hidden" name="id" value={todo.id} />
-											<button type="submit" class="delete-button" aria-label="Delete task">×</button>
-										</form>
-									{/if}
-								</li>
+								<TodoRow
+									{todo}
+									today={todayStr}
+									priorityOptions={priorityOpts}
+									{priorityLabels}
+									editing={editingId === todo.id}
+									showDueDate={false}
+									showDescription={false}
+									toggleAction="?/toggleTodo"
+									updateAction="?/updateTodo"
+									removeAction="?/removeTodo"
+									setEditing={(id) => (editingId = id)}
+									onToggle={toggleTodo}
+									onUpdate={updateTodo}
+									onRemove={removeTodo}
+								/>
 							{/each}
 						</ul>
 					{/if}
@@ -746,16 +683,6 @@
 		margin-bottom: 24px;
 	}
 
-	.eyebrow,
-	.section-label {
-		margin: 0;
-		font-size: 11px;
-		font-weight: 500;
-		letter-spacing: 0.04em;
-		text-transform: uppercase;
-		color: var(--text-tertiary);
-	}
-
 	h1,
 	h2 {
 		margin: 0;
@@ -847,7 +774,7 @@
 		margin-bottom: 14px;
 	}
 
-	.heading-icon {
+	:global(.heading-icon) {
 		color: var(--text-tertiary);
 		margin-top: 2px;
 	}
@@ -873,16 +800,8 @@
 		font-size: 13px;
 	}
 
-	.quick-add {
-		display: grid;
-		grid-template-columns: minmax(0, 1fr) 38px;
-		gap: 8px;
-		margin-bottom: 10px;
-	}
-
 	input,
-	textarea,
-	select {
+	textarea {
 		width: 100%;
 		background: var(--surface-2);
 		border: 1px solid var(--border-default);
@@ -912,21 +831,18 @@
 	}
 
 	input:hover,
-	textarea:hover,
-	select:hover {
+	textarea:hover {
 		border-color: var(--border-strong);
 	}
 
 	input:focus-visible,
 	textarea:focus-visible,
-	select:focus-visible,
 	button:focus-visible,
 	a:focus-visible {
 		outline: 2px solid var(--border-focus);
 		outline-offset: 2px;
 	}
 
-	.icon-button,
 	.small-square {
 		display: inline-flex;
 		align-items: center;
@@ -937,23 +853,15 @@
 		transition: background 120ms var(--ease-out), transform 120ms var(--ease-out);
 	}
 
-	.icon-button {
-		width: 38px;
-		height: 38px;
-	}
-
-	.primary,
 	.primary-fill {
 		background: var(--accent);
 		color: var(--text-on-accent);
 	}
 
-	.primary:hover,
 	.primary-fill:hover {
 		background: var(--accent-hover);
 	}
 
-	.primary:active,
 	.primary-fill:active {
 		background: var(--accent-pressed);
 		transform: translateY(1px);
@@ -974,118 +882,10 @@
 		gap: 2px;
 	}
 
-	.todo-list li {
-		display: flex;
-		align-items: center;
-		gap: 10px;
-		min-height: 42px;
-		padding: 7px 6px;
-		border-radius: var(--radius-md);
-		transition: background 120ms var(--ease-out), opacity 120ms var(--ease-out);
-	}
-
-	.todo-list li:hover {
-		background: var(--surface-2);
-	}
-
-	.todo-list li.done {
-		opacity: 0.55;
-	}
-
-	.todo-list li.done .todo-title {
-		text-decoration: line-through;
-	}
-
-	.check {
-		width: 22px;
-		height: 22px;
-		border: 1.5px solid var(--border-strong);
-		border-radius: var(--radius-full);
-		background: transparent;
-		color: var(--text-on-accent);
-		font-size: 11px;
-		cursor: pointer;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		transition: background 120ms var(--ease-out), border-color 120ms var(--ease-out);
-	}
-
-	.check.checked {
-		background: var(--accent);
-		border-color: var(--accent);
-	}
-
-	.todo-body {
-		flex: 1;
-		display: flex;
-		align-items: center;
-		gap: 8px;
-		min-width: 0;
-		background: transparent;
-		border: none;
-		padding: 0;
-		text-align: left;
-		cursor: pointer;
-	}
-
-	.todo-title {
-		overflow: hidden;
-		text-overflow: ellipsis;
-		white-space: nowrap;
-		color: var(--text-primary);
-	}
-
-	.priority-badge {
-		flex-shrink: 0;
-		border-radius: var(--radius-full);
-		padding: 1px 7px;
-		font-size: 11px;
-		font-weight: 500;
-	}
-
-	.priority-high { background: var(--danger-soft); color: var(--danger); }
-	.priority-medium { background: var(--warning-soft); color: var(--warning); }
-	.priority-low { background: var(--info-soft); color: var(--info); }
-
-	.delete-button {
-		width: 28px;
-		height: 28px;
-		border: none;
-		border-radius: var(--radius-md);
-		background: transparent;
-		color: var(--text-tertiary);
-		font-size: 18px;
-		line-height: 1;
-		cursor: pointer;
-		transition: background 120ms var(--ease-out), color 120ms var(--ease-out);
-	}
-
-	.delete-button:hover {
-		background: var(--danger-soft);
-		color: var(--danger);
-	}
-
-	.edit-form {
-		flex: 1;
-		display: flex;
-		flex-direction: column;
-		gap: 8px;
-		padding: 6px 0;
-	}
-
-	.edit-meta,
-	.edit-actions,
 	.log-row,
 	.log-edit-form {
 		display: flex;
 		gap: 8px;
-	}
-
-	.meta-input {
-		height: 34px;
-		padding: 0 10px;
-		font-size: 13px;
 	}
 
 	.small-button {
@@ -1114,7 +914,7 @@
 		padding: 14px;
 	}
 
-	.empty-icon {
+	:global(.empty-icon) {
 		flex-shrink: 0;
 		color: var(--text-tertiary);
 	}
@@ -1465,17 +1265,6 @@
 			gap: 4px;
 		}
 
-		.todo-list li {
-			align-items: flex-start;
-			padding: 10px 4px;
-		}
-
-		.todo-title {
-			white-space: normal;
-		}
-
-		.edit-meta,
-		.edit-actions,
 		.log-row,
 		.log-edit-form {
 			flex-direction: column;
