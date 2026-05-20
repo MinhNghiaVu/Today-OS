@@ -11,8 +11,9 @@
 	import HabitProgressList from '$lib/components/HabitProgressList.svelte';
 	import TodoAddForm from '$lib/components/TodoAddForm.svelte';
 	import TodoRow from '$lib/components/TodoRow.svelte';
+	import { isHabitOnTrack } from '$lib/utils/habits';
 	import type { PageData } from './$types';
-	import type { HabitType, HabitWithTodayLogs, Note, Todo, TodoPriority } from '$lib/types';
+	import type { HabitWithTodayLogs, Note, Todo, TodoPriority } from '$lib/types';
 
 	export let data: PageData;
 	type TodoView = Todo & { ui_id?: string };
@@ -188,16 +189,6 @@
 		return Number.isNaN(date.getTime()) ? '' : date.toISOString().slice(0, 10);
 	}
 
-	function isHabitOnTrack(habit: {
-		type: HabitType;
-		total: number;
-		daily_goal: number | null;
-	}): boolean {
-		if (habit.type === 'info_only') return habit.total > 0;
-		if (habit.daily_goal === null) return habit.total > 0;
-		if (habit.type === 'min_goal') return habit.total >= habit.daily_goal;
-		return habit.total > 0 && habit.total <= habit.daily_goal;
-	}
 </script>
 
 <div class="page">

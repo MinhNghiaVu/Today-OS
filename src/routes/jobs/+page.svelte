@@ -5,7 +5,7 @@
 	import { tick } from 'svelte';
 	import { page } from '$app/stores';
 	import { toast } from '$lib/toast';
-	import { Briefcase, Trash2 } from 'lucide-svelte';
+	import { Briefcase, Plus, Trash2 } from 'lucide-svelte';
 	import Select from '$lib/components/Select.svelte';
 	import type { PageData } from './$types';
 	import type { JobStatus } from '$lib/types';
@@ -77,7 +77,10 @@
 				</span>
 			{/if}
 		</div>
-		<button class="btn-primary btn-sm" on:click={() => (addingNew = true)}>+ Add</button>
+		<button class="btn-primary btn-sm" on:click={() => (addingNew = true)}>
+			<Plus size={15} strokeWidth={2.2} aria-hidden="true" />
+			Add
+		</button>
 	</header>
 
 	<!-- Add form -->
@@ -390,8 +393,12 @@
 
 	/* ── Buttons ── */
 	.btn-primary {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		gap: 8px;
 		background: var(--accent);
-		color: #fff;
+		color: var(--text-on-accent);
 		border: none;
 		border-radius: var(--radius-md);
 		font-size: 14px;

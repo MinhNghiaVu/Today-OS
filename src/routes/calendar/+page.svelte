@@ -13,6 +13,8 @@
 		CheckCircle2,
 		Clock
 	} from 'lucide-svelte';
+	import { habitProgressColor, habitProgressWidth } from '$lib/utils/habits';
+	import type { HabitType } from '$lib/types';
 
 	function formatTime(iso: string): string {
 		return new Date(iso).toLocaleTimeString('en-US', {
@@ -82,19 +84,12 @@
 		return 'var(--text-tertiary)';
 	}
 
-	function getBarWidth(habit: { total: number; daily_goal: number | null; type: string; color: string }): number {
-		if (!habit.daily_goal || habit.daily_goal === 0) return 0;
-		return Math.min((habit.total / habit.daily_goal) * 100, 100);
+	function getBarWidth(habit: { total: number; daily_goal: number | null }): number {
+		return habitProgressWidth(habit);
 	}
 
 	function getBarColor(habit: { total: number; daily_goal: number | null; type: string; color: string }): string {
-		if (habit.type === 'min_goal') {
-			return habit.total >= (habit.daily_goal ?? 0) ? 'var(--success)' : habit.color;
-		}
-		if (habit.type === 'max_goal') {
-			return habit.total > (habit.daily_goal ?? Infinity) ? 'var(--danger)' : habit.color;
-		}
-		return habit.color;
+		return habitProgressColor({ ...habit, type: habit.type as HabitType });
 	}
 </script>
 
@@ -492,7 +487,7 @@
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		font-weight: 700;
+		font-weight: 600;
 		color: var(--accent);
 		font-size: 13px;
 	}
@@ -509,7 +504,7 @@
 	}
 
 	.day-cell.is-selected .day-num {
-		color: #ffffff;
+		color: var(--text-on-accent);
 		font-weight: 600;
 	}
 

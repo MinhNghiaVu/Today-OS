@@ -12,7 +12,14 @@
 		Target,
 		Trash2
 	} from 'lucide-svelte';
-	import type { HabitLog, HabitType, HabitWithTodayLogs } from '$lib/types';
+	import {
+		formatHabitTotal,
+		habitProgressWidth,
+		habitStatus,
+		isHabitOnTrack,
+		isHabitOverLimit
+	} from '$lib/utils/habits';
+	import type { HabitLog, HabitWithTodayLogs } from '$lib/types';
 
 	export let habits: HabitWithTodayLogs[] = [];
 	export let logAction = '?/logHabit';
@@ -62,47 +69,6 @@
 		});
 	}
 
-	function formattedTotal(total: number): string {
-		return Number.isInteger(total) ? String(total) : total.toFixed(1);
-	}
-
-	function isHabitOnTrack(habit: {
-		type: HabitType;
-		total: number;
-		daily_goal: number | null;
-	}): boolean {
-		if (habit.type === 'info_only') return habit.total > 0;
-		if (habit.daily_goal === null) return habit.total > 0;
-		if (habit.type === 'min_goal') return habit.total >= habit.daily_goal;
-		return habit.total > 0 && habit.total <= habit.daily_goal;
-	}
-
-	function habitStatus(habit: {
-		type: HabitType;
-		total: number;
-		daily_goal: number | null;
-		unit: string;
-		is_active: boolean;
-	}): string {
-		if (!habit.is_active) return 'Inactive';
-		if (habit.type === 'info_only' || habit.daily_goal === null) {
-			return habit.total > 0 ? `${habit.total} ${habit.unit} logged` : 'No log yet';
-		}
-
-		if (habit.type === 'min_goal') {
-			const remaining = Math.max(0, habit.daily_goal - habit.total);
-			return remaining === 0 ? 'Goal met' : `${remaining} ${habit.unit} left`;
-		}
-
-		const remaining = habit.daily_goal - habit.total;
-		if (remaining < 0) return `${Math.abs(remaining)} ${habit.unit} over`;
-		return `${remaining} ${habit.unit} room`;
-	}
-
-	function barWidth(habit: { daily_goal: number | null; total: number }): number {
-		if (!habit.daily_goal) return habit.total > 0 ? 100 : 0;
-		return Math.min(100, (habit.total / habit.daily_goal) * 100);
-	}
 </script>
 
 <ul class="habit-list">
@@ -121,7 +87,7 @@
 						<span class="habit-name">{habit.name}</span>
 						<span
 							class:good={habit.is_active && isHabitOnTrack(habit)}
-							class:warn={habit.is_active && habit.type === 'max_goal' && habit.daily_goal !== null && habit.total > habit.daily_goal}
+							class:warn={habit.is_active && isHabitOverLimit(habit)}
 							class="habit-state"
 						>
 							{habitStatus(habit)}
@@ -131,8 +97,8 @@
 						<div
 							class="bar-fill"
 							class:bar-met={habit.is_active && isHabitOnTrack(habit)}
-							class:bar-warn={habit.is_active && habit.type === 'max_goal' && habit.daily_goal !== null && habit.total > habit.daily_goal}
-							style="width: {barWidth(habit)}%; background: {habit.color};"
+							class:bar-warn={habit.is_active && isHabitOverLimit(habit)}
+							style="width: {habitProgressWidth(habit)}%; background: {habit.color};"
 						></div>
 					</div>
 					<div class="habit-meta">
@@ -299,7 +265,7 @@
 								</form>
 							{:else}
 								<div class="log-entry-copy">
-									<span class="log-value">+{formattedTotal(log.value)} {habit.unit}</span>
+									<span class="log-value">+{formatHabitTotal(log.value)} {habit.unit}</span>
 									<span class="log-time">{formatLogTime(log.created_at)}</span>
 								</div>
 								<div class="log-entry-actions">

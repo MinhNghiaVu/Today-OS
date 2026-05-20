@@ -2,6 +2,7 @@
 	import { enhance } from '$app/forms';
 	import { fly } from 'svelte/transition';
 	import { cubicIn, cubicOut } from 'svelte/easing';
+	import { Trash2 } from 'lucide-svelte';
 	import type { Todo, TodoPriority } from '$lib/types';
 
 	type TodoView = Todo & { ui_id?: string };
@@ -154,7 +155,9 @@
 				}}
 			>
 				<input type="hidden" name="id" value={todo.id} />
-				<button type="submit" class="act-btn danger" title="Delete" aria-label="Delete task">×</button>
+				<button type="submit" class="act-btn danger" title="Delete" aria-label="Delete task">
+					<Trash2 size={14} strokeWidth={2} />
+				</button>
 			</form>
 		</div>
 	{/if}
