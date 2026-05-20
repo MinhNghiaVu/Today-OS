@@ -12,6 +12,7 @@
 	export let data: PageData;
 
 	type Filter = 'all' | TodoStatus;
+	type TodoView = Todo & { ui_id?: string };
 
 	const priorityOpts: { value: TodoPriority | ''; label: string }[] = [
 		{ value: '', label: 'No priority' },
@@ -23,7 +24,8 @@
 	const priorityLabels: Record<TodoPriority, string> = { high: 'High', medium: 'Med', low: 'Low' };
 
 	let filter: Filter = 'all';
-	let todos: Todo[] = data.todos;
+	let todos: TodoView[] = data.todos;
+	let lastTodosData = data.todos;
 	let optimisticTodoSeq = 0;
 	$: filterTabs = [
 		{ value: 'all', label: `All ${counts.all}` },
@@ -32,7 +34,10 @@
 	];
 	let editingId: string | null = null;
 
-	$: if (data.todos) todos = data.todos;
+	$: if (data.todos !== lastTodosData) {
+		todos = reconcileTodos(data.todos, todos);
+		lastTodosData = data.todos;
+	}
 	$: filtered = todos
 		.filter((t) => filter === 'all' || t.status === filter)
 		.sort((a, b) => {
@@ -69,11 +74,13 @@
 		title: string,
 		dueDate: string | null,
 		priority: TodoPriority | null
-	): Todo {
+	): TodoView {
 		const now = new Date().toISOString();
 		optimisticTodoSeq += 1;
+		const id = `optimistic-todo-${Date.now()}-${optimisticTodoSeq}`;
 		return {
-			id: `optimistic-todo-${Date.now()}-${optimisticTodoSeq}`,
+			id,
+			ui_id: id,
 			user_id: 'optimistic',
 			title,
 			status: 'pending',
@@ -81,6 +88,34 @@
 			priority: priority ?? undefined,
 			created_at: now
 		};
+	}
+
+	function sameTodoIntent(a: TodoView, b: Todo): boolean {
+		return (
+			a.id.startsWith('optimistic-todo-') &&
+			a.title === b.title &&
+			dateInputValue(a.due_date) === dateInputValue(b.due_date) &&
+			(a.priority ?? null) === (b.priority ?? null) &&
+			a.status === b.status
+		);
+	}
+
+	function reconcileTodos(serverTodos: Todo[], currentTodos: TodoView[]): TodoView[] {
+		const claimedOptimisticIds = new Set<string>();
+		return serverTodos.map((serverTodo) => {
+			const existing = currentTodos.find((todo) => todo.id === serverTodo.id);
+			if (existing?.ui_id) return { ...serverTodo, ui_id: existing.ui_id };
+
+			const optimisticMatch = currentTodos.find(
+				(todo) => !claimedOptimisticIds.has(todo.id) && sameTodoIntent(todo, serverTodo)
+			);
+			if (optimisticMatch?.ui_id) {
+				claimedOptimisticIds.add(optimisticMatch.id);
+				return { ...serverTodo, ui_id: optimisticMatch.ui_id };
+			}
+
+			return serverTodo;
+		});
 	}
 </script>
 
@@ -145,7 +180,7 @@
 		</div>
 	{:else}
 		<ul class="todo-list">
-			{#each filtered as todo (todo.id)}
+			{#each filtered as todo (todo.ui_id ?? todo.id)}
 				<li
 					class:done={todo.status === 'done'}
 					in:fly={{ y: -8, duration: 220, easing: cubicOut }}

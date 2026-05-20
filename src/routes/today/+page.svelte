@@ -20,6 +20,7 @@
 	import type { HabitLog, HabitType, HabitWithTodayLogs, Note, Todo, TodoPriority } from '$lib/types';
 
 	export let data: PageData;
+	type TodoView = Todo & { ui_id?: string };
 
 	const dateLabel = new Date().toLocaleDateString('en-AU', {
 		weekday: 'long',
@@ -49,14 +50,18 @@
 	let logAmount = '';
 	let editingLogId: string | null = null;
 	let editingLogValue = '';
-	let todosToday: Todo[] = data.todosToday;
+	let todosToday: TodoView[] = data.todosToday;
+	let lastTodosTodayData = data.todosToday;
 	let habitTotals: HabitWithTodayLogs[] = data.habitTotals;
 	let notesToday: Note[] = data.notesToday;
 	let optimisticTodoSeq = 0;
 	let optimisticLogSeq = 0;
 	let optimisticNoteSeq = 0;
 
-	$: if (data.todosToday) todosToday = data.todosToday;
+	$: if (data.todosToday !== lastTodosTodayData) {
+		todosToday = reconcileTodos(data.todosToday, todosToday);
+		lastTodosTodayData = data.todosToday;
+	}
 	$: if (data.habitTotals) habitTotals = data.habitTotals;
 	$: if (data.notesToday) notesToday = data.notesToday;
 	$: pendingTodos = todosToday.filter((todo) => todo.status === 'pending');
@@ -64,11 +69,13 @@
 	$: habitsOnTrack = habitTotals.filter(isHabitOnTrack);
 	$: notesPreview = notesToday.slice(0, 3);
 
-	function makeOptimisticTodo(title: string, dueDate = todayStr, priority: TodoPriority | null = null): Todo {
+	function makeOptimisticTodo(title: string, dueDate = todayStr, priority: TodoPriority | null = null): TodoView {
 		const now = new Date().toISOString();
 		optimisticTodoSeq += 1;
+		const id = `optimistic-todo-${Date.now()}-${optimisticTodoSeq}`;
 		return {
-			id: `optimistic-todo-${Date.now()}-${optimisticTodoSeq}`,
+			id,
+			ui_id: id,
 			user_id: 'optimistic',
 			title,
 			status: 'pending',
@@ -76,6 +83,34 @@
 			priority: priority ?? undefined,
 			created_at: now
 		};
+	}
+
+	function sameTodoIntent(a: TodoView, b: Todo): boolean {
+		return (
+			a.id.startsWith('optimistic-todo-') &&
+			a.title === b.title &&
+			dateInputValue(a.due_date) === dateInputValue(b.due_date) &&
+			(a.priority ?? null) === (b.priority ?? null) &&
+			a.status === b.status
+		);
+	}
+
+	function reconcileTodos(serverTodos: Todo[], currentTodos: TodoView[]): TodoView[] {
+		const claimedOptimisticIds = new Set<string>();
+		return serverTodos.map((serverTodo) => {
+			const existing = currentTodos.find((todo) => todo.id === serverTodo.id);
+			if (existing?.ui_id) return { ...serverTodo, ui_id: existing.ui_id };
+
+			const optimisticMatch = currentTodos.find(
+				(todo) => !claimedOptimisticIds.has(todo.id) && sameTodoIntent(todo, serverTodo)
+			);
+			if (optimisticMatch?.ui_id) {
+				claimedOptimisticIds.add(optimisticMatch.id);
+				return { ...serverTodo, ui_id: optimisticMatch.ui_id };
+			}
+
+			return serverTodo;
+		});
 	}
 
 	function makeOptimisticLog(habitId: string, value: number): HabitLog {
@@ -260,7 +295,7 @@
 						</div>
 					{:else}
 						<ul class="todo-list">
-							{#each todosToday as todo (todo.id)}
+							{#each todosToday as todo (todo.ui_id ?? todo.id)}
 								<li
 									class:done={todo.status === 'done'}
 									in:fly={{ y: -8, duration: 220, easing: cubicOut }}
