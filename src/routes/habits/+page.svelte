@@ -36,6 +36,9 @@
 	let editingId: string | null = null;
 	let showForm = false;
 	let draft: HabitDraft = blank();
+	let habits: Habit[] = data.habits;
+
+	$: if (data.habits) habits = data.habits;
 
 	function startAdd() {
 		editingId = null;
@@ -137,16 +140,9 @@
 					</div>
 				</label>
 				<label class="checkbox-label">
-					<input type="hidden" name="is_active" value="false" />
 					<input
 						type="checkbox"
 						bind:checked={draft.is_active}
-						on:change={(e) => {
-							const el = e.currentTarget.form?.querySelector(
-								'input[name="is_active"][type="hidden"]'
-							) as HTMLInputElement | null;
-							if (el) el.value = e.currentTarget.checked ? 'true' : 'false';
-						}}
 					/>
 					Active
 				</label>
@@ -161,7 +157,7 @@
 		</form>
 	{/if}
 
-	{#if data.habits.length === 0}
+	{#if habits.length === 0}
 		<div class="empty-state">
 			<div class="empty-icon">
 				<Activity size={40} strokeWidth={1.5} />
@@ -172,7 +168,7 @@
 		</div>
 	{:else}
 		<ul class="habit-list">
-			{#each data.habits as habit (habit.id)}
+			{#each habits as habit (habit.id)}
 				<li
 					class:inactive={!habit.is_active}
 					in:fly={{ y: -8, duration: 220, easing: cubicOut }}
@@ -198,7 +194,21 @@
 						</a>
 						<button class="act-btn" on:click={() => startEdit(habit)} title="Edit" aria-label="Edit habit">✎</button>
 
-						<form method="POST" action="?/toggleActive" use:enhance>
+						<form
+							method="POST"
+							action="?/toggleActive"
+							use:enhance={() => {
+								const previous = habits;
+								habits = habits.map((item) =>
+									item.id === habit.id ? { ...item, is_active: !item.is_active } : item
+								);
+								return async ({ result }) => {
+									if (result.type === 'failure' || result.type === 'error') {
+										habits = previous;
+									}
+								};
+							}}
+						>
 							<input type="hidden" name="id" value={habit.id} />
 							<input type="hidden" name="is_active" value={String(habit.is_active)} />
 							<button

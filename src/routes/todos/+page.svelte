@@ -49,6 +49,22 @@
 
 	const todayStr = new Date().toISOString().slice(0, 10);
 
+	function dateInputValue(value: unknown): string {
+		if (!value) return '';
+		if (value instanceof Date) return value.toISOString().slice(0, 10);
+		const text = String(value);
+		if (/^\d{4}-\d{2}-\d{2}/.test(text)) return text.slice(0, 10);
+		const date = new Date(text);
+		return Number.isNaN(date.getTime()) ? '' : date.toISOString().slice(0, 10);
+	}
+
+	function formatShortDate(value: unknown): string {
+		const input = dateInputValue(value);
+		if (!input) return '';
+		const [year, month, day] = input.split('-');
+		return `${day}/${month}/${year.slice(2)}`;
+	}
+
 	function makeOptimisticTodo(
 		title: string,
 		dueDate: string | null,
@@ -84,14 +100,12 @@
 			const dueDate = String(formData.get('due_date') ?? '') || null;
 			const priority = (String(formData.get('priority') ?? '') || null) as TodoPriority | null;
 			const optimistic = title ? makeOptimisticTodo(title, dueDate, priority) : null;
-			if (optimistic) todos = [optimistic, ...todos];
+			if (optimistic) todos = [...todos, optimistic];
 			formElement.reset();
-			return async ({ result, update }) => {
+			return async ({ result }) => {
 				if (result.type === 'failure' || result.type === 'error') {
 					if (optimistic) todos = todos.filter((todo) => todo.id !== optimistic.id);
-					return;
 				}
-				await update();
 			};
 		}}
 	>
@@ -154,13 +168,11 @@
 										item.id === todo.id ? { ...item, title, description, due_date: dueDate, priority } : item
 									);
 								}
-								return async ({ result, update }) => {
+								return async ({ result }) => {
 									if (result.type === 'success') editingId = null;
 									if (result.type === 'failure' || result.type === 'error') {
 										todos = previous;
-										return;
 									}
-									await update();
 								};
 							}}
 						>
@@ -183,7 +195,7 @@
 									type="date"
 									class="meta-input"
 									name="due_date"
-									value={todo.due_date ?? ''}
+									value={dateInputValue(todo.due_date)}
 								/>
 								<Select name="priority" options={priorityOpts} value={todo.priority ?? ''} />
 							</div>
@@ -210,12 +222,10 @@
 											}
 										: item
 								);
-								return async ({ result, update }) => {
+								return async ({ result }) => {
 									if (result.type === 'failure' || result.type === 'error') {
 										todos = previous;
-										return;
 									}
-									await update();
 								};
 							}}
 						>
@@ -242,9 +252,9 @@
 								{#if todo.due_date}
 									<span
 										class="due-date"
-										class:overdue={todo.status === 'pending' && todo.due_date < todayStr}
+										class:overdue={todo.status === 'pending' && dateInputValue(todo.due_date) < todayStr}
 									>
-										{todo.due_date}
+										{formatShortDate(todo.due_date)}
 									</span>
 								{/if}
 							</div>
@@ -263,12 +273,10 @@
 									}
 									const previous = todos;
 									todos = todos.filter((item) => item.id !== todo.id);
-									return async ({ result, update }) => {
+									return async ({ result }) => {
 										if (result.type === 'failure' || result.type === 'error') {
 											todos = previous;
-											return;
 										}
-										await update();
 									};
 								}}
 							>

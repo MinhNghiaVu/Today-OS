@@ -122,6 +122,15 @@
 		});
 	}
 
+	function dateInputValue(value: unknown): string {
+		if (!value) return '';
+		if (value instanceof Date) return value.toISOString().slice(0, 10);
+		const text = String(value);
+		if (/^\d{4}-\d{2}-\d{2}/.test(text)) return text.slice(0, 10);
+		const date = new Date(text);
+		return Number.isNaN(date.getTime()) ? '' : date.toISOString().slice(0, 10);
+	}
+
 	function openLog(id: string) {
 		activeHabitId = id;
 		logAmount = '';
@@ -185,7 +194,6 @@
 	<div class="page-inner">
 		<header class="hero">
 			<div>
-				<p class="eyebrow">Today</p>
 				<h1>{dateLabel}</h1>
 			</div>
 			<div class="hero-stats" aria-label="Today summary">
@@ -209,7 +217,6 @@
 				<section class="panel focus-panel">
 					<div class="panel-heading">
 						<div>
-							<p class="section-label">Focus</p>
 							<h2>Things to do today</h2>
 						</div>
 						<span class="muted">{doneTodos.length} done</span>
@@ -224,12 +231,10 @@
 							const optimistic = title ? makeOptimisticTodo(title) : null;
 							if (optimistic) todosToday = [...todosToday, optimistic];
 							newTodo = '';
-							return async ({ result, update }) => {
+							return async ({ result }) => {
 								if (result.type === 'failure' || result.type === 'error') {
 									if (optimistic) todosToday = todosToday.filter((todo) => todo.id !== optimistic.id);
-									return;
 								}
-								await update();
 							};
 						}}
 					>
@@ -279,20 +284,18 @@
 															: item
 													);
 												}
-												return async ({ result, update }) => {
-												if (result.type === 'success') editingId = null;
-												if (result.type === 'failure' || result.type === 'error') {
-													todosToday = previous;
-													return;
-												}
-												await update();
-											};
+												return async ({ result }) => {
+													if (result.type === 'success') editingId = null;
+													if (result.type === 'failure' || result.type === 'error') {
+														todosToday = previous;
+													}
+												};
 											}}
 										>
 											<input type="hidden" name="id" value={todo.id} />
 											<input class="edit-title" name="title" value={todo.title} required aria-label="Edit task title" />
 											<div class="edit-meta">
-												<input type="date" class="meta-input" name="due_date" value={todo.due_date ?? todayStr} />
+												<input type="date" class="meta-input" name="due_date" value={dateInputValue(todo.due_date) || todayStr} />
 												<select class="meta-input" name="priority">
 													{#each priorityOpts as opt}
 														<option value={opt.value} selected={todo.priority === opt.value || (!todo.priority && opt.value === '')}>{opt.label}</option>
@@ -320,12 +323,10 @@
 															}
 														: item
 												);
-												return async ({ result, update }) => {
+												return async ({ result }) => {
 													if (result.type === 'failure' || result.type === 'error') {
 														todosToday = previous;
-														return;
 													}
-													await update();
 												};
 											}}
 										>
@@ -352,12 +353,10 @@
 											use:enhance={() => {
 												const previous = todosToday;
 												todosToday = todosToday.filter((item) => item.id !== todo.id);
-												return async ({ result, update }) => {
+												return async ({ result }) => {
 													if (result.type === 'failure' || result.type === 'error') {
 														todosToday = previous;
-														return;
 													}
-													await update();
 												};
 											}}
 										>
@@ -374,7 +373,6 @@
 				<section class="panel">
 					<div class="panel-heading">
 						<div>
-							<p class="section-label">Daily habits</p>
 							<h2>Water, calories, and consistency</h2>
 						</div>
 						<a href="/habits" class="panel-link">
@@ -451,7 +449,7 @@
 												}
 												logAmount = '';
 												activeHabitId = null;
-												return async ({ result, update }) => {
+												return async ({ result }) => {
 													if (result.type === 'failure' || result.type === 'error') {
 														if (optimistic) {
 															habitTotals = habitTotals.map((item) =>
@@ -464,9 +462,7 @@
 																	: item
 															);
 														}
-														return;
 													}
-													await update();
 												};
 											}}
 										>
@@ -512,13 +508,11 @@
 																			: item
 																	);
 																}
-																return async ({ result, update }) => {
+																return async ({ result }) => {
 																	if (result.type === 'success') editingLogId = null;
 																	if (result.type === 'failure' || result.type === 'error') {
 																		habitTotals = previous;
-																		return;
 																	}
-																	await update();
 																};
 															}}
 														>
@@ -562,12 +556,10 @@
 																				}
 																			: item
 																	);
-																	return async ({ result, update }) => {
+																	return async ({ result }) => {
 																		if (result.type === 'failure' || result.type === 'error') {
 																			habitTotals = previous;
-																			return;
 																		}
-																		await update();
 																	};
 																}}
 															>
@@ -593,7 +585,6 @@
 				<section class="panel compact-panel">
 					<div class="panel-heading">
 						<div>
-							<p class="section-label">Schedule</p>
 							<h2>Calendar context</h2>
 						</div>
 						<CalendarDays class="heading-icon" size={18} strokeWidth={2} aria-hidden="true" />
@@ -645,7 +636,6 @@
 				<section class="panel compact-panel">
 					<div class="panel-heading">
 						<div>
-							<p class="section-label">Inbox</p>
 							<h2>Quick notes</h2>
 						</div>
 						<a href="/notes" class="panel-link">
@@ -663,12 +653,10 @@
 							const optimistic = content ? makeOptimisticNote(content) : null;
 							if (optimistic) notesToday = [optimistic, ...notesToday];
 							noteContent = '';
-							return async ({ result, update }) => {
+							return async ({ result }) => {
 								if (result.type === 'failure' || result.type === 'error') {
 									if (optimistic) notesToday = notesToday.filter((note) => note.id !== optimistic.id);
-									return;
 								}
-								await update();
 							};
 						}}
 					>
