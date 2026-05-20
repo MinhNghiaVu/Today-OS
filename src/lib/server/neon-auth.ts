@@ -41,6 +41,10 @@ function neonCookieHeader(cookieHeader: string | null) {
 		.join('; ');
 }
 
+export function hasNeonAuthCookies(cookieHeader: string | null) {
+	return neonCookieHeader(cookieHeader).length > 0;
+}
+
 function setNeonCookieHeader(headers: Headers, cookieHeader: string | null) {
 	const cookies = neonCookieHeader(cookieHeader);
 	if (cookies) headers.set('cookie', cookies);
@@ -103,6 +107,10 @@ export function applyAuthCookies(cookies: Cookies, headers: Headers) {
 }
 
 export async function proxyAuthRequest(request: Request, path: string) {
+	if (path === 'get-session' && !hasNeonAuthCookies(request.headers.get('cookie'))) {
+		return Response.json(null);
+	}
+
 	const upstream = new URL(`${authBaseUrl()}/${path}`);
 	upstream.search = new URL(request.url).search;
 

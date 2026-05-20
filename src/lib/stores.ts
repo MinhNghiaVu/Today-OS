@@ -2,12 +2,12 @@ import { writable } from 'svelte/store';
 import { browser } from '$app/environment';
 
 export const ACCENT_PRESETS = [
-	{ label: 'Indigo', accent: '#6366f1', hover: '#4f52d4' },
-	{ label: 'Violet', accent: '#8b5cf6', hover: '#7c3aed' },
-	{ label: 'Emerald', accent: '#10b981', hover: '#059669' },
-	{ label: 'Rose', accent: '#f43f5e', hover: '#e11d48' },
-	{ label: 'Amber', accent: '#f59e0b', hover: '#d97706' },
-	{ label: 'Sky', accent: '#0ea5e9', hover: '#0284c7' }
+	{ label: 'Sky', accent: '#38bdf8', hover: '#0ea5e9', pressed: '#0284c7' },
+	{ label: 'Teal', accent: '#14b8a6', hover: '#0d9488', pressed: '#0f766e' },
+	{ label: 'Indigo', accent: '#6366f1', hover: '#4f52d4', pressed: '#4338ca' },
+	{ label: 'Violet', accent: '#8b5cf6', hover: '#7c3aed', pressed: '#6d28d9' },
+	{ label: 'Amber', accent: '#f59e0b', hover: '#d97706', pressed: '#b45309' },
+	{ label: 'Rose', accent: '#f43f5e', hover: '#e11d48', pressed: '#be123c' }
 ];
 
 type Preferences = { theme: 'dark' | 'light'; accentIndex: number };
@@ -27,6 +27,7 @@ function persistPreferences(prefs: Preferences): void {
 	document.documentElement.style.colorScheme = prefs.theme;
 	document.documentElement.style.setProperty('--accent', preset.accent);
 	document.documentElement.style.setProperty('--accent-hover', preset.hover);
+	document.documentElement.style.setProperty('--accent-pressed', preset.pressed);
 	localStorage.setItem(STORAGE_THEME_KEY, prefs.theme);
 	localStorage.setItem(STORAGE_ACCENT_KEY, String(prefs.accentIndex));
 	document.cookie = `theme=${prefs.theme};path=/;max-age=${60 * 60 * 24 * 365};samesite=lax`;

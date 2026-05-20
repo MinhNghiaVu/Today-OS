@@ -210,7 +210,7 @@ export async function ensureUser(user: { id: string; email?: string | null }) {
 	await query(
 		`insert into "users" ("id", "email", "display_name")
 		 values ($1, $2, $3)
-		 on conflict ("id") do update set "email" = excluded."email"`,
+		 on conflict ("id") do nothing`,
 		[user.id, user.email ?? '', user.email ?? 'Today OS user']
 	);
 	ensuredUserIds.add(user.id);

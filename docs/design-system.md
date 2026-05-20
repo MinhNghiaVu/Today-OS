@@ -70,13 +70,13 @@ Contrast: every primary text on every surface meets WCAG AA (4.5:1). Secondary t
 
 | Token | Dark | Light | Use |
 |---|---|---|---|
-| `--accent` | `#f43f5e` | `#e11d48` | Primary CTAs, active states, focus rings |
-| `--accent-hover` | `#fb5d77` | `#be123c` | Hover state for accent |
-| `--accent-pressed` | `#e02e4f` | `#9f1239` | Active/pressed |
+| `--accent` | `#38bdf8` | `#0ea5e9` | Primary CTAs, active states, focus rings |
+| `--accent-hover` | `#0ea5e9` | `#0284c7` | Hover state for accent |
+| `--accent-pressed` | `#0284c7` | `#0369a1` | Active/pressed |
 | `--accent-soft` | `color-mix(in oklab, var(--accent) 14%, transparent)` | same | Tinted bg for badges, active rows, soft highlights |
 | `--accent-soft-hover` | `color-mix(in oklab, var(--accent) 22%, transparent)` | same | Hover state for accent-soft surfaces |
 
-Default accent is rose `#f43f5e`. Settings → Accent picker swaps `--accent` (and recomputes `--accent-soft` because it's a `color-mix`). The hover/pressed steps are computed too — store the hue rotation, don't store six hex values per accent.
+Default accent is sky `#38bdf8`. Settings → Accent picker swaps `--accent`, `--accent-hover`, and `--accent-pressed` together (and recomputes `--accent-soft` because it's a `color-mix`). Pressed states must stay in the selected accent family, never fall back to danger red.
 
 ### Semantic
 

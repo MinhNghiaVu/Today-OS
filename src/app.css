@@ -32,10 +32,10 @@
 	--text-on-accent: #ffffff;
 	--text-disabled:  #52525b;
 
-	/* Accent — rose default; settings picker swaps --accent */
-	--accent:           #f43f5e;
-	--accent-hover:     #fb5d77;
-	--accent-pressed:   #e02e4f;
+	/* Accent — bright sky default; settings picker swaps the full accent ramp */
+	--accent:           #38bdf8;
+	--accent-hover:     #0ea5e9;
+	--accent-pressed:   #0284c7;
 	--accent-soft:      color-mix(in oklab, var(--accent) 14%, transparent);
 	--accent-soft-hover: color-mix(in oklab, var(--accent) 22%, transparent);
 
@@ -107,9 +107,9 @@
 	--text-disabled:   #a1a1aa;
 
 	/* Accent */
-	--accent:          #e11d48;
-	--accent-hover:    #be123c;
-	--accent-pressed:  #9f1239;
+	--accent:          #0ea5e9;
+	--accent-hover:    #0284c7;
+	--accent-pressed:  #0369a1;
 
 	/* Semantic */
 	--success: #059669;

@@ -49,7 +49,7 @@
 		<nav class="sidebar" class:collapsed={$sidebarCollapsed} aria-label="Primary">
 			<div class="sidebar-top">
 				<a href="/today" class="logo" aria-label="Today OS home">
-					<span class="logo-mark" aria-hidden="true">T</span>
+					<img class="logo-mark" src="/icon-192.png" alt="" aria-hidden="true" width="24" height="24" />
 					<span class="label-text">Today OS</span>
 				</a>
 				<button
@@ -198,15 +198,11 @@
 	}
 
 	.logo-mark {
-		display: grid;
-		place-items: center;
 		width: 24px;
 		height: 24px;
 		border-radius: var(--radius-md);
-		background: var(--accent-soft);
-		color: var(--accent);
-		font-size: 13px;
-		font-weight: 600;
+		object-fit: cover;
+		box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
 		flex-shrink: 0;
 	}
 
