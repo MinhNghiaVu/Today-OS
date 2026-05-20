@@ -1,24 +1,18 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import { fly } from 'svelte/transition';
-	import { cubicIn, cubicOut } from 'svelte/easing';
 	import {
 		Activity,
 		CalendarDays,
 		CheckCircle2,
 		ChevronRight,
 		Clock3,
-		Droplets,
 		FileText,
-		Pencil,
-		Plus,
-		Target,
-		Trash2
 	} from 'lucide-svelte';
+	import HabitProgressList from '$lib/components/HabitProgressList.svelte';
 	import TodoAddForm from '$lib/components/TodoAddForm.svelte';
 	import TodoRow from '$lib/components/TodoRow.svelte';
 	import type { PageData } from './$types';
-	import type { HabitLog, HabitType, HabitWithTodayLogs, Note, Todo, TodoPriority } from '$lib/types';
+	import type { HabitType, HabitWithTodayLogs, Note, Todo, TodoPriority } from '$lib/types';
 
 	export let data: PageData;
 	type TodoView = Todo & { ui_id?: string };
@@ -46,16 +40,11 @@
 
 	let noteContent = '';
 	let editingId: string | null = null;
-	let activeHabitId: string | null = null;
-	let logAmount = '';
-	let editingLogId: string | null = null;
-	let editingLogValue = '';
 	let todosToday: TodoView[] = data.todosToday;
 	let lastTodosTodayData = data.todosToday;
 	let habitTotals: HabitWithTodayLogs[] = data.habitTotals;
 	let notesToday: Note[] = data.notesToday;
 	let optimisticTodoSeq = 0;
-	let optimisticLogSeq = 0;
 	let optimisticNoteSeq = 0;
 
 	$: if (data.todosToday !== lastTodosTodayData) {
@@ -158,18 +147,6 @@
 		return () => (todosToday = previous);
 	}
 
-	function makeOptimisticLog(habitId: string, value: number): HabitLog {
-		optimisticLogSeq += 1;
-		return {
-			id: `optimistic-log-${Date.now()}-${optimisticLogSeq}`,
-			user_id: 'optimistic',
-			habit_id: habitId,
-			date: todayStr,
-			value,
-			created_at: new Date().toISOString()
-		};
-	}
-
 	function makeOptimisticNote(content: string): Note {
 		const now = new Date().toISOString();
 		const firstLine = content.split('\n').find(Boolean)?.trim() ?? 'Quick note';
@@ -211,24 +188,6 @@
 		return Number.isNaN(date.getTime()) ? '' : date.toISOString().slice(0, 10);
 	}
 
-	function openLog(id: string) {
-		activeHabitId = id;
-		logAmount = '';
-	}
-
-	function startEditLog(id: string, value: number) {
-		editingLogId = id;
-		editingLogValue = String(value);
-	}
-
-	function formatLogTime(iso: string): string {
-		return new Date(iso).toLocaleTimeString('en-AU', {
-			hour: 'numeric',
-			minute: '2-digit',
-			hour12: true
-		});
-	}
-
 	function isHabitOnTrack(habit: {
 		type: HabitType;
 		total: number;
@@ -238,35 +197,6 @@
 		if (habit.daily_goal === null) return habit.total > 0;
 		if (habit.type === 'min_goal') return habit.total >= habit.daily_goal;
 		return habit.total > 0 && habit.total <= habit.daily_goal;
-	}
-
-	function habitStatus(habit: {
-		type: HabitType;
-		total: number;
-		daily_goal: number | null;
-		unit: string;
-	}): string {
-		if (habit.type === 'info_only' || habit.daily_goal === null) {
-			return habit.total > 0 ? `${habit.total} ${habit.unit} logged` : 'No log yet';
-		}
-
-		if (habit.type === 'min_goal') {
-			const remaining = Math.max(0, habit.daily_goal - habit.total);
-			return remaining === 0 ? 'Goal met' : `${remaining} ${habit.unit} left`;
-		}
-
-		const remaining = habit.daily_goal - habit.total;
-		if (remaining < 0) return `${Math.abs(remaining)} ${habit.unit} over`;
-		return `${remaining} ${habit.unit} room`;
-	}
-
-	function barWidth(habit: { daily_goal: number | null; total: number }): number {
-		if (!habit.daily_goal) return habit.total > 0 ? 100 : 0;
-		return Math.min(100, (habit.total / habit.daily_goal) * 100);
-	}
-
-	function formattedTotal(total: number): string {
-		return Number.isInteger(total) ? String(total) : total.toFixed(1);
 	}
 </script>
 
@@ -345,7 +275,7 @@
 				<section class="panel">
 					<div class="panel-heading">
 						<div>
-							<h2>Water, calories, and consistency</h2>
+							<h2>Habits</h2>
 						</div>
 						<a href="/habits" class="panel-link">
 							Manage
@@ -362,193 +292,7 @@
 							</div>
 						</div>
 					{:else}
-						<ul class="habit-list">
-							{#each habitTotals as habit (habit.id)}
-								<li>
-									<div class="habit-main">
-										<div class="habit-icon" style="color: {habit.color}">
-											{#if habit.name.toLowerCase().includes('water')}
-												<Droplets size={17} strokeWidth={2} aria-hidden="true" />
-											{:else}
-												<Target size={17} strokeWidth={2} aria-hidden="true" />
-											{/if}
-										</div>
-										<div class="habit-copy">
-											<div class="habit-title-row">
-												<span class="habit-name">{habit.name}</span>
-												<span class:good={isHabitOnTrack(habit)} class:warn={habit.type === 'max_goal' && habit.daily_goal !== null && habit.total > habit.daily_goal} class="habit-state">
-													{habitStatus(habit)}
-												</span>
-											</div>
-											<div class="bar-track">
-												<div
-													class="bar-fill"
-													class:bar-met={isHabitOnTrack(habit)}
-													class:bar-warn={habit.type === 'max_goal' && habit.daily_goal !== null && habit.total > habit.daily_goal}
-													style="width: {barWidth(habit)}%; background: {habit.color};"
-												></div>
-											</div>
-											<div class="habit-meta">
-												<span>{habit.total}{habit.daily_goal !== null ? ` / ${habit.daily_goal}` : ''} {habit.unit}</span>
-												<span>{habit.daily_goal === null ? `${habit.daysLogged}/7 days logged` : `${habit.daysMet}/7 days on goal`}</span>
-											</div>
-										</div>
-										<button class="small-square" on:click={() => openLog(habit.id)} aria-label="Log {habit.name}">
-											<Plus size={16} strokeWidth={2.2} />
-										</button>
-									</div>
-
-									{#if activeHabitId === habit.id}
-										<form
-											method="POST"
-											action="?/logHabit"
-											class="log-row"
-											in:fly={{ y: -6, duration: 180, easing: cubicOut }}
-											out:fly={{ y: -4, duration: 140, easing: cubicIn }}
-											use:enhance={({ formData }) => {
-												const value = parseFloat(String(formData.get('value') ?? ''));
-												const optimistic = value > 0 ? makeOptimisticLog(habit.id, value) : null;
-												if (optimistic) {
-													habitTotals = habitTotals.map((item) =>
-														item.id === habit.id
-															? {
-																	...item,
-																	total: parseFloat((item.total + optimistic.value).toFixed(6)),
-																	todayLogs: [optimistic, ...item.todayLogs]
-																}
-															: item
-													);
-												}
-												logAmount = '';
-												activeHabitId = null;
-												return async ({ result }) => {
-													if (result.type === 'failure' || result.type === 'error') {
-														if (optimistic) {
-															habitTotals = habitTotals.map((item) =>
-																item.id === habit.id
-																	? {
-																			...item,
-																			total: parseFloat((item.total - optimistic.value).toFixed(6)),
-																			todayLogs: item.todayLogs.filter((log) => log.id !== optimistic.id)
-																		}
-																	: item
-															);
-														}
-													}
-												};
-											}}
-										>
-											<input type="hidden" name="habit_id" value={habit.id} />
-											<input
-												type="number"
-												name="value"
-												min="0"
-												step="any"
-												bind:value={logAmount}
-												placeholder={`Amount in ${habit.unit}`}
-												aria-label="Log amount"
-											/>
-											<button type="submit" class="small-button primary-fill">Log</button>
-											<button type="button" class="small-button" on:click={() => (activeHabitId = null)}>Cancel</button>
-										</form>
-									{/if}
-
-									{#if habit.todayLogs.length > 0}
-										<ul class="habit-log-list" aria-label="{habit.name} logs">
-											{#each habit.todayLogs as log (log.id)}
-												<li>
-													{#if editingLogId === log.id}
-														<form
-															method="POST"
-															action="?/updateHabitLog"
-															class="log-edit-form"
-															use:enhance={({ formData }) => {
-																const previous = habitTotals;
-																const nextValue = parseFloat(String(formData.get('value') ?? ''));
-																if (nextValue > 0) {
-																	habitTotals = habitTotals.map((item) =>
-																		item.id === habit.id
-																			? {
-																					...item,
-																					total: parseFloat(
-																						(item.total - log.value + nextValue).toFixed(6)
-																					),
-																					todayLogs: item.todayLogs.map((itemLog) =>
-																						itemLog.id === log.id ? { ...itemLog, value: nextValue } : itemLog
-																					)
-																				}
-																			: item
-																	);
-																}
-																return async ({ result }) => {
-																	if (result.type === 'success') editingLogId = null;
-																	if (result.type === 'failure' || result.type === 'error') {
-																		habitTotals = previous;
-																	}
-																};
-															}}
-														>
-															<input type="hidden" name="id" value={log.id} />
-															<input
-																type="number"
-																name="value"
-																min="0"
-																step="any"
-																bind:value={editingLogValue}
-																aria-label="Edit log value"
-															/>
-															<button type="submit" class="small-button primary-fill">Save</button>
-															<button type="button" class="small-button" on:click={() => (editingLogId = null)}>Cancel</button>
-														</form>
-													{:else}
-														<div class="log-entry-copy">
-															<span class="log-value">+{formattedTotal(log.value)} {habit.unit}</span>
-															<span class="log-time">{formatLogTime(log.created_at)}</span>
-														</div>
-														<div class="log-entry-actions">
-															<button
-																type="button"
-																class="mini-icon-button"
-																on:click={() => startEditLog(log.id, log.value)}
-																aria-label="Edit {habit.name} log"
-															>
-																<Pencil size={13} strokeWidth={2} />
-															</button>
-															<form
-																method="POST"
-																action="?/removeHabitLog"
-																use:enhance={() => {
-																	const previous = habitTotals;
-																	habitTotals = habitTotals.map((item) =>
-																		item.id === habit.id
-																			? {
-																					...item,
-																					total: parseFloat((item.total - log.value).toFixed(6)),
-																					todayLogs: item.todayLogs.filter((itemLog) => itemLog.id !== log.id)
-																				}
-																			: item
-																	);
-																	return async ({ result }) => {
-																		if (result.type === 'failure' || result.type === 'error') {
-																			habitTotals = previous;
-																		}
-																	};
-																}}
-															>
-																<input type="hidden" name="id" value={log.id} />
-																<button type="submit" class="mini-icon-button danger" aria-label="Delete {habit.name} log">
-																	<Trash2 size={13} strokeWidth={2} />
-																</button>
-															</form>
-														</div>
-													{/if}
-												</li>
-											{/each}
-										</ul>
-									{/if}
-								</li>
-							{/each}
-						</ul>
+						<HabitProgressList bind:habits={habitTotals} />
 					{/if}
 				</section>
 			</main>
@@ -800,7 +544,6 @@
 		font-size: 13px;
 	}
 
-	input,
 	textarea {
 		width: 100%;
 		background: var(--surface-2);
@@ -813,11 +556,6 @@
 		transition: border-color 120ms var(--ease-out), background 120ms var(--ease-out);
 	}
 
-	input {
-		height: 38px;
-		padding: 0 12px;
-	}
-
 	textarea {
 		min-height: 104px;
 		resize: vertical;
@@ -825,17 +563,14 @@
 		line-height: 1.5;
 	}
 
-	input::placeholder,
 	textarea::placeholder {
 		color: var(--text-tertiary);
 	}
 
-	input:hover,
 	textarea:hover {
 		border-color: var(--border-strong);
 	}
 
-	input:focus-visible,
 	textarea:focus-visible,
 	button:focus-visible,
 	a:focus-visible {
@@ -843,32 +578,7 @@
 		outline-offset: 2px;
 	}
 
-	.small-square {
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		border: none;
-		border-radius: var(--radius-md);
-		cursor: pointer;
-		transition: background 120ms var(--ease-out), transform 120ms var(--ease-out);
-	}
-
-	.primary-fill {
-		background: var(--accent);
-		color: var(--text-on-accent);
-	}
-
-	.primary-fill:hover {
-		background: var(--accent-hover);
-	}
-
-	.primary-fill:active {
-		background: var(--accent-pressed);
-		transform: translateY(1px);
-	}
-
 	.todo-list,
-	.habit-list,
 	.event-list,
 	.note-list {
 		list-style: none;
@@ -880,24 +590,6 @@
 		display: flex;
 		flex-direction: column;
 		gap: 2px;
-	}
-
-	.log-row,
-	.log-edit-form {
-		display: flex;
-		gap: 8px;
-	}
-
-	.small-button {
-		height: 32px;
-		padding: 0 12px;
-		border: none;
-		border-radius: var(--radius-md);
-		background: var(--surface-2);
-		color: var(--text-primary);
-		font-size: 13px;
-		font-weight: 500;
-		cursor: pointer;
 	}
 
 	.empty-state {
@@ -932,180 +624,6 @@
 		color: var(--text-tertiary);
 	}
 
-	.habit-list {
-		display: flex;
-		flex-direction: column;
-		gap: 10px;
-	}
-
-	.habit-list li {
-		padding: 12px;
-		border-radius: var(--radius-lg);
-		background: var(--surface-2);
-	}
-
-	.habit-main {
-		display: flex;
-		align-items: center;
-		gap: 12px;
-	}
-
-	.habit-icon {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		width: 34px;
-		height: 34px;
-		border-radius: var(--radius-md);
-		background: var(--surface-3);
-		flex-shrink: 0;
-	}
-
-	.habit-copy {
-		flex: 1;
-		min-width: 0;
-	}
-
-	.habit-title-row,
-	.habit-meta {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		gap: 10px;
-	}
-
-	.habit-name {
-		font-weight: 500;
-		color: var(--text-primary);
-		overflow: hidden;
-		text-overflow: ellipsis;
-		white-space: nowrap;
-	}
-
-	.habit-state,
-	.habit-meta {
-		font-size: 12px;
-		color: var(--text-tertiary);
-	}
-
-	.habit-state.good {
-		color: var(--success);
-	}
-
-	.habit-state.warn {
-		color: var(--danger);
-	}
-
-	.bar-track {
-		height: 6px;
-		margin: 8px 0 6px;
-		background: var(--surface-3);
-		border-radius: var(--radius-full);
-		overflow: hidden;
-	}
-
-	.bar-fill {
-		height: 100%;
-		border-radius: var(--radius-full);
-		transition: width 260ms var(--ease-out);
-	}
-
-	.bar-fill.bar-met {
-		background: var(--success) !important;
-	}
-
-	.bar-fill.bar-warn {
-		background: var(--danger) !important;
-	}
-
-	.small-square {
-		width: 34px;
-		height: 34px;
-		background: var(--surface-3);
-		color: var(--text-primary);
-	}
-
-	.small-square:hover {
-		background: var(--accent-soft);
-		color: var(--accent);
-	}
-
-	.log-row {
-		margin-top: 10px;
-		padding-left: 46px;
-	}
-
-	.habit-log-list {
-		list-style: none;
-		margin: 10px 0 0;
-		padding: 0 0 0 46px;
-		display: flex;
-		flex-direction: column;
-		gap: 6px;
-	}
-
-	.habit-log-list li {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		gap: 10px;
-		min-height: 34px;
-		padding: 7px 9px;
-		border-radius: var(--radius-md);
-		background: var(--surface-3);
-	}
-
-	.log-entry-copy {
-		display: flex;
-		align-items: baseline;
-		gap: 8px;
-		min-width: 0;
-	}
-
-	.log-value {
-		color: var(--text-primary);
-		font-size: 13px;
-		font-weight: 500;
-	}
-
-	.log-time {
-		color: var(--text-tertiary);
-		font-size: 12px;
-	}
-
-	.log-entry-actions {
-		display: flex;
-		align-items: center;
-		gap: 4px;
-	}
-
-	.mini-icon-button {
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		width: 26px;
-		height: 26px;
-		border: none;
-		border-radius: var(--radius-sm);
-		background: transparent;
-		color: var(--text-tertiary);
-		cursor: pointer;
-		transition: background 120ms var(--ease-out), color 120ms var(--ease-out);
-	}
-
-	.mini-icon-button:hover {
-		background: var(--surface-2);
-		color: var(--text-primary);
-	}
-
-	.mini-icon-button.danger:hover {
-		background: var(--danger-soft);
-		color: var(--danger);
-	}
-
-	.log-edit-form {
-		flex: 1;
-	}
 
 	.callout {
 		display: flex;
@@ -1257,27 +775,10 @@
 			border-radius: var(--radius-lg);
 		}
 
-		.panel-heading,
-		.habit-title-row,
-		.habit-meta {
+		.panel-heading {
 			align-items: flex-start;
 			flex-direction: column;
 			gap: 4px;
-		}
-
-		.log-row,
-		.log-edit-form {
-			flex-direction: column;
-		}
-
-		.log-row,
-		.habit-log-list {
-			padding-left: 0;
-		}
-
-		.habit-log-list li {
-			align-items: flex-start;
-			flex-direction: column;
 		}
 
 		.event-list li {

@@ -1,13 +1,13 @@
 import { fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
-import { getHabits } from '$lib/db';
+import { getHabitSummariesToday } from '$lib/db';
 import { query } from '$lib/server/neon-client';
 
 export const load: PageServerLoad = async ({ locals }) => {
 	const { user } = locals;
 	if (!user) redirect(303, '/login');
 
-	const habits = await getHabits(locals.supabase, user.id);
+	const habits = await getHabitSummariesToday(locals.supabase, user.id, { includeInactive: true });
 	return { habits };
 };
 
@@ -77,6 +77,72 @@ export const actions: Actions = {
 		} catch (error) {
 			return fail(500, { error: error instanceof Error ? error.message : String(error) });
 		}
+	},
+
+	logHabit: async ({ locals, request }) => {
+		const { user } = locals;
+		if (!user) return fail(401);
+
+		const form = await request.formData();
+		const habit_id = form.get('habit_id') as string;
+		const valueRaw = form.get('value') as string;
+		const value = parseFloat(valueRaw);
+
+		if (!habit_id || isNaN(value) || value <= 0) return fail(400, { error: 'Invalid log' });
+
+		const { data: habit, error: habitError } = await locals.supabase
+			.from('habit_definitions')
+			.select('id')
+			.eq('id', habit_id)
+			.eq('user_id', user.id)
+			.single();
+
+		if (habitError || !habit) return fail(404, { error: 'Habit not found' });
+
+		const today = new Date().toISOString().slice(0, 10);
+		const { error } = await locals.supabase
+			.from('habit_logs')
+			.insert({ user_id: user.id, habit_id, date: today, value });
+
+		if (error) return fail(500, { error: error.message });
+	},
+
+	updateHabitLog: async ({ locals, request }) => {
+		const { user } = locals;
+		if (!user) return fail(401);
+
+		const form = await request.formData();
+		const id = form.get('id') as string;
+		const valueRaw = form.get('value') as string;
+		const value = parseFloat(valueRaw);
+
+		if (!id || isNaN(value) || value <= 0) return fail(400, { error: 'Invalid log value' });
+
+		const { error } = await locals.supabase
+			.from('habit_logs')
+			.update({ value })
+			.eq('id', id)
+			.eq('user_id', user.id);
+
+		if (error) return fail(500, { error: error.message });
+	},
+
+	removeHabitLog: async ({ locals, request }) => {
+		const { user } = locals;
+		if (!user) return fail(401);
+
+		const form = await request.formData();
+		const id = form.get('id') as string;
+
+		if (!id) return fail(400, { error: 'Missing log' });
+
+		const { error } = await locals.supabase
+			.from('habit_logs')
+			.delete()
+			.eq('id', id)
+			.eq('user_id', user.id);
+
+		if (error) return fail(500, { error: error.message });
 	},
 
 	remove: async ({ locals, request }) => {

@@ -233,7 +233,8 @@ export interface HabitDailyTotal {
 
 export async function getHabitSummariesToday(
 	sb: AppDbClient,
-	userId: string
+	userId: string,
+	options: { includeInactive?: boolean } = {}
 ): Promise<HabitWithTodayLogs[]> {
 	const todayDate = today();
 	const start = new Date(`${todayDate}T00:00:00`);
@@ -241,12 +242,14 @@ export async function getHabitSummariesToday(
 	const startDate = start.toISOString().slice(0, 10);
 
 	const [{ data: habits, error: hErr }, { data: logs, error: lErr }] = await Promise.all([
-		sb
-			.from('habit_definitions')
-			.select('*')
-			.eq('user_id', userId)
-			.eq('is_active', true)
-			.order('created_at'),
+		(options.includeInactive
+			? sb.from('habit_definitions').select('*').eq('user_id', userId).order('created_at')
+			: sb
+					.from('habit_definitions')
+					.select('*')
+					.eq('user_id', userId)
+					.eq('is_active', true)
+					.order('created_at')),
 		sb
 			.from('habit_logs')
 			.select('*')

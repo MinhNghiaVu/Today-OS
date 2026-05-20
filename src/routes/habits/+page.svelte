@@ -1,12 +1,10 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import { fly } from 'svelte/transition';
-	import { flip } from 'svelte/animate';
-	import { cubicOut, cubicIn } from 'svelte/easing';
-	import { Activity, BarChart2 } from 'lucide-svelte';
+	import { Activity, Plus } from 'lucide-svelte';
+	import HabitProgressList from '$lib/components/HabitProgressList.svelte';
 	import Select from '$lib/components/Select.svelte';
 	import type { PageData } from './$types';
-	import type { Habit, HabitType } from '$lib/types';
+	import type { Habit, HabitType, HabitWithTodayLogs } from '$lib/types';
 
 	export let data: PageData;
 
@@ -17,12 +15,6 @@
 		{ value: 'max_goal', label: "Max goal — don't exceed" },
 		{ value: 'info_only', label: 'Info only — just track' }
 	];
-
-	const typeLabels: Record<HabitType, string> = {
-		min_goal: 'Min goal',
-		max_goal: 'Max goal',
-		info_only: 'Info only'
-	};
 
 	const blank = (): HabitDraft => ({
 		name: '',
@@ -36,7 +28,7 @@
 	let editingId: string | null = null;
 	let showForm = false;
 	let draft: HabitDraft = blank();
-	let habits: Habit[] = data.habits;
+	let habits: HabitWithTodayLogs[] = data.habits;
 
 	$: if (data.habits) habits = data.habits;
 
@@ -68,7 +60,10 @@
 <div class="page">
 	<header class="page-header">
 		<h1>Habits</h1>
-		<button class="btn-primary" on:click={startAdd}>+ New habit</button>
+		<button class="btn-primary" on:click={startAdd}>
+			<Plus size={16} strokeWidth={2.2} aria-hidden="true" />
+			New habit
+		</button>
 	</header>
 
 	{#if showForm}
@@ -164,78 +159,13 @@
 			</div>
 			<p class="empty-title">No habits yet</p>
 			<p class="empty-desc">Track anything — water, steps, screen time. Add your first habit to get started.</p>
-			<button class="btn-primary" on:click={startAdd}>+ New habit</button>
+			<button class="btn-primary" on:click={startAdd}>
+				<Plus size={16} strokeWidth={2.2} aria-hidden="true" />
+				New habit
+			</button>
 		</div>
 	{:else}
-		<ul class="habit-list">
-			{#each habits as habit (habit.id)}
-				<li
-					class:inactive={!habit.is_active}
-					in:fly={{ y: -8, duration: 220, easing: cubicOut }}
-					out:fly={{ y: 4, duration: 160, easing: cubicIn }}
-					animate:flip={{ duration: 220, easing: cubicOut }}
-				>
-					<div class="color-dot" style="background: {habit.color}"></div>
-					<div class="habit-info">
-						<span class="name">{habit.name}</span>
-						<span class="meta">
-							{#if habit.daily_goal !== null}
-								{habit.daily_goal} {habit.unit} ·
-							{/if}
-							<span class="type-badge type-{habit.type}">{typeLabels[habit.type]}</span>
-						</span>
-					</div>
-					{#if !habit.is_active}
-						<span class="inactive-badge">Inactive</span>
-					{/if}
-					<div class="actions">
-						<a href="/habits/{habit.id}" class="act-btn act-link" title="View chart" aria-label="View habit chart">
-							<BarChart2 size={14} strokeWidth={2} />
-						</a>
-						<button class="act-btn" on:click={() => startEdit(habit)} title="Edit" aria-label="Edit habit">✎</button>
-
-						<form
-							method="POST"
-							action="?/toggleActive"
-							use:enhance={() => {
-								const previous = habits;
-								habits = habits.map((item) =>
-									item.id === habit.id ? { ...item, is_active: !item.is_active } : item
-								);
-								return async ({ result }) => {
-									if (result.type === 'failure' || result.type === 'error') {
-										habits = previous;
-									}
-								};
-							}}
-						>
-							<input type="hidden" name="id" value={habit.id} />
-							<input type="hidden" name="is_active" value={String(habit.is_active)} />
-							<button
-								type="submit"
-								class="act-btn"
-								title={habit.is_active ? 'Deactivate' : 'Activate'}
-								aria-label={habit.is_active ? 'Deactivate habit' : 'Activate habit'}
-							>
-								{habit.is_active ? '⏸' : '▶'}
-							</button>
-						</form>
-
-						<form
-							method="POST"
-							action="?/remove"
-							use:enhance={({ cancel }) => {
-								if (!confirm(`Delete "${habit.name}"? This also removes its log history.`)) cancel();
-								return async ({ update }) => update();
-							}}
-						>
-							<input type="hidden" name="id" value={habit.id} />
-							<button type="submit" class="act-btn danger" title="Delete" aria-label="Delete habit">✕</button>
-						</form>
-					</div>
-				</li>
-			{/each}
-		</ul>
+		<HabitProgressList bind:habits showManageActions onEdit={startEdit} />
 	{/if}
 </div>
 
@@ -389,124 +319,6 @@
 		gap: 8px;
 	}
 
-	/* ── Habit list ── */
-	.habit-list {
-		list-style: none;
-		margin: 0;
-		padding: 0;
-		display: flex;
-		flex-direction: column;
-		gap: 4px;
-	}
-
-	.habit-list li {
-		display: flex;
-		align-items: center;
-		gap: 12px;
-		padding: 12px 16px;
-		border-radius: var(--radius-md);
-		min-height: 44px;
-		transition: background-color 120ms var(--ease-out);
-	}
-
-	.habit-list li:hover {
-		background: var(--surface-2);
-	}
-
-	.habit-list li.inactive {
-		opacity: 0.5;
-	}
-
-	.color-dot {
-		width: 10px;
-		height: 10px;
-		border-radius: var(--radius-full);
-		flex-shrink: 0;
-	}
-
-	.habit-info {
-		flex: 1;
-		display: flex;
-		flex-direction: column;
-		gap: 2px;
-		min-width: 0;
-	}
-
-	.name {
-		font-size: 14px;
-		font-weight: 500;
-		color: var(--text-primary);
-	}
-
-	.meta {
-		font-size: 13px;
-		color: var(--text-secondary);
-	}
-
-	/* ── Type badges ── */
-	.type-badge {
-		font-size: 12px;
-		padding: 1px 6px;
-		border-radius: var(--radius-full);
-		font-weight: 500;
-	}
-
-	.type-min_goal  { background: var(--success-soft);  color: var(--success);  }
-	.type-max_goal  { background: var(--warning-soft);  color: var(--warning);  }
-	.type-info_only { background: var(--surface-3);     color: var(--text-secondary); }
-
-	.inactive-badge {
-		font-size: 12px;
-		color: var(--text-tertiary);
-		padding: 2px 8px;
-		border: 1px solid var(--border-default);
-		border-radius: var(--radius-full);
-	}
-
-	/* ── Row actions ── */
-	.actions {
-		display: flex;
-		gap: 4px;
-		opacity: 0;
-		transition: opacity 120ms var(--ease-out);
-		flex-shrink: 0;
-	}
-
-	.habit-list li:hover .actions {
-		opacity: 1;
-	}
-
-	.act-btn {
-		width: 28px;
-		height: 28px;
-		border: 1px solid var(--border-default);
-		border-radius: var(--radius-sm);
-		background: transparent;
-		color: var(--text-tertiary);
-		font-size: 13px;
-		cursor: pointer;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		transition:
-			color 120ms var(--ease-out),
-			border-color 120ms var(--ease-out);
-	}
-
-	.act-btn:hover {
-		color: var(--text-primary);
-		border-color: var(--border-strong);
-	}
-
-	.act-btn.danger:hover {
-		color: var(--danger);
-		border-color: var(--danger);
-	}
-
-	.act-link {
-		text-decoration: none;
-	}
-
 	/* ── Buttons ── */
 	.btn-primary {
 		height: 36px;
@@ -517,6 +329,10 @@
 		border-radius: var(--radius-md);
 		font-size: 13px;
 		font-weight: 500;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		gap: 8px;
 		font-family: inherit;
 		cursor: pointer;
 		white-space: nowrap;
@@ -583,11 +399,6 @@
 		max-width: 280px;
 	}
 
-	/* strip form default margins inside action buttons */
-	.actions form {
-		display: contents;
-	}
-
 	@media (max-width: 560px) {
 		.page {
 			padding: 28px 16px;
@@ -596,16 +407,6 @@
 		.page-header {
 			align-items: flex-start;
 			gap: 12px;
-		}
-
-		.habit-list li {
-			align-items: flex-start;
-			padding-inline: 8px;
-		}
-
-		.actions {
-			opacity: 1;
-			margin-left: auto;
 		}
 
 		.form-row,
