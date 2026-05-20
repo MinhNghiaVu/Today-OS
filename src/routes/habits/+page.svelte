@@ -587,4 +587,31 @@
 	.actions form {
 		display: contents;
 	}
+
+	@media (max-width: 560px) {
+		.page {
+			padding: 28px 16px;
+		}
+
+		.page-header {
+			align-items: flex-start;
+			gap: 12px;
+		}
+
+		.habit-list li {
+			align-items: flex-start;
+			padding-inline: 8px;
+		}
+
+		.actions {
+			opacity: 1;
+			margin-left: auto;
+		}
+
+		.form-row,
+		.form-actions {
+			flex-direction: column;
+			align-items: stretch;
+		}
+	}
 </style>

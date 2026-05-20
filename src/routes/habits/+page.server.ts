@@ -1,6 +1,7 @@
 import { fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { getHabits } from '$lib/db';
+import { query } from '$lib/server/neon-client';
 
 export const load: PageServerLoad = async ({ locals }) => {
 	const { user } = locals;
@@ -64,15 +65,18 @@ export const actions: Actions = {
 
 		const form = await request.formData();
 		const id = form.get('id') as string;
-		const current = form.get('is_active') === 'true';
+		if (!id) return fail(400, { error: 'Missing habit' });
 
-		const { error } = await locals.supabase
-			.from('habit_definitions')
-			.update({ is_active: !current })
-			.eq('id', id)
-			.eq('user_id', user.id);
-
-		if (error) return fail(500, { error: error.message });
+		try {
+			await query(
+				`update "habit_definitions"
+				 set "is_active" = not "is_active"
+				 where "id" = cast($1 as uuid) and "user_id" = $2`,
+				[id, user.id]
+			);
+		} catch (error) {
+			return fail(500, { error: error instanceof Error ? error.message : String(error) });
+		}
 	},
 
 	remove: async ({ locals, request }) => {

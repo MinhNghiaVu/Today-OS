@@ -664,4 +664,30 @@
 	.actions form {
 		display: contents;
 	}
+
+	@media (max-width: 560px) {
+		.page {
+			padding: 28px 16px;
+		}
+
+		.add-meta,
+		.edit-meta {
+			display: grid;
+			grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+		}
+
+		.add-meta .btn-primary {
+			grid-column: 1 / -1;
+			width: 100%;
+		}
+
+		.actions {
+			opacity: 1;
+		}
+
+		.todo-list li {
+			align-items: flex-start;
+			padding-inline: 8px;
+		}
+	}
 </style>

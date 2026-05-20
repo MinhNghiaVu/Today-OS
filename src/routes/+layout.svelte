@@ -501,10 +501,6 @@
 			z-index: 20;
 		}
 
-		.sidebar:not(.collapsed) {
-			width: 212px;
-		}
-
 		.nav-list {
 			gap: 2px;
 		}
@@ -514,14 +510,29 @@
 			padding: 8px 0;
 		}
 
-		.sidebar:not(.collapsed) .nav-list a {
-			justify-content: flex-start;
-			padding-inline: 12px;
-		}
-
 		.account-block {
 			justify-content: center;
 			padding-inline: 0;
+		}
+
+		.sidebar-top {
+			flex-direction: column;
+			justify-content: center;
+			padding-inline: 0;
+			min-height: 72px;
+		}
+
+		.logo {
+			flex: 0 0 auto;
+			padding-inline: 0;
+		}
+
+		.label-text,
+		.account-info,
+		.chevron {
+			width: 0;
+			opacity: 0;
+			pointer-events: none;
 		}
 	}
 

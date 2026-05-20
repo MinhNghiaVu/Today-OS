@@ -47,6 +47,19 @@ const COLUMNS = new Set([
 	'notes'
 ]);
 
+const UPDATE_CASTS: Record<string, string> = {
+	applied_date: 'date',
+	completed_at: 'timestamptz',
+	daily_goal: 'numeric',
+	date: 'date',
+	due_date: 'date',
+	google_token_expiry: 'timestamptz',
+	is_active: 'boolean',
+	preferences: 'jsonb',
+	updated_at: 'timestamptz',
+	value: 'numeric'
+};
+
 let sql: ReturnType<typeof neon> | null = null;
 let schemaReady: Promise<void> | null = null;
 const ensuredUserIds = new Set<string>();
@@ -156,11 +169,19 @@ function normalizeRow<T>(row: T): T {
 	for (const key of ['value', 'daily_goal', 'total']) {
 		if (typeof next[key] === 'string') next[key] = Number(next[key]);
 	}
+	for (const key of ['applied_date', 'date', 'due_date']) {
+		if (next[key] instanceof Date) next[key] = next[key].toISOString().slice(0, 10);
+	}
 	return next as T;
 }
 
 function normalizeRows<T>(rows: T[]): T[] {
 	return rows.map((row) => normalizeRow(row));
+}
+
+function param(index: number, column: string) {
+	const cast = UPDATE_CASTS[column];
+	return cast ? `cast($${index} as ${cast})` : `$${index}`;
 }
 
 function errorResult(error: unknown) {
@@ -288,7 +309,7 @@ class QueryBuilder {
 			}
 			values.push(filter.value);
 			const operator = filter.kind === 'eq' ? '=' : filter.kind === 'gte' ? '>=' : '<=';
-			parts.push(`${ident(filter.column)} ${operator} $${values.length}`);
+			parts.push(`${ident(filter.column)} ${operator} ${param(values.length, filter.column)}`);
 		}
 	}
 
@@ -331,7 +352,7 @@ class QueryBuilder {
 				const patch = this.payload as Record<string, unknown>;
 				const assignments = Object.entries(patch).map(([column, value]) => {
 					values.push(value);
-					return `${ident(column)} = $${values.length}`;
+					return `${ident(column)} = ${param(values.length, column)}`;
 				});
 				const filterValues: unknown[] = [];
 				const filterParts: string[] = [];
