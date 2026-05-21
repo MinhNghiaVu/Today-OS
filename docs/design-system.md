@@ -18,7 +18,7 @@ These come before any specific token. If a screen looks wrong, it's almost alway
 
 **Motion confirms causation.** When the user acts, the result animates in from a direction that makes the cause obvious. New todo? It fades down from the input. Removed todo? It collapses where it sat. Drawer opening from the right edge? It slides from the right edge, not from nowhere. Motion that doesn't reinforce cause-and-effect is decoration, and decoration is noise.
 
-**One accent color, used sparingly.** The accent is for the *one* thing on the screen that matters most: the primary CTA, the active nav item, the focus ring. If everything is accented, nothing is. Most surfaces should be neutral grays.
+**One accent color, used sparingly.** The accent is for the *one* thing on the screen that matters most: the primary CTA and the active nav item. If everything is accented, nothing is. Most surfaces should be neutral grays, including focus rings.
 
 **Borders are a last resort.** Prefer surface elevation (a slightly lighter background) over a 1px border to separate things. Use borders for inputs, cards in dense grids, and table rows — not for every container.
 
@@ -52,7 +52,7 @@ Rule: never skip a surface level. A popover sits on `--surface-overlay`, which s
 | `--border-subtle` | `#2e2e2e` | `#ececef` | Row dividers, low-emphasis separators |
 | `--border-default` | `#3a3a3a` | `#dcdce0` | Inputs, cards, default boundaries |
 | `--border-strong` | `#4e4e4e` | `#c4c4ca` | Hover state for default, emphasized cards |
-| `--border-focus` | `color-mix(in oklab, var(--accent) 50%, transparent)` | same | Focus rings |
+| `--border-focus` | `var(--border-strong)` | same | Neutral focus rings |
 
 ### Text
 
@@ -70,7 +70,7 @@ Contrast: every primary text on every surface meets WCAG AA (4.5:1). Secondary t
 
 | Token | Dark | Light | Use |
 |---|---|---|---|
-| `--accent` | `#38bdf8` | `#0ea5e9` | Primary CTAs, active states, focus rings |
+| `--accent` | `#38bdf8` | `#0ea5e9` | Primary CTAs, active states |
 | `--accent-hover` | `#0ea5e9` | `#0284c7` | Hover state for accent |
 | `--accent-pressed` | `#0284c7` | `#0369a1` | Active/pressed |
 | `--accent-soft` | `color-mix(in oklab, var(--accent) 14%, transparent)` | same | Tinted bg for badges, active rows, soft highlights |

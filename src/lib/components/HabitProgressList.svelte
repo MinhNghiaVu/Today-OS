@@ -19,6 +19,7 @@
 		isHabitOnTrack,
 		isHabitOverLimit
 	} from '$lib/utils/habits';
+	import { parseLocalizedNumber } from '$lib/utils/number';
 	import type { HabitLog, HabitWithTodayLogs } from '$lib/types';
 
 	export let habits: HabitWithTodayLogs[] = [];
@@ -173,7 +174,7 @@
 					in:fly={{ y: -6, duration: 180, easing: cubicOut }}
 					out:fly={{ y: -4, duration: 140, easing: cubicIn }}
 					use:enhance={({ formData }) => {
-						const value = parseFloat(String(formData.get('value') ?? ''));
+						const value = parseLocalizedNumber(formData.get('value'));
 						const optimistic = value > 0 ? makeOptimisticLog(habit.id, value) : null;
 						if (optimistic) {
 							habits = habits.map((item) =>
@@ -207,10 +208,10 @@
 				>
 					<input type="hidden" name="habit_id" value={habit.id} />
 					<input
-						type="number"
+						type="text"
+						inputmode="decimal"
 						name="value"
-						min="0"
-						step="any"
+						class="decimal-input"
 						bind:value={logAmount}
 						placeholder={`Amount in ${habit.unit}`}
 						aria-label="Log amount"
@@ -231,7 +232,7 @@
 									class="log-edit-form"
 									use:enhance={({ formData }) => {
 										const previous = habits;
-										const nextValue = parseFloat(String(formData.get('value') ?? ''));
+										const nextValue = parseLocalizedNumber(formData.get('value'));
 										if (nextValue > 0) {
 											habits = habits.map((item) =>
 												item.id === habit.id
@@ -253,10 +254,10 @@
 								>
 									<input type="hidden" name="id" value={log.id} />
 									<input
-										type="number"
+										type="text"
+										inputmode="decimal"
 										name="value"
-										min="0"
-										step="any"
+										class="decimal-input"
 										bind:value={editingLogValue}
 										aria-label="Edit log value"
 									/>

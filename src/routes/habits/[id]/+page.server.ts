@@ -1,6 +1,7 @@
 import { error, fail } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { getHabits, getHabitLogEntriesForRange, getHabitLogsForRange } from '$lib/db';
+import { parseLocalizedNumber } from '$lib/utils/number';
 
 function todayString(): string {
 	return new Date().toISOString().slice(0, 10);
@@ -50,7 +51,7 @@ export const actions: Actions = {
 
 		const form = await request.formData();
 		const date = form.get('date') as string;
-		const value = parseFloat(form.get('value') as string);
+		const value = parseLocalizedNumber(form.get('value'));
 
 		if (!date || isNaN(value) || value <= 0) return fail(400, { error: 'Invalid log' });
 		if (!isDateInVisibleRange(date)) {
@@ -80,7 +81,7 @@ export const actions: Actions = {
 		const form = await request.formData();
 		const id = form.get('id') as string;
 		const date = form.get('date') as string;
-		const value = parseFloat(form.get('value') as string);
+		const value = parseLocalizedNumber(form.get('value'));
 
 		if (!id || !date || isNaN(value) || value <= 0) return fail(400, { error: 'Invalid log' });
 		if (!isDateInVisibleRange(date)) {

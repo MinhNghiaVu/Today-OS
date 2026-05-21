@@ -193,10 +193,10 @@
 				>
 					<input type="date" name="date" bind:value={newLogDate} aria-label="Log date" />
 					<input
-						type="number"
+						type="text"
+						inputmode="decimal"
 						name="value"
-						min="0"
-						step="any"
+						class="decimal-input"
 						bind:value={newLogValue}
 						placeholder={habit.unit}
 						aria-label="Log amount"
@@ -235,10 +235,10 @@
 												<input type="hidden" name="id" value={log.id} />
 												<input type="date" name="date" bind:value={editingLogDate} aria-label="Edit log date" />
 												<input
-													type="number"
+													type="text"
+													inputmode="decimal"
 													name="value"
-													min="0"
-													step="any"
+													class="decimal-input"
 													bind:value={editingLogValue}
 													aria-label="Edit log amount"
 												/>
@@ -544,7 +544,7 @@
 		outline-offset: 2px;
 	}
 
-	.add-log-form input[type='number'] {
+	.add-log-form .decimal-input {
 		width: 96px;
 	}
 
@@ -713,7 +713,7 @@
 			width: 100%;
 		}
 
-		.add-log-form input[type='number'] {
+		.add-log-form .decimal-input {
 			width: 100%;
 		}
 

@@ -1,5 +1,6 @@
 import { fail } from '@sveltejs/kit';
 import type { AppDbClient } from '$lib/server/neon-client';
+import { parseLocalizedNumber } from '$lib/utils/number';
 
 type HabitActionInput = {
 	request: Request;
@@ -12,8 +13,7 @@ export async function logHabitToday({ request, supabase, userId }: HabitActionIn
 
 	const form = await request.formData();
 	const habit_id = form.get('habit_id') as string;
-	const valueRaw = form.get('value') as string;
-	const value = parseFloat(valueRaw);
+	const value = parseLocalizedNumber(form.get('value'));
 
 	if (!habit_id || isNaN(value) || value <= 0) return fail(400, { error: 'Invalid log' });
 
@@ -39,8 +39,7 @@ export async function updateHabitLog({ request, supabase, userId }: HabitActionI
 
 	const form = await request.formData();
 	const id = form.get('id') as string;
-	const valueRaw = form.get('value') as string;
-	const value = parseFloat(valueRaw);
+	const value = parseLocalizedNumber(form.get('value'));
 
 	if (!id || isNaN(value) || value <= 0) return fail(400, { error: 'Invalid log value' });
 
