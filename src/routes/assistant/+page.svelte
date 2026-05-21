@@ -444,8 +444,7 @@
 	}
 
 	.msg-input:focus {
-		outline: 2px solid var(--border-focus);
-		outline-offset: 2px;
+		outline: none;
 	}
 
 	.msg-input:disabled {

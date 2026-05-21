@@ -301,7 +301,7 @@ placeholder color: --text-tertiary
 
 States:
 - **Hover:** `border-color: --border-strong`
-- **Focus:** `outline: 2px solid --border-focus; outline-offset: 2px`. **Do not** thicken the border on focus — it shifts layout. Use `outline`, which doesn't.
+- **Focus:** no extra input border or outline. Keep typing surfaces visually still while focused.
 - **Error:** `border-color: --danger`, with a `--danger` helper text 4px below.
 - **Disabled:** 50% opacity.
 
@@ -561,7 +561,7 @@ If any of the four is "we'll do it later," it gets done now.
 ## 11. Accessibility (industry minimums, non-negotiable)
 
 - **Keyboard:** every interactive element reachable by Tab. Tab order matches visual order. `Esc` closes overlays. `Enter` submits forms. Custom shortcuts (⌘K, ⌘N, etc.) documented in a help modal.
-- **Focus rings:** always visible (`outline: 2px solid var(--border-focus); outline-offset: 2px`). Never `outline: none` without a custom replacement that's at least as visible.
+- **Focus rings:** keep buttons, links, tabs, and custom controls visibly focused (`outline: 2px solid var(--border-focus); outline-offset: 2px`). Text inputs and textareas do not add a focus border.
 - **Screen readers:** every icon-only button has `aria-label`. Decorative icons are `aria-hidden="true"`. Dynamic content (toasts, errors) uses `aria-live="polite"` (or `assertive` for errors).
 - **Contrast:** WCAG AA. Body text 4.5:1, large text 3:1. Test both themes.
 - **Touch targets:** 36×36px minimum, 44×44px preferred for primary actions on touch devices.

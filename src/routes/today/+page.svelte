@@ -562,7 +562,6 @@
 		border-color: var(--border-strong);
 	}
 
-	textarea:focus-visible,
 	button:focus-visible,
 	a:focus-visible {
 		outline: 2px solid var(--border-focus);

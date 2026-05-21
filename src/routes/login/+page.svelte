@@ -242,8 +242,7 @@
 	}
 
 	.field input:focus {
-		border-color: var(--accent);
-		box-shadow: 0 0 0 1px var(--border-focus);
+		border-color: var(--border-default);
 	}
 
 	.password-input {
@@ -262,8 +261,7 @@
 	}
 
 	.password-input:focus-within {
-		border-color: var(--accent);
-		box-shadow: 0 0 0 1px var(--border-focus);
+		border-color: var(--border-default);
 	}
 
 	.password-input input {

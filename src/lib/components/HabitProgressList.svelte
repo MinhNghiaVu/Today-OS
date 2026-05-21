@@ -483,7 +483,6 @@
 		border-color: var(--border-strong);
 	}
 
-	input:focus-visible,
 	button:focus-visible,
 	a:focus-visible {
 		outline: 2px solid var(--border-focus);

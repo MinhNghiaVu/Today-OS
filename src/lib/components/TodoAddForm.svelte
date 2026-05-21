@@ -108,8 +108,6 @@
 		border-color: var(--border-strong);
 	}
 
-	.todo-add-title:focus-visible,
-	.meta-input:focus-visible,
 	button:focus-visible {
 		outline: 2px solid var(--border-focus);
 		outline-offset: 2px;

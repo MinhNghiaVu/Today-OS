@@ -250,11 +250,6 @@
 		border-color: var(--border-strong);
 	}
 
-	.form-row input:not([type='color']):not([type='checkbox']):focus-visible {
-		outline: 2px solid var(--border-focus);
-		outline-offset: 2px;
-	}
-
 	.form-row input:disabled {
 		opacity: 0.4;
 		cursor: not-allowed;

@@ -60,6 +60,9 @@ const UPDATE_CASTS: Record<string, string> = {
 	value: 'numeric'
 };
 
+const UUID_ID_TABLES = new Set(['todos', 'habit_definitions', 'habit_logs', 'notes', 'jobs']);
+const UUID_COLUMNS = new Set(['habit_id', 'note_id']);
+
 let sql: ReturnType<typeof neon> | null = null;
 let schemaReady: Promise<void> | null = null;
 const ensuredUserIds = new Set<string>();
@@ -179,8 +182,13 @@ function normalizeRows<T>(rows: T[]): T[] {
 	return rows.map((row) => normalizeRow(row));
 }
 
-function param(index: number, column: string) {
-	const cast = UPDATE_CASTS[column];
+function param(index: number, column: string, table: string) {
+	const cast =
+		column === 'id' && UUID_ID_TABLES.has(table)
+			? 'uuid'
+			: UUID_COLUMNS.has(column)
+				? 'uuid'
+				: UPDATE_CASTS[column];
 	return cast ? `cast($${index} as ${cast})` : `$${index}`;
 }
 
@@ -309,7 +317,7 @@ class QueryBuilder {
 			}
 			values.push(filter.value);
 			const operator = filter.kind === 'eq' ? '=' : filter.kind === 'gte' ? '>=' : '<=';
-			parts.push(`${ident(filter.column)} ${operator} ${param(values.length, filter.column)}`);
+			parts.push(`${ident(filter.column)} ${operator} ${param(values.length, filter.column, this.table)}`);
 		}
 	}
 
@@ -352,7 +360,7 @@ class QueryBuilder {
 				const patch = this.payload as Record<string, unknown>;
 				const assignments = Object.entries(patch).map(([column, value]) => {
 					values.push(value);
-					return `${ident(column)} = ${param(values.length, column)}`;
+					return `${ident(column)} = ${param(values.length, column, this.table)}`;
 				});
 				const filterValues: unknown[] = [];
 				const filterParts: string[] = [];

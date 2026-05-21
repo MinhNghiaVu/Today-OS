@@ -472,11 +472,6 @@
 		transition: border-color 120ms var(--ease-out);
 	}
 
-	.field:focus {
-		outline: 2px solid var(--border-focus);
-		outline-offset: 0;
-	}
-
 	.field::placeholder {
 		color: var(--text-tertiary);
 	}
