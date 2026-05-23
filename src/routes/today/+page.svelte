@@ -3,20 +3,18 @@
 	import {
 		Activity,
 		CalendarDays,
-		CheckCircle2,
 		ChevronRight,
 		Clock3,
 		FileText,
 	} from 'lucide-svelte';
 	import HabitProgressList from '$lib/components/HabitProgressList.svelte';
-	import TodoAddForm from '$lib/components/TodoAddForm.svelte';
-	import TodoRow from '$lib/components/TodoRow.svelte';
+	import TodoList from '$lib/components/TodoList.svelte';
 	import { isHabitOnTrack } from '$lib/utils/habits';
+	import type { TodoStats } from '$lib/utils/todos';
 	import type { PageData } from './$types';
-	import type { HabitWithTodayLogs, Note, Todo, TodoPriority } from '$lib/types';
+	import type { HabitWithTodayLogs, Note } from '$lib/types';
 
 	export let data: PageData;
-	type TodoView = Todo & { ui_id?: string };
 
 	const dateLabel = new Date().toLocaleDateString('en-AU', {
 		weekday: 'long',
@@ -26,127 +24,20 @@
 
 	const todayStr = new Date().toISOString().slice(0, 10);
 
-	const priorityOpts: { value: TodoPriority | ''; label: string }[] = [
-		{ value: '', label: 'No priority' },
-		{ value: 'high', label: 'High' },
-		{ value: 'medium', label: 'Medium' },
-		{ value: 'low', label: 'Low' }
-	];
-
-	const priorityLabels: Record<TodoPriority, string> = {
-		high: 'High',
-		medium: 'Med',
-		low: 'Low'
-	};
-
 	let noteContent = '';
-	let editingId: string | null = null;
-	let todosToday: TodoView[] = data.todosToday;
-	let lastTodosTodayData = data.todosToday;
 	let habitTotals: HabitWithTodayLogs[] = data.habitTotals;
 	let notesToday: Note[] = data.notesToday;
-	let optimisticTodoSeq = 0;
 	let optimisticNoteSeq = 0;
+	let todoStats: TodoStats = {
+		all: data.todosToday.length,
+		pending: data.todosToday.filter((todo) => todo.status === 'pending').length,
+		done: data.todosToday.filter((todo) => todo.status === 'done').length
+	};
 
-	$: if (data.todosToday !== lastTodosTodayData) {
-		todosToday = reconcileTodos(data.todosToday, todosToday);
-		lastTodosTodayData = data.todosToday;
-	}
 	$: if (data.habitTotals) habitTotals = data.habitTotals;
 	$: if (data.notesToday) notesToday = data.notesToday;
-	$: pendingTodos = todosToday.filter((todo) => todo.status === 'pending');
-	$: doneTodos = todosToday.filter((todo) => todo.status === 'done');
 	$: habitsOnTrack = habitTotals.filter(isHabitOnTrack);
 	$: notesPreview = notesToday.slice(0, 3);
-
-	function makeOptimisticTodo(title: string, dueDate = todayStr, priority: TodoPriority | null = null): TodoView {
-		const now = new Date().toISOString();
-		optimisticTodoSeq += 1;
-		const id = `optimistic-todo-${Date.now()}-${optimisticTodoSeq}`;
-		return {
-			id,
-			ui_id: id,
-			user_id: 'optimistic',
-			title,
-			status: 'pending',
-			due_date: dueDate,
-			priority: priority ?? undefined,
-			created_at: now
-		};
-	}
-
-	function sameTodoIntent(a: TodoView, b: Todo): boolean {
-		return (
-			a.id.startsWith('optimistic-todo-') &&
-			a.title === b.title &&
-			dateInputValue(a.due_date) === dateInputValue(b.due_date) &&
-			(a.priority ?? null) === (b.priority ?? null) &&
-			a.status === b.status
-		);
-	}
-
-	function reconcileTodos(serverTodos: Todo[], currentTodos: TodoView[]): TodoView[] {
-		const claimedOptimisticIds = new Set<string>();
-		return serverTodos.map((serverTodo) => {
-			const existing = currentTodos.find((todo) => todo.id === serverTodo.id);
-			if (existing?.ui_id) return { ...serverTodo, ui_id: existing.ui_id };
-
-			const optimisticMatch = currentTodos.find(
-				(todo) => !claimedOptimisticIds.has(todo.id) && sameTodoIntent(todo, serverTodo)
-			);
-			if (optimisticMatch?.ui_id) {
-				claimedOptimisticIds.add(optimisticMatch.id);
-				return { ...serverTodo, ui_id: optimisticMatch.ui_id };
-			}
-
-			return serverTodo;
-		});
-	}
-
-	function addTodo(formData: FormData): () => void {
-		const title = String(formData.get('title') ?? '').trim();
-		const optimistic = title ? makeOptimisticTodo(title) : null;
-		if (optimistic) todosToday = [...todosToday, optimistic];
-		return () => {
-			if (optimistic) todosToday = todosToday.filter((todo) => todo.id !== optimistic.id);
-		};
-	}
-
-	function toggleTodo(todo: TodoView): () => void {
-		const previous = todosToday;
-		const nowDone = todo.status !== 'done';
-		todosToday = todosToday.map((item) =>
-			item.id === todo.id
-				? {
-						...item,
-						status: nowDone ? 'done' : 'pending',
-						completed_at: nowDone ? new Date().toISOString() : undefined
-					}
-				: item
-		);
-		return () => (todosToday = previous);
-	}
-
-	function updateTodo(todo: TodoView, formData: FormData): () => void {
-		const previous = todosToday;
-		const title = String(formData.get('title') ?? '').trim();
-		const dueDate = String(formData.get('due_date') ?? '') || null;
-		const priority = (String(formData.get('priority') ?? '') || null) as TodoPriority | null;
-		if (title) {
-			todosToday = todosToday.map((item) =>
-				item.id === todo.id
-					? { ...item, title, due_date: dueDate ?? undefined, priority: priority ?? undefined }
-					: item
-			);
-		}
-		return () => (todosToday = previous);
-	}
-
-	function removeTodo(todo: TodoView): () => void {
-		const previous = todosToday;
-		todosToday = todosToday.filter((item) => item.id !== todo.id);
-		return () => (todosToday = previous);
-	}
 
 	function makeOptimisticNote(content: string): Note {
 		const now = new Date().toISOString();
@@ -180,15 +71,6 @@
 		});
 	}
 
-	function dateInputValue(value: unknown): string {
-		if (!value) return '';
-		if (value instanceof Date) return value.toISOString().slice(0, 10);
-		const text = String(value);
-		if (/^\d{4}-\d{2}-\d{2}/.test(text)) return text.slice(0, 10);
-		const date = new Date(text);
-		return Number.isNaN(date.getTime()) ? '' : date.toISOString().slice(0, 10);
-	}
-
 </script>
 
 <div class="page">
@@ -199,8 +81,8 @@
 			</div>
 			<div class="hero-stats" aria-label="Today summary">
 				<div class="hero-stat">
-					<span class="stat-value">{pendingTodos.length}</span>
-					<span class="stat-label">todo{pendingTodos.length === 1 ? '' : 's'} left</span>
+					<span class="stat-value">{todoStats.pending}</span>
+					<span class="stat-label">todo{todoStats.pending === 1 ? '' : 's'} left</span>
 				</div>
 				<div class="hero-stat">
 					<span class="stat-value">{habitsOnTrack.length}/{habitTotals.length}</span>
@@ -220,47 +102,24 @@
 						<div>
 							<h2>Things to do today</h2>
 						</div>
-						<span class="muted">{doneTodos.length} done</span>
+						<span class="muted">{todoStats.done} done</span>
 					</div>
 
-					<TodoAddForm
-						action="?/addTodo"
+					<TodoList
+						todos={data.todosToday}
 						today={todayStr}
-						priorityOptions={priorityOpts}
+						addAction="?/addTodo"
+						toggleAction="?/toggleTodo"
+						updateAction="?/updateTodo"
+						removeAction="?/removeTodo"
 						compact
-						onAdd={addTodo}
+						showDueDate={false}
+						showDescription={false}
+						emptyMode="inline"
+						emptyTitle="No tasks for today."
+						emptyDescription="Add anything you want out of your head."
+						bind:stats={todoStats}
 					/>
-
-					{#if todosToday.length === 0}
-						<div class="empty-state">
-							<CheckCircle2 class="empty-icon" size={22} strokeWidth={1.8} aria-hidden="true" />
-							<div>
-								<p>No tasks for today.</p>
-								<span>Add anything you want out of your head.</span>
-							</div>
-						</div>
-					{:else}
-						<ul class="todo-list">
-							{#each todosToday as todo (todo.ui_id ?? todo.id)}
-								<TodoRow
-									{todo}
-									today={todayStr}
-									priorityOptions={priorityOpts}
-									{priorityLabels}
-									editing={editingId === todo.id}
-									showDueDate={false}
-									showDescription={false}
-									toggleAction="?/toggleTodo"
-									updateAction="?/updateTodo"
-									removeAction="?/removeTodo"
-									setEditing={(id) => (editingId = id)}
-									onToggle={toggleTodo}
-									onUpdate={updateTodo}
-									onRemove={removeTodo}
-								/>
-							{/each}
-						</ul>
-					{/if}
 				</section>
 
 				<section class="panel">
@@ -568,18 +427,11 @@
 		outline-offset: 2px;
 	}
 
-	.todo-list,
 	.event-list,
 	.note-list {
 		list-style: none;
 		margin: 0;
 		padding: 0;
-	}
-
-	.todo-list {
-		display: flex;
-		flex-direction: column;
-		gap: 2px;
 	}
 
 	.empty-state {

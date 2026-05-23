@@ -3,6 +3,12 @@ import type { Actions, PageServerLoad } from './$types';
 import { getTodosToday, getHabitSummariesToday, getNotesForDate } from '$lib/db';
 import { getEventsForDate, type CalendarEvent } from '$lib/google-calendar';
 import { logHabitToday, removeHabitLog, updateHabitLog } from '$lib/server/habit-actions';
+import {
+	addTodoAction,
+	removeTodoAction,
+	toggleTodoAction,
+	updateTodoAction
+} from '$lib/server/todo-actions';
 
 export const load: PageServerLoad = async ({ locals }) => {
 	const { user } = locals;
@@ -39,77 +45,25 @@ export const load: PageServerLoad = async ({ locals }) => {
 
 export const actions: Actions = {
 	addTodo: async ({ locals, request }) => {
-		const { user } = locals;
-		if (!user) return fail(401);
-
-		const form = await request.formData();
-		const title = (form.get('title') as string)?.trim();
-		if (!title) return fail(400, { error: 'Title required' });
-
 		const today = new Date().toISOString().slice(0, 10);
-		const { error } = await locals.supabase
-			.from('todos')
-			.insert({ user_id: user.id, title, due_date: today });
-
-		if (error) return fail(500, { error: error.message });
+		return addTodoAction({
+			request,
+			supabase: locals.supabase,
+			userId: locals.user?.id,
+			defaultDueDate: today
+		});
 	},
 
 	toggleTodo: async ({ locals, request }) => {
-		const { user } = locals;
-		if (!user) return fail(401);
-
-		const form = await request.formData();
-		const id = form.get('id') as string;
-		const currentStatus = form.get('status') as string;
-
-		const nowDone = currentStatus !== 'done';
-		const { error } = await locals.supabase
-			.from('todos')
-			.update({
-				status: nowDone ? 'done' : 'pending',
-				completed_at: nowDone ? new Date().toISOString() : null
-			})
-			.eq('id', id)
-			.eq('user_id', user.id);
-
-		if (error) return fail(500, { error: error.message });
+		return toggleTodoAction({ request, supabase: locals.supabase, userId: locals.user?.id });
 	},
 
 	updateTodo: async ({ locals, request }) => {
-		const { user } = locals;
-		if (!user) return fail(401);
-
-		const form = await request.formData();
-		const id = form.get('id') as string;
-		const title = (form.get('title') as string)?.trim();
-		const due_date = (form.get('due_date') as string) || null;
-		const priority = (form.get('priority') as string) || null;
-
-		if (!id || !title) return fail(400, { error: 'Missing fields' });
-
-		const { error } = await locals.supabase
-			.from('todos')
-			.update({ title, due_date, priority })
-			.eq('id', id)
-			.eq('user_id', user.id);
-
-		if (error) return fail(500, { error: error.message });
+		return updateTodoAction({ request, supabase: locals.supabase, userId: locals.user?.id });
 	},
 
 	removeTodo: async ({ locals, request }) => {
-		const { user } = locals;
-		if (!user) return fail(401);
-
-		const form = await request.formData();
-		const id = form.get('id') as string;
-
-		const { error } = await locals.supabase
-			.from('todos')
-			.delete()
-			.eq('id', id)
-			.eq('user_id', user.id);
-
-		if (error) return fail(500, { error: error.message });
+		return removeTodoAction({ request, supabase: locals.supabase, userId: locals.user?.id });
 	},
 
 	logHabit: async ({ locals, request }) => {

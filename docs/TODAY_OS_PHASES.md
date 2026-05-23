@@ -117,4 +117,5 @@ Important behavior:
 - Logged-out auth path should stay fast.
 - Normal app requests should not run schema bootstrap or repeated user upserts; migrations own schema setup.
 - Today and Todos task interactions are optimistic: visible rows update immediately, then reconcile through SvelteKit form actions and roll back on failure.
+- Today and Todos share `src/lib/components/TodoList.svelte` for todo UI/state, with shared helpers in `src/lib/utils/todos.ts` and shared server actions in `src/lib/server/todo-actions.ts`.
 - Today habit logs and quick notes also update optimistically so daily logging feels instant while the backend remains the durable sync target.

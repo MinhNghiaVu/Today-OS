@@ -3,12 +3,14 @@
 	import { Plus } from 'lucide-svelte';
 	import Select from '$lib/components/Select.svelte';
 	import type { TodoPriority } from '$lib/types';
+	import { getTodoActionError } from '$lib/utils/todos';
 
 	export let action: string;
 	export let today: string;
 	export let priorityOptions: { value: TodoPriority | ''; label: string }[];
 	export let compact = false;
 	export let onAdd: (formData: FormData) => (() => void) | void;
+	export let onError: (message: string | null) => void = () => {};
 
 	let title = '';
 
@@ -25,6 +27,7 @@
 	class:compact
 	class="todo-add-form"
 	use:enhance={({ formData, formElement }) => {
+		onError(null);
 		const rollback = handleAdd(formData);
 		if (compact) {
 			formElement.reset();
@@ -32,10 +35,14 @@
 		} else {
 			formElement.reset();
 		}
-		return async ({ result }) => {
+		return async ({ result, update }) => {
 			if (result.type === 'failure' || result.type === 'error') {
 				rollback?.();
+				onError(getTodoActionError(result, "Couldn't add task."));
+			} else {
+				onError(null);
 			}
+			await update({ reset: false });
 		};
 	}}
 >

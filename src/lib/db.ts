@@ -1,5 +1,6 @@
 import type { AppDbClient } from '$lib/server/neon-client';
 import type { Todo, Habit, HabitLog, HabitWithTotal, HabitWithTodayLogs, Note, Job } from './types';
+import { sortTodos } from '$lib/utils/todos';
 
 function today(): string {
 	return new Date().toISOString().slice(0, 10);
@@ -14,13 +15,7 @@ export async function getTodos(sb: AppDbClient, userId: string): Promise<Todo[]>
 		.eq('user_id', userId)
 		.order('created_at');
 	if (error) throw error;
-	const rank: Record<string, number> = { high: 0, medium: 1, low: 2 };
-	return ((data ?? []) as Todo[]).sort((a, b) => {
-		if (a.status !== b.status) return a.status === 'pending' ? -1 : 1;
-		const priorityDiff = (rank[a.priority ?? ''] ?? 3) - (rank[b.priority ?? ''] ?? 3);
-		if (priorityDiff !== 0) return priorityDiff;
-		return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
-	});
+	return sortTodos((data ?? []) as Todo[]);
 }
 
 export async function getTodosToday(sb: AppDbClient, userId: string): Promise<Todo[]> {
@@ -32,13 +27,7 @@ export async function getTodosToday(sb: AppDbClient, userId: string): Promise<To
 		.or(`due_date.eq.${d},and(status.eq.pending,due_date.lt.${d})`);
 	if (error) throw error;
 
-	const rank: Record<string, number> = { high: 0, medium: 1, low: 2 };
-	return ((data ?? []) as Todo[]).sort((a, b) => {
-		if (a.status !== b.status) return a.status === 'pending' ? -1 : 1;
-		const priorityDiff = (rank[a.priority ?? ''] ?? 3) - (rank[b.priority ?? ''] ?? 3);
-		if (priorityDiff !== 0) return priorityDiff;
-		return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
-	});
+	return sortTodos((data ?? []) as Todo[]);
 }
 
 // ── Habits ────────────────────────────────────────────────────
@@ -138,13 +127,7 @@ export async function getTodosForDate(
 		.eq('due_date', date)
 		.order('created_at');
 	if (error) throw error;
-	const rank: Record<string, number> = { high: 0, medium: 1, low: 2 };
-	return ((data ?? []) as Todo[]).sort((a, b) => {
-		if (a.status !== b.status) return a.status === 'pending' ? -1 : 1;
-		const priorityDiff = (rank[a.priority ?? ''] ?? 3) - (rank[b.priority ?? ''] ?? 3);
-		if (priorityDiff !== 0) return priorityDiff;
-		return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
-	});
+	return sortTodos((data ?? []) as Todo[]);
 }
 
 export async function getHabitTotalsForDate(

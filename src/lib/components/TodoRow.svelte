@@ -3,15 +3,15 @@
 	import { fly } from 'svelte/transition';
 	import { cubicIn, cubicOut } from 'svelte/easing';
 	import { Trash2 } from 'lucide-svelte';
-	import type { Todo, TodoPriority } from '$lib/types';
-
-	type TodoView = Todo & { ui_id?: string };
+	import type { TodoPriority } from '$lib/types';
+	import { dateInputValue, formatShortDate, getTodoActionError, type TodoView } from '$lib/utils/todos';
 
 	export let todo: TodoView;
 	export let today: string;
 	export let priorityOptions: { value: TodoPriority | ''; label: string }[];
 	export let priorityLabels: Record<TodoPriority, string>;
 	export let editing = false;
+	export let busy = false;
 	export let showDueDate = true;
 	export let showDescription = true;
 	export let toggleAction: string;
@@ -21,26 +21,13 @@
 	export let onToggle: (todo: TodoView) => (() => void) | void;
 	export let onUpdate: (todo: TodoView, formData: FormData) => (() => void) | void;
 	export let onRemove: (todo: TodoView) => (() => void) | void;
-
-	function dateInputValue(value: unknown): string {
-		if (!value) return '';
-		if (value instanceof Date) return value.toISOString().slice(0, 10);
-		const text = String(value);
-		if (/^\d{4}-\d{2}-\d{2}/.test(text)) return text.slice(0, 10);
-		const date = new Date(text);
-		return Number.isNaN(date.getTime()) ? '' : date.toISOString().slice(0, 10);
-	}
-
-	function formatShortDate(value: unknown): string {
-		const input = dateInputValue(value);
-		if (!input) return '';
-		const [year, month, day] = input.split('-');
-		return `${day}/${month}/${year.slice(2)}`;
-	}
+	export let onError: (message: string | null) => void = () => {};
 </script>
 
 <li
 	class:done={todo.status === 'done'}
+	class:busy
+	aria-busy={busy}
 	in:fly={{ y: -8, duration: 220, easing: cubicOut }}
 	out:fly={{ y: 4, duration: 160, easing: cubicIn }}
 >
@@ -50,12 +37,17 @@
 			action={updateAction}
 			class="edit-form"
 			use:enhance={({ formData }) => {
+				onError(null);
 				const rollback = onUpdate(todo, formData);
-				return async ({ result }) => {
+				return async ({ result, update }) => {
 					if (result.type === 'success') setEditing(null);
 					if (result.type === 'failure' || result.type === 'error') {
 						rollback?.();
+						onError(getTodoActionError(result, "Couldn't save task."));
+					} else {
+						onError(null);
 					}
+					await update({ reset: false });
 				};
 			}}
 		>
@@ -97,11 +89,16 @@
 			method="POST"
 			action={toggleAction}
 			use:enhance={() => {
+				onError(null);
 				const rollback = onToggle(todo);
-				return async ({ result }) => {
+				return async ({ result, update }) => {
 					if (result.type === 'failure' || result.type === 'error') {
 						rollback?.();
+						onError(getTodoActionError(result, "Couldn't update task."));
+					} else {
+						onError(null);
 					}
+					await update({ reset: false });
 				};
 			}}
 		>
@@ -112,12 +109,13 @@
 				class="check"
 				class:checked={todo.status === 'done'}
 				aria-label={todo.status === 'done' ? 'Mark pending' : 'Mark done'}
+				disabled={busy}
 			>
 				{#if todo.status === 'done'}✓{/if}
 			</button>
 		</form>
 
-		<button type="button" class="todo-body" on:click={() => setEditing(todo.id)}>
+		<button type="button" class="todo-body" disabled={busy} on:click={() => setEditing(todo.id)}>
 			<span class="todo-main">
 				<span class="todo-title">{todo.title}</span>
 				{#if todo.priority}
@@ -146,16 +144,21 @@
 						cancel();
 						return;
 					}
+					onError(null);
 					const rollback = onRemove(todo);
-					return async ({ result }) => {
+					return async ({ result, update }) => {
 						if (result.type === 'failure' || result.type === 'error') {
 							rollback?.();
+							onError(getTodoActionError(result, "Couldn't delete task."));
+						} else {
+							onError(null);
 						}
+						await update({ reset: false });
 					};
 				}}
 			>
 				<input type="hidden" name="id" value={todo.id} />
-				<button type="submit" class="act-btn danger" title="Delete" aria-label="Delete task">
+				<button type="submit" class="act-btn danger" title="Delete" aria-label="Delete task" disabled={busy}>
 					<Trash2 size={14} strokeWidth={2} />
 				</button>
 			</form>
@@ -182,6 +185,10 @@
 
 	li.done {
 		opacity: 0.55;
+	}
+
+	li.busy {
+		opacity: 0.7;
 	}
 
 	form {
@@ -213,6 +220,13 @@
 
 	.check:hover:not(.checked) {
 		border-color: var(--accent);
+	}
+
+	.check:disabled,
+	.todo-body:disabled,
+	.act-btn:disabled {
+		cursor: default;
+		opacity: 0.65;
 	}
 
 	.todo-body {
