@@ -14,8 +14,6 @@ I want to open the app and immediately see:
 
 - A place to jot notes (LinkedIn drafts, scratch notes, shopping lists) without Notion‑level complexity.
 
-Eventually, I also want an AI assistant inside the app that I can chat with about my day (“how much water did I drink today?”, “summarise this week’s notes”, etc.), but v1 can be without AI or have a minimal backend endpoint stubbed.
-
 This app is primarily for me, but should be built in a way that could support multiple users later.
 
 Core concepts and UX ￼
@@ -246,44 +244,6 @@ Integration is read‑only to start:
 
 No writing back to Google Calendar in v1; only reading events and showing them for context.
 
-7. AI assistant (later phase) ￼
-
-Eventually, add an AI assistant accessible via:
-
-- ‎`/assistant` route, or
-
-- A floating chat bubble on the Today page.
-
-Capabilities:
-
-- Answer questions like:
-
- ▫ “How much water did I drink today?”
-
- ▫ “How many calories this week?”
-
- ▫ “What tasks did I complete yesterday?”
-
- ▫ “Summarise my notes this week.”
-
-- Implementation approach:
-
- ▫ A backend route gathers structured data from Supabase:
-
- ⁃ Totals per habit.
-
- ⁃ Lists of completed todos.
-
- ⁃ Short summaries or titles of notes.
-
- ▫ Compose a concise context object.
-
- ▫ Call a free/affordable LLM API.
-
- ▫ Let the LLM interpret and explain the data, but not perform critical math itself.
-
-LLM integration is important to me, but it can be a dedicated later phase once core UX and data model are solid.
-
 Data model (Supabase) ￼
 
 Design a schema that can be implemented in Supabase and later migrated easily. Rough shape:
@@ -386,7 +346,7 @@ Tech stack & architecture ￼
 
  ▫ File‑based routing and nested layouts:
 
- ⁃ ‎`/today`, ‎`/notes`, ‎`/habits`, ‎`/calendar`, ‎`/assistant`, ‎`/settings`.
+ ⁃ ‎`/today`, ‎`/notes`, ‎`/habits`, ‎`/calendar`, ‎`/settings`.
 
  ▫ ‎`+page.server.ts` and ‎`+layout.server.ts` for SSR data loading.
 
@@ -459,20 +419,6 @@ Design the work in phases that each result in something usable, while maximising
  ▫ Add Google Calendar integration.
 
  ▫ Show today’s events/time blocks on ‎`/today` and inside per‑day views.
-
-5. Phase 5: AI assistant
-
- ▫ Add ‎`/assistant` route and/or floating chat.
-
- ▫ Implement server route that:
-
- ⁃ Pulls structured data from Supabase.
-
- ⁃ Summarises it.
-
- ⁃ Calls an LLM API.
-
- ▫ Support questions about today/this week’s stats and notes.
 
 How I want you (Claude) to help ￼
 

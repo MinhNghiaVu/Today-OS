@@ -10,7 +10,6 @@ Known manual setup remains:
 
 - Follow `docs/phase2-setup.md` for Supabase project keys, DB migrations, and Google OAuth.
 - Follow `docs/phase4-setup.md` for Google Calendar read-only integration.
-- Follow `docs/phase5-setup.md` when the Anthropic assistant should be re-enabled.
 - Follow `docs/phase6-setup.md` for the jobs table migration if the target Supabase project has not run it yet.
 
 Work one phase at a time if a new phase is added. Do not expand into later phases unless the user explicitly asks.
@@ -22,7 +21,7 @@ Work one phase at a time if a new phase is added. Do not expand into later phase
 - [x] **Phase 2.5 — Design-system rollout across existing screens**
 - [x] **Phase 3 — Calendar route + habit charts**
 - [x] **Phase 4 — Google Calendar read-only**
-- [x] **Phase 5 — AI Assistant** — currently disabled until API key setup.
+- [x] **Phase 5 — AI Assistant** — removed from the MVP cleanup; revisit only if it becomes an active product path.
 - [x] **Phase 6 — Job Board**
 - [x] **Polish pass — Load performance, first-paint theme, and responsive shell**
 
@@ -78,16 +77,12 @@ Important behavior:
 
 ### Phase 5 — AI Assistant
 
-Status: complete but disabled.
-
-Expected manual doc:
-
-- `docs/phase5-setup.md`
+Status: removed from the MVP surface.
 
 Important behavior:
 
-- Assistant nav is disabled until `ANTHROPIC_API_KEY` is ready.
-- `src/routes/api/chat/+server.ts` should stay as an auth-gated disabled stub until re-enabled deliberately.
+- There is no `/assistant` route, `/api/chat` endpoint, or Anthropic dependency in the MVP.
+- Reintroduce assistant work only as a deliberate future phase with a fresh plan and active product reason.
 
 ### Phase 6 — Job Board
 

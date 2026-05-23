@@ -42,45 +42,6 @@ export async function getHabits(sb: AppDbClient, userId: string): Promise<Habit[
 	return (data ?? []) as any;
 }
 
-export async function getHabitTotalsToday(
-	sb: AppDbClient,
-	userId: string
-): Promise<HabitWithTotal[]> {
-	const d = today();
-
-	const [{ data: habits, error: hErr }, { data: logs, error: lErr }] = await Promise.all([
-		sb.from('habit_definitions').select('*').eq('user_id', userId).eq('is_active', true).order('created_at'),
-		sb.from('habit_logs').select('*').eq('user_id', userId).eq('date', d)
-	]);
-
-	if (hErr) throw hErr;
-	if (lErr) throw lErr;
-
-	const totals = new Map<string, number>();
-	for (const log of ((logs ?? []) as HabitLog[])) {
-		totals.set(log.habit_id, (totals.get(log.habit_id) ?? 0) + log.value);
-	}
-
-	return ((habits ?? []) as Habit[]).map((h) => ({
-		...h,
-		total: parseFloat(((totals.get(h.id) ?? 0)).toFixed(6))
-	}));
-}
-
-export async function getLogsForHabitToday(
-	sb: AppDbClient,
-	habitId: string
-): Promise<HabitLog[]> {
-	const { data, error } = await sb
-		.from('habit_logs')
-		.select('*')
-		.eq('habit_id', habitId)
-		.eq('date', today())
-		.order('created_at', { ascending: false });
-	if (error) throw error;
-	return (data ?? []) as any;
-}
-
 export async function getHabitLogEntriesForRange(
 	sb: AppDbClient,
 	userId: string,
