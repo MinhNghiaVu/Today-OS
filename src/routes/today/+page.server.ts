@@ -91,10 +91,13 @@ export const actions: Actions = {
 		const firstLine = content.split('\n').find(Boolean)?.trim() ?? 'Quick note';
 		const title = firstLine.length > 60 ? `${firstLine.slice(0, 57)}...` : firstLine;
 
-		const { error } = await locals.supabase
+		const { data, error } = await locals.supabase
 			.from('notes')
-			.insert({ user_id: user.id, title, content, date: today, type: 'note' });
+			.insert({ user_id: user.id, title, content, date: today, type: 'note' })
+			.select('*')
+			.single();
 
 		if (error) return fail(500, { error: error.message });
+		return { ok: true, note: data };
 	}
 };

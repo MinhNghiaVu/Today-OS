@@ -1,4 +1,5 @@
-import type { HabitType } from '$lib/types';
+import type { HabitLog, HabitType, HabitWithTodayLogs } from '$lib/types';
+import { getActionData } from '$lib/utils/optimistic';
 
 export type HabitProgressInput = {
 	type: HabitType;
@@ -48,4 +49,94 @@ export function habitStatus(
 
 export function formatHabitTotal(total: number): string {
 	return Number.isInteger(total) ? String(total) : total.toFixed(1);
+}
+
+export const HABIT_OPTIMISTIC_LOG_PREFIX = 'optimistic-log-';
+
+function roundedTotal(value: number): number {
+	return parseFloat(value.toFixed(6));
+}
+
+export function createOptimisticHabitLog(options: {
+	habitId: string;
+	value: number;
+	sequence: number;
+	date?: string;
+	now?: string;
+}): HabitLog {
+	const now = options.now ?? new Date().toISOString();
+	return {
+		id: `${HABIT_OPTIMISTIC_LOG_PREFIX}${Date.now()}-${options.sequence}`,
+		user_id: 'optimistic',
+		habit_id: options.habitId,
+		date: options.date ?? now.slice(0, 10),
+		value: options.value,
+		created_at: now
+	};
+}
+
+export function applyHabitLogAdd(habits: HabitWithTodayLogs[], log: HabitLog): HabitWithTodayLogs[] {
+	return habits.map((habit) =>
+		habit.id === log.habit_id
+			? {
+					...habit,
+					total: roundedTotal(habit.total + log.value),
+					todayLogs: [log, ...habit.todayLogs]
+				}
+			: habit
+	);
+}
+
+export function applyHabitLogUpdate(habits: HabitWithTodayLogs[], log: HabitLog): HabitWithTodayLogs[] {
+	return habits.map((habit) => {
+		const existing = habit.todayLogs.find((item) => item.id === log.id);
+		if (!existing) return habit;
+
+		return {
+			...habit,
+			total: roundedTotal(habit.total - existing.value + log.value),
+			todayLogs: habit.todayLogs.map((item) => (item.id === log.id ? log : item))
+		};
+	});
+}
+
+export function applyHabitLogRemove(
+	habits: HabitWithTodayLogs[],
+	log: Pick<HabitLog, 'id'> & Partial<HabitLog>
+): HabitWithTodayLogs[] {
+	return habits.map((habit) => {
+		const existing = habit.todayLogs.find((item) => item.id === log.id);
+		if (!existing) return habit;
+
+		return {
+			...habit,
+			total: roundedTotal(habit.total - existing.value),
+			todayLogs: habit.todayLogs.filter((item) => item.id !== log.id)
+		};
+	});
+}
+
+export function replaceHabitLog(
+	habits: HabitWithTodayLogs[],
+	currentId: string,
+	serverLog: HabitLog
+): HabitWithTodayLogs[] {
+	let found = false;
+	const replaced = habits.map((habit) => {
+		const existing = habit.todayLogs.find((log) => log.id === currentId);
+		if (!existing) return habit;
+		found = true;
+		return {
+			...habit,
+			total: roundedTotal(habit.total - existing.value + serverLog.value),
+			todayLogs: habit.todayLogs.map((log) => (log.id === currentId ? serverLog : log))
+		};
+	});
+
+	return found ? replaced : applyHabitLogAdd(replaced, serverLog);
+}
+
+export function getHabitActionLog(result: unknown): HabitLog | null {
+	const log = getActionData(result)?.log;
+	return log && typeof log === 'object' && 'id' in log ? (log as HabitLog) : null;
 }

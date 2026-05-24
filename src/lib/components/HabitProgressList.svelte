@@ -13,14 +13,20 @@
 		Trash2
 	} from 'lucide-svelte';
 	import {
+		applyHabitLogAdd,
+		applyHabitLogRemove,
+		applyHabitLogUpdate,
+		createOptimisticHabitLog,
 		formatHabitTotal,
+		getHabitActionLog,
 		habitProgressWidth,
 		habitStatus,
 		isHabitOnTrack,
-		isHabitOverLimit
+		isHabitOverLimit,
+		replaceHabitLog
 	} from '$lib/utils/habits';
 	import { parseLocalizedNumber } from '$lib/utils/number';
-	import type { HabitLog, HabitWithTodayLogs } from '$lib/types';
+	import type { HabitWithTodayLogs } from '$lib/types';
 
 	export let habits: HabitWithTodayLogs[] = [];
 	export let logAction = '?/logHabit';
@@ -48,18 +54,6 @@
 	function startEditLog(id: string, value: number) {
 		editingLogId = id;
 		editingLogValue = String(value);
-	}
-
-	function makeOptimisticLog(habitId: string, value: number): HabitLog {
-		optimisticLogSeq += 1;
-		return {
-			id: `optimistic-log-${Date.now()}-${optimisticLogSeq}`,
-			user_id: 'optimistic',
-			habit_id: habitId,
-			date: todayStr,
-			value,
-			created_at: new Date().toISOString()
-		};
 	}
 
 	function formatLogTime(iso: string): string {
@@ -175,34 +169,24 @@
 					out:fly={{ y: -4, duration: 140, easing: cubicIn }}
 					use:enhance={({ formData }) => {
 						const value = parseLocalizedNumber(formData.get('value'));
-						const optimistic = value > 0 ? makeOptimisticLog(habit.id, value) : null;
-						if (optimistic) {
-							habits = habits.map((item) =>
-								item.id === habit.id
-									? {
-											...item,
-											total: parseFloat((item.total + optimistic.value).toFixed(6)),
-											todayLogs: [optimistic, ...item.todayLogs]
-										}
-									: item
-							);
-						}
+						const optimistic = value > 0
+							? createOptimisticHabitLog({
+									habitId: habit.id,
+									value,
+									sequence: ++optimisticLogSeq,
+									date: todayStr
+								})
+							: null;
+						if (optimistic) habits = applyHabitLogAdd(habits, optimistic);
 						logAmount = '';
 						activeHabitId = null;
 						return async ({ result }) => {
 							if (result.type === 'failure' || result.type === 'error') {
-								if (optimistic) {
-									habits = habits.map((item) =>
-										item.id === habit.id
-											? {
-													...item,
-													total: parseFloat((item.total - optimistic.value).toFixed(6)),
-													todayLogs: item.todayLogs.filter((log) => log.id !== optimistic.id)
-												}
-											: item
-									);
-								}
+								if (optimistic) habits = applyHabitLogRemove(habits, optimistic);
+								return;
 							}
+							const serverLog = getHabitActionLog(result);
+							if (optimistic && serverLog) habits = replaceHabitLog(habits, optimistic.id, serverLog);
 						};
 					}}
 				>
@@ -234,21 +218,16 @@
 										const previous = habits;
 										const nextValue = parseLocalizedNumber(formData.get('value'));
 										if (nextValue > 0) {
-											habits = habits.map((item) =>
-												item.id === habit.id
-													? {
-															...item,
-															total: parseFloat((item.total - log.value + nextValue).toFixed(6)),
-															todayLogs: item.todayLogs.map((itemLog) =>
-																itemLog.id === log.id ? { ...itemLog, value: nextValue } : itemLog
-															)
-														}
-													: item
-											);
+											habits = applyHabitLogUpdate(habits, { ...log, value: nextValue });
 										}
 										return async ({ result }) => {
 											if (result.type === 'success') editingLogId = null;
-											if (result.type === 'failure' || result.type === 'error') habits = previous;
+											if (result.type === 'failure' || result.type === 'error') {
+												habits = previous;
+												return;
+											}
+											const serverLog = getHabitActionLog(result);
+											if (serverLog) habits = replaceHabitLog(habits, log.id, serverLog);
 										};
 									}}
 								>
@@ -283,15 +262,7 @@
 										action={removeLogAction}
 										use:enhance={() => {
 											const previous = habits;
-											habits = habits.map((item) =>
-												item.id === habit.id
-													? {
-															...item,
-															total: parseFloat((item.total - log.value).toFixed(6)),
-															todayLogs: item.todayLogs.filter((itemLog) => itemLog.id !== log.id)
-														}
-													: item
-											);
+											habits = applyHabitLogRemove(habits, log);
 											return async ({ result }) => {
 												if (result.type === 'failure' || result.type === 'error') habits = previous;
 											};

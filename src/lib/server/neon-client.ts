@@ -1,67 +1,14 @@
 import { neon } from '@neondatabase/serverless';
 import { env } from '$env/dynamic/private';
-
-type Filter =
-	| { kind: 'eq' | 'gte' | 'lte'; column: string; value: unknown }
-	| { kind: 'not-null'; column: string }
-	| { kind: 'today-todos'; date: string };
-
-type Order = { column: string; ascending: boolean };
-
-const TABLES = new Set(['users', 'todos', 'habit_definitions', 'habit_logs', 'notes', 'jobs']);
-const COLUMNS = new Set([
-	'id',
-	'user_id',
-	'email',
-	'display_name',
-	'preferences',
-	'google_access_token',
-	'google_refresh_token',
-	'google_token_expiry',
-	'title',
-	'description',
-	'status',
-	'due_date',
-	'priority',
-	'note_id',
-	'created_at',
-	'completed_at',
-	'name',
-	'unit',
-	'type',
-	'daily_goal',
-	'color',
-	'is_active',
-	'updated_at',
-	'habit_id',
-	'date',
-	'value',
-	'content',
-	'company',
-	'role',
-	'interview_stage',
-	'job_url',
-	'contact',
-	'applied_date',
-	'interviewer',
-	'notes'
-]);
-
-const UPDATE_CASTS: Record<string, string> = {
-	applied_date: 'date',
-	completed_at: 'timestamptz',
-	daily_goal: 'numeric',
-	date: 'date',
-	due_date: 'date',
-	google_token_expiry: 'timestamptz',
-	is_active: 'boolean',
-	preferences: 'jsonb',
-	updated_at: 'timestamptz',
-	value: 'numeric'
-};
-
-const UUID_ID_TABLES = new Set(['todos', 'habit_definitions', 'habit_logs', 'notes', 'jobs']);
-const UUID_COLUMNS = new Set(['habit_id', 'note_id']);
+import {
+	buildOrderSql,
+	buildUpdateStatement,
+	buildWhereSql,
+	ident,
+	selection,
+	type Filter,
+	type Order
+} from '$lib/server/neon-sql';
 
 let sql: ReturnType<typeof neon> | null = null;
 let schemaReady: Promise<void> | null = null;
@@ -153,19 +100,6 @@ function getSql() {
 	return sql;
 }
 
-function ident(value: string) {
-	if (!TABLES.has(value) && !COLUMNS.has(value)) throw new Error(`Unknown SQL identifier: ${value}`);
-	return `"${value}"`;
-}
-
-function selection(columns: string) {
-	if (columns.trim() === '*') return '*';
-	return columns
-		.split(',')
-		.map((column) => ident(column.trim()))
-		.join(', ');
-}
-
 function normalizeRow<T>(row: T): T {
 	if (!row || typeof row !== 'object') return row;
 	const next = { ...(row as Record<string, unknown>) };
@@ -180,16 +114,6 @@ function normalizeRow<T>(row: T): T {
 
 function normalizeRows<T>(rows: T[]): T[] {
 	return rows.map((row) => normalizeRow(row));
-}
-
-function param(index: number, column: string, table: string) {
-	const cast =
-		column === 'id' && UUID_ID_TABLES.has(table)
-			? 'uuid'
-			: UUID_COLUMNS.has(column)
-				? 'uuid'
-				: UPDATE_CASTS[column];
-	return cast ? `cast($${index} as ${cast})` : `$${index}`;
 }
 
 function errorResult(error: unknown) {
@@ -238,9 +162,12 @@ class QueryBuilder {
 	}
 
 	select(columns = '*') {
-		this.op = this.op === 'insert' ? 'insert' : 'select';
-		if (this.op === 'insert') this.returnColumns = columns;
-		else this.selectColumns = columns;
+		if (this.op === 'insert' || this.op === 'update' || this.op === 'delete') {
+			this.returnColumns = columns;
+		} else {
+			this.op = 'select';
+			this.selectColumns = columns;
+		}
 		return this;
 	}
 
@@ -304,39 +231,19 @@ class QueryBuilder {
 		return this.execute().then(onfulfilled, onrejected);
 	}
 
-	private addFilters(parts: string[], values: unknown[]) {
-		for (const filter of this.filters) {
-			if (filter.kind === 'not-null') {
-				parts.push(`${ident(filter.column)} is not null`);
-				continue;
-			}
-			if (filter.kind === 'today-todos') {
-				values.push(filter.date, filter.date);
-				parts.push(`("due_date" = $${values.length - 1} or ("status" = 'pending' and "due_date" < $${values.length}))`);
-				continue;
-			}
-			values.push(filter.value);
-			const operator = filter.kind === 'eq' ? '=' : filter.kind === 'gte' ? '>=' : '<=';
-			parts.push(`${ident(filter.column)} ${operator} ${param(values.length, filter.column, this.table)}`);
-		}
-	}
-
 	private async execute(): Promise<{ data: any; error: Error | null }> {
 		try {
-			const values: unknown[] = [];
-			const where: string[] = [];
-			this.addFilters(where, values);
-			const whereSql = where.length ? ` where ${where.join(' and ')}` : '';
-			const orderSql = this.orders.length
-				? ` order by ${this.orders.map((order) => `${ident(order.column)} ${order.ascending ? 'asc' : 'desc'}`).join(', ')}`
-				: '';
+			const orderSql = buildOrderSql(this.orders);
 
 			if (this.op === 'select') {
+				const values: unknown[] = [];
+				const whereSql = buildWhereSql(this.filters, this.table, values);
 				const rows = await query(`select ${selection(this.selectColumns)} from ${ident(this.table)}${whereSql}${orderSql}`, values);
 				return { data: this.singleRow ? (rows[0] ?? null) : rows, error: null };
 			}
 
 			if (this.op === 'insert') {
+				const values: unknown[] = [];
 				const rows = Array.isArray(this.payload) ? this.payload : [this.payload as Record<string, unknown>];
 				const columns = Object.keys(rows[0] ?? {});
 				const placeholders = rows
@@ -358,28 +265,22 @@ class QueryBuilder {
 
 			if (this.op === 'update') {
 				const patch = this.payload as Record<string, unknown>;
-				const assignments = Object.entries(patch).map(([column, value]) => {
-					values.push(value);
-					return `${ident(column)} = ${param(values.length, column, this.table)}`;
-				});
-				const filterValues: unknown[] = [];
-				const filterParts: string[] = [];
-				this.addFilters(filterParts, filterValues);
-				const offsetParts = filterParts.map((part) =>
-					part.replace(/\$(\d+)/g, (_, index) => `$${Number(index) + values.length}`)
-				);
-				await query(
-					`update ${ident(this.table)} set ${assignments.join(', ')}${offsetParts.length ? ` where ${offsetParts.join(' and ')}` : ''}`,
-					[...values, ...filterValues]
-				);
-				return { data: null, error: null };
+				const statement = buildUpdateStatement(this.table, patch, this.filters, this.returnColumns);
+				const data = await query(statement.text, statement.values);
+				return {
+					data: this.returnColumns ? (this.singleRow ? (data[0] ?? null) : data) : null,
+					error: null
+				};
 			}
 
-			const filterValues: unknown[] = [];
-			const filterParts: string[] = [];
-			this.addFilters(filterParts, filterValues);
-			await query(`delete from ${ident(this.table)}${filterParts.length ? ` where ${filterParts.join(' and ')}` : ''}`, filterValues);
-			return { data: null, error: null };
+			const values: unknown[] = [];
+			const whereSql = buildWhereSql(this.filters, this.table, values);
+			const returning = this.returnColumns ? ` returning ${selection(this.returnColumns)}` : '';
+			const data = await query(`delete from ${ident(this.table)}${whereSql}${returning}`, values);
+			return {
+				data: this.returnColumns ? (this.singleRow ? (data[0] ?? null) : data) : null,
+				error: null
+			};
 		} catch (error) {
 			return errorResult(error);
 		}

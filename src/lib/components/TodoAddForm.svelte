@@ -3,21 +3,22 @@
 	import { Plus } from 'lucide-svelte';
 	import Select from '$lib/components/Select.svelte';
 	import type { TodoPriority } from '$lib/types';
+	import type { OptimisticMutation } from '$lib/utils/optimistic';
 	import { getTodoActionError } from '$lib/utils/todos';
 
 	export let action: string;
 	export let today: string;
 	export let priorityOptions: { value: TodoPriority | ''; label: string }[];
 	export let compact = false;
-	export let onAdd: (formData: FormData) => (() => void) | void;
+	export let onAdd: (formData: FormData) => OptimisticMutation | void;
 	export let onError: (message: string | null) => void = () => {};
 
 	let title = '';
 
-	function handleAdd(formData: FormData): (() => void) | void {
-		const rollback = onAdd?.(formData);
+	function handleAdd(formData: FormData): OptimisticMutation | void {
+		const mutation = onAdd?.(formData);
 		title = '';
-		return rollback;
+		return mutation;
 	}
 </script>
 
@@ -28,7 +29,7 @@
 	class="todo-add-form"
 	use:enhance={({ formData, formElement }) => {
 		onError(null);
-		const rollback = handleAdd(formData);
+		const mutation = handleAdd(formData);
 		if (compact) {
 			formElement.reset();
 			title = '';
@@ -37,12 +38,14 @@
 		}
 		return async ({ result, update }) => {
 			if (result.type === 'failure' || result.type === 'error') {
-				rollback?.();
+				mutation?.rollback();
 				onError(getTodoActionError(result, "Couldn't add task."));
 			} else {
+				mutation?.reconcile?.(result);
 				onError(null);
 			}
 			await update({ reset: false });
+			mutation?.settle?.();
 		};
 	}}
 >

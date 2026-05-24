@@ -27,11 +27,14 @@ export async function logHabitToday({ request, supabase, userId }: HabitActionIn
 	if (habitError || !habit) return fail(404, { error: 'Habit not found' });
 
 	const today = new Date().toISOString().slice(0, 10);
-	const { error } = await supabase
+	const { data, error } = await supabase
 		.from('habit_logs')
-		.insert({ user_id: userId, habit_id, date: today, value });
+		.insert({ user_id: userId, habit_id, date: today, value })
+		.select('*')
+		.single();
 
 	if (error) return fail(500, { error: error.message });
+	return { ok: true, log: data };
 }
 
 export async function updateHabitLog({ request, supabase, userId }: HabitActionInput) {
@@ -43,13 +46,16 @@ export async function updateHabitLog({ request, supabase, userId }: HabitActionI
 
 	if (!id || isNaN(value) || value <= 0) return fail(400, { error: 'Invalid log value' });
 
-	const { error } = await supabase
+	const { data, error } = await supabase
 		.from('habit_logs')
 		.update({ value })
 		.eq('id', id)
-		.eq('user_id', userId);
+		.eq('user_id', userId)
+		.select('*')
+		.single();
 
 	if (error) return fail(500, { error: error.message });
+	return { ok: true, log: data };
 }
 
 export async function removeHabitLog({ request, supabase, userId }: HabitActionInput) {
@@ -60,11 +66,14 @@ export async function removeHabitLog({ request, supabase, userId }: HabitActionI
 
 	if (!id) return fail(400, { error: 'Missing log' });
 
-	const { error } = await supabase
+	const { data, error } = await supabase
 		.from('habit_logs')
 		.delete()
 		.eq('id', id)
-		.eq('user_id', userId);
+		.eq('user_id', userId)
+		.select('id, habit_id, value')
+		.single();
 
 	if (error) return fail(500, { error: error.message });
+	return { ok: true, log: data ?? { id } };
 }

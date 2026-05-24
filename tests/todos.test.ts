@@ -60,4 +60,39 @@ describe('todo optimistic helpers', () => {
 		expect(updated.status).toBe('done');
 		expect(updated.completed_at).toBeTruthy();
 	});
+
+	test('keeps pending local changes when a stale server load arrives', () => {
+		const item = todo({ id: '44444444-4444-4444-8444-444444444444' });
+		const [localDone] = applyTodoToggle([item], item);
+		const [reconciled] = reconcileTodos([item], [localDone], {
+			pendingIds: new Set([item.id])
+		});
+
+		expect(reconciled.status).toBe('done');
+	});
+
+	test('does not revive a pending removal from stale server data', () => {
+		const item = todo({ id: '55555555-5555-4555-8555-555555555555' });
+		const reconciled = reconcileTodos([item], [], {
+			pendingRemovedIds: new Set([item.id])
+		});
+
+		expect(reconciled).toEqual([]);
+	});
+
+	test('keeps a pending optimistic add through a stale server load', () => {
+		const optimistic = createOptimisticTodo({
+			title: 'Wait for server truth',
+			dueDate: '2026-05-24',
+			priority: 'medium',
+			sequence: 2,
+			now: '2026-05-24T00:00:00.000Z'
+		});
+
+		const reconciled = reconcileTodos([], [optimistic], {
+			pendingAddedIds: new Set([optimistic.id])
+		});
+
+		expect(reconciled).toEqual([optimistic]);
+	});
 });

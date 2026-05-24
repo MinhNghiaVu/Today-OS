@@ -10,6 +10,7 @@
 	import HabitProgressList from '$lib/components/HabitProgressList.svelte';
 	import TodoList from '$lib/components/TodoList.svelte';
 	import { isHabitOnTrack } from '$lib/utils/habits';
+	import { getActionData } from '$lib/utils/optimistic';
 	import type { TodoStats } from '$lib/utils/todos';
 	import type { PageData } from './$types';
 	import type { HabitWithTodayLogs, Note } from '$lib/types';
@@ -53,6 +54,11 @@
 			created_at: now,
 			updated_at: now
 		};
+	}
+
+	function getNoteFromResult(result: unknown): Note | null {
+		const note = getActionData(result)?.note;
+		return note && typeof note === 'object' && 'id' in note ? (note as Note) : null;
 	}
 
 	function formatTime(iso: string): string {
@@ -222,6 +228,11 @@
 							return async ({ result }) => {
 								if (result.type === 'failure' || result.type === 'error') {
 									if (optimistic) notesToday = notesToday.filter((note) => note.id !== optimistic.id);
+									return;
+								}
+								const serverNote = getNoteFromResult(result);
+								if (optimistic && serverNote) {
+									notesToday = notesToday.map((note) => note.id === optimistic.id ? serverNote : note);
 								}
 							};
 						}}

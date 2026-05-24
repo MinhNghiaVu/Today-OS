@@ -4,6 +4,7 @@
 	import { cubicIn, cubicOut } from 'svelte/easing';
 	import { Trash2 } from 'lucide-svelte';
 	import type { TodoPriority } from '$lib/types';
+	import type { OptimisticMutation } from '$lib/utils/optimistic';
 	import { dateInputValue, formatShortDate, getTodoActionError, type TodoView } from '$lib/utils/todos';
 
 	export let todo: TodoView;
@@ -18,9 +19,9 @@
 	export let updateAction: string;
 	export let removeAction: string;
 	export let setEditing: (id: string | null) => void;
-	export let onToggle: (todo: TodoView) => (() => void) | void;
-	export let onUpdate: (todo: TodoView, formData: FormData) => (() => void) | void;
-	export let onRemove: (todo: TodoView) => (() => void) | void;
+	export let onToggle: (todo: TodoView) => OptimisticMutation | void;
+	export let onUpdate: (todo: TodoView, formData: FormData) => OptimisticMutation | void;
+	export let onRemove: (todo: TodoView) => OptimisticMutation | void;
 	export let onError: (message: string | null) => void = () => {};
 </script>
 
@@ -38,16 +39,18 @@
 			class="edit-form"
 			use:enhance={({ formData }) => {
 				onError(null);
-				const rollback = onUpdate(todo, formData);
+				const mutation = onUpdate(todo, formData);
 				return async ({ result, update }) => {
 					if (result.type === 'success') setEditing(null);
 					if (result.type === 'failure' || result.type === 'error') {
-						rollback?.();
+						mutation?.rollback();
 						onError(getTodoActionError(result, "Couldn't save task."));
 					} else {
+						mutation?.reconcile?.(result);
 						onError(null);
 					}
 					await update({ reset: false });
+					mutation?.settle?.();
 				};
 			}}
 		>
@@ -90,15 +93,17 @@
 			action={toggleAction}
 			use:enhance={() => {
 				onError(null);
-				const rollback = onToggle(todo);
+				const mutation = onToggle(todo);
 				return async ({ result, update }) => {
 					if (result.type === 'failure' || result.type === 'error') {
-						rollback?.();
+						mutation?.rollback();
 						onError(getTodoActionError(result, "Couldn't update task."));
 					} else {
+						mutation?.reconcile?.(result);
 						onError(null);
 					}
 					await update({ reset: false });
+					mutation?.settle?.();
 				};
 			}}
 		>
@@ -145,15 +150,17 @@
 						return;
 					}
 					onError(null);
-					const rollback = onRemove(todo);
+					const mutation = onRemove(todo);
 					return async ({ result, update }) => {
 						if (result.type === 'failure' || result.type === 'error') {
-							rollback?.();
+							mutation?.rollback();
 							onError(getTodoActionError(result, "Couldn't delete task."));
 						} else {
+							mutation?.reconcile?.(result);
 							onError(null);
 						}
 						await update({ reset: false });
+						mutation?.settle?.();
 					};
 				}}
 			>

@@ -4,6 +4,7 @@
 	import TodoAddForm from '$lib/components/TodoAddForm.svelte';
 	import TodoRow from '$lib/components/TodoRow.svelte';
 	import type { Todo } from '$lib/types';
+	import type { OptimisticMutation } from '$lib/utils/optimistic';
 	import {
 		TODO_PRIORITY_LABELS,
 		TODO_PRIORITY_OPTIONS,
@@ -11,10 +12,12 @@
 		applyTodoToggle,
 		applyTodoUpdate,
 		createOptimisticTodo,
+		getTodoActionTodo,
 		getTodoStats,
 		isOptimisticTodo,
 		normalizeTodoPriority,
 		reconcileTodos,
+		replaceTodoWithServer,
 		sortTodos,
 		type TodoStats,
 		type TodoView
@@ -41,9 +44,16 @@
 	let optimisticTodoSeq = 0;
 	let editingId: string | null = null;
 	let errorMessage: string | null = null;
+	let pendingTodoIds = new Set<string>();
+	let pendingAddedTodoIds = new Set<string>();
+	let pendingRemovedTodoIds = new Set<string>();
 
 	$: if (todos !== lastTodos) {
-		draftTodos = reconcileTodos(todos, draftTodos);
+		draftTodos = reconcileTodos(todos, draftTodos, {
+			pendingIds: pendingTodoIds,
+			pendingAddedIds: pendingAddedTodoIds,
+			pendingRemovedIds: pendingRemovedTodoIds
+		});
 		lastTodos = todos;
 		if (editingId && !draftTodos.some((todo) => todo.id === editingId)) editingId = null;
 	}
@@ -61,7 +71,35 @@
 		errorMessage = message;
 	}
 
-	function addTodo(formData: FormData): () => void {
+	function addPending(id: string, added = false) {
+		pendingTodoIds = new Set(pendingTodoIds).add(id);
+		if (added) pendingAddedTodoIds = new Set(pendingAddedTodoIds).add(id);
+	}
+
+	function addPendingRemove(id: string) {
+		pendingTodoIds = new Set(pendingTodoIds).add(id);
+		pendingRemovedTodoIds = new Set(pendingRemovedTodoIds).add(id);
+	}
+
+	function clearPending(id: string) {
+		const nextPending = new Set(pendingTodoIds);
+		const nextAdded = new Set(pendingAddedTodoIds);
+		const nextRemoved = new Set(pendingRemovedTodoIds);
+		nextPending.delete(id);
+		nextAdded.delete(id);
+		nextRemoved.delete(id);
+		pendingTodoIds = nextPending;
+		pendingAddedTodoIds = nextAdded;
+		pendingRemovedTodoIds = nextRemoved;
+	}
+
+	function replacePendingId(previousId: string, nextId: string, added = false) {
+		clearPending(previousId);
+		pendingTodoIds = new Set(pendingTodoIds).add(nextId);
+		if (added) pendingAddedTodoIds = new Set(pendingAddedTodoIds).add(nextId);
+	}
+
+	function addTodo(formData: FormData): OptimisticMutation {
 		const title = String(formData.get('title') ?? '').trim();
 		const dueDate = String(formData.get('due_date') ?? '') || (compact ? today : null);
 		const priority = normalizeTodoPriority(formData.get('priority')) ?? null;
@@ -74,28 +112,76 @@
 				})
 			: null;
 
-		if (optimistic) draftTodos = [...draftTodos, optimistic];
-		return () => {
-			if (optimistic) draftTodos = draftTodos.filter((todo) => todo.id !== optimistic.id);
+		if (!optimistic) {
+			return { rollback: () => {} };
+		}
+
+		addPending(optimistic.id, true);
+		draftTodos = [...draftTodos, optimistic];
+		return {
+			rollback: () => {
+				draftTodos = draftTodos.filter((todo) => todo.id !== optimistic.id);
+				clearPending(optimistic.id);
+			},
+			reconcile: (result) => {
+				const serverTodo = getTodoActionTodo(result);
+				if (!serverTodo) return;
+				draftTodos = replaceTodoWithServer(draftTodos, optimistic.id, serverTodo);
+				replacePendingId(optimistic.id, serverTodo.id, true);
+			},
+			settle: () => {
+				const serverTodo = draftTodos.find((todo) => todo.ui_id === optimistic.id);
+				clearPending(serverTodo?.id ?? optimistic.id);
+			}
 		};
 	}
 
-	function toggleTodo(todo: TodoView): () => void {
+	function toggleTodo(todo: TodoView): OptimisticMutation {
 		const previous = draftTodos;
+		addPending(todo.id);
 		draftTodos = applyTodoToggle(draftTodos, todo);
-		return () => (draftTodos = previous);
+		return {
+			rollback: () => {
+				draftTodos = previous;
+				clearPending(todo.id);
+			},
+			reconcile: (result) => {
+				const serverTodo = getTodoActionTodo(result);
+				if (serverTodo) draftTodos = replaceTodoWithServer(draftTodos, todo.id, serverTodo);
+			},
+			settle: () => clearPending(todo.id)
+		};
 	}
 
-	function updateTodo(todo: TodoView, formData: FormData): () => void {
+	function updateTodo(todo: TodoView, formData: FormData): OptimisticMutation {
 		const previous = draftTodos;
+		addPending(todo.id);
 		draftTodos = applyTodoUpdate(draftTodos, todo, formData);
-		return () => (draftTodos = previous);
+		return {
+			rollback: () => {
+				draftTodos = previous;
+				clearPending(todo.id);
+			},
+			reconcile: (result) => {
+				const serverTodo = getTodoActionTodo(result);
+				if (serverTodo) draftTodos = replaceTodoWithServer(draftTodos, todo.id, serverTodo);
+			},
+			settle: () => clearPending(todo.id)
+		};
 	}
 
-	function removeTodo(todo: TodoView): () => void {
+	function removeTodo(todo: TodoView): OptimisticMutation {
 		const previous = draftTodos;
+		addPendingRemove(todo.id);
 		draftTodos = applyTodoRemove(draftTodos, todo);
-		return () => (draftTodos = previous);
+		return {
+			rollback: () => {
+				draftTodos = previous;
+				clearPending(todo.id);
+			},
+			reconcile: () => {},
+			settle: () => clearPending(todo.id)
+		};
 	}
 </script>
 

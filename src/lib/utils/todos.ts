@@ -1,4 +1,5 @@
 import type { Todo, TodoPriority, TodoStatus } from '$lib/types';
+import { getActionData } from '$lib/utils/optimistic';
 
 export type TodoFilter = 'all' | TodoStatus;
 export type TodoView = Todo & { ui_id?: string };
@@ -7,6 +8,12 @@ export interface TodoStats {
 	all: number;
 	pending: number;
 	done: number;
+}
+
+export interface TodoReconcileOptions {
+	pendingIds?: Set<string>;
+	pendingAddedIds?: Set<string>;
+	pendingRemovedIds?: Set<string>;
 }
 
 export const TODO_OPTIMISTIC_ID_PREFIX = 'optimistic-todo-';
@@ -108,23 +115,41 @@ export function sameTodoIntent(a: TodoView, b: Todo): boolean {
 	);
 }
 
-export function reconcileTodos(serverTodos: Todo[], currentTodos: TodoView[]): TodoView[] {
+export function reconcileTodos(
+	serverTodos: Todo[],
+	currentTodos: TodoView[],
+	options: TodoReconcileOptions = {}
+): TodoView[] {
 	const claimedOptimisticIds = new Set<string>();
+	const pendingIds = options.pendingIds ?? new Set<string>();
+	const pendingAddedIds = options.pendingAddedIds ?? new Set<string>();
+	const pendingRemovedIds = options.pendingRemovedIds ?? new Set<string>();
+	const currentById = new Map(currentTodos.map((todo) => [todo.id, todo]));
 
-	return serverTodos.map((serverTodo) => {
-		const existing = currentTodos.find((todo) => todo.id === serverTodo.id);
-		if (existing?.ui_id) return { ...serverTodo, ui_id: existing.ui_id };
+	const reconciled = serverTodos.flatMap((serverTodo) => {
+		if (pendingRemovedIds.has(serverTodo.id)) return [];
+
+		const existing = currentById.get(serverTodo.id);
+		if (existing && pendingIds.has(existing.id)) return [existing];
+		if (existing?.ui_id) return [{ ...serverTodo, ui_id: existing.ui_id }];
 
 		const optimisticMatch = currentTodos.find(
 			(todo) => !claimedOptimisticIds.has(todo.id) && sameTodoIntent(todo, serverTodo)
 		);
 		if (optimisticMatch?.ui_id) {
 			claimedOptimisticIds.add(optimisticMatch.id);
-			return { ...serverTodo, ui_id: optimisticMatch.ui_id };
+			return [{ ...serverTodo, ui_id: optimisticMatch.ui_id }];
 		}
 
-		return serverTodo;
+		return [serverTodo];
 	});
+
+	const reconciledIds = new Set(reconciled.map((todo) => todo.id));
+	for (const todo of currentTodos) {
+		if (pendingAddedIds.has(todo.id) && !reconciledIds.has(todo.id)) reconciled.push(todo);
+	}
+
+	return reconciled;
 }
 
 export function applyTodoToggle(todos: TodoView[], todo: TodoView): TodoView[] {
@@ -161,6 +186,22 @@ export function applyTodoUpdate(todos: TodoView[], todo: TodoView, formData: For
 
 export function applyTodoRemove(todos: TodoView[], todo: TodoView): TodoView[] {
 	return todos.filter((item) => item.id !== todo.id);
+}
+
+export function replaceTodoWithServer(todos: TodoView[], currentId: string, serverTodo: Todo): TodoView[] {
+	let replaced = false;
+	const next = todos.map((item) => {
+		if (item.id !== currentId && item.ui_id !== currentId) return item;
+		replaced = true;
+		return { ...serverTodo, ui_id: item.ui_id ?? item.id };
+	});
+
+	return replaced ? next : [...next, serverTodo];
+}
+
+export function getTodoActionTodo(result: unknown): Todo | null {
+	const todo = getActionData(result)?.todo;
+	return todo && typeof todo === 'object' && 'id' in todo ? (todo as Todo) : null;
 }
 
 export function getTodoActionError(result: unknown, fallback = "Couldn't save task."): string {

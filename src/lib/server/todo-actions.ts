@@ -50,15 +50,19 @@ export async function addTodoAction({ request, supabase, userId, defaultDueDate 
 	if (due_date === undefined) return fail(400, { error: 'Choose a valid due date.' });
 	if (priority === undefined) return fail(400, { error: 'Choose a valid priority.' });
 
-	const { error } = await supabase.from('todos').insert({
-		user_id: userId,
-		title,
-		due_date,
-		priority
-	});
+	const { data, error } = await supabase
+		.from('todos')
+		.insert({
+			user_id: userId,
+			title,
+			due_date,
+			priority
+		})
+		.select('*')
+		.single();
 
 	if (error) return fail(500, { error: errorMessage(error, "Couldn't add task.") });
-	return { ok: true };
+	return { ok: true, todo: data };
 }
 
 export async function toggleTodoAction({ request, supabase, userId }: TodoActionContext) {
@@ -72,17 +76,19 @@ export async function toggleTodoAction({ request, supabase, userId }: TodoAction
 	if (!isTodoStatus(currentStatus)) return fail(400, { error: 'Invalid task status.' });
 
 	const nowDone = currentStatus !== 'done';
-	const { error } = await supabase
+	const { data, error } = await supabase
 		.from('todos')
 		.update({
 			status: nowDone ? 'done' : 'pending',
 			completed_at: nowDone ? new Date().toISOString() : null
 		})
 		.eq('id', id)
-		.eq('user_id', userId);
+		.eq('user_id', userId)
+		.select('*')
+		.single();
 
 	if (error) return fail(500, { error: errorMessage(error, "Couldn't update task.") });
-	return { ok: true };
+	return { ok: true, todo: data };
 }
 
 export async function updateTodoAction({ request, supabase, userId }: TodoActionContext) {
@@ -104,10 +110,16 @@ export async function updateTodoAction({ request, supabase, userId }: TodoAction
 		patch.description = String(form.get('description') ?? '').trim() || null;
 	}
 
-	const { error } = await supabase.from('todos').update(patch).eq('id', id).eq('user_id', userId);
+	const { data, error } = await supabase
+		.from('todos')
+		.update(patch)
+		.eq('id', id)
+		.eq('user_id', userId)
+		.select('*')
+		.single();
 
 	if (error) return fail(500, { error: errorMessage(error, "Couldn't save task.") });
-	return { ok: true };
+	return { ok: true, todo: data };
 }
 
 export async function removeTodoAction({ request, supabase, userId }: TodoActionContext) {
@@ -118,8 +130,14 @@ export async function removeTodoAction({ request, supabase, userId }: TodoAction
 	const idFailure = validateTodoId(id);
 	if (idFailure) return idFailure;
 
-	const { error } = await supabase.from('todos').delete().eq('id', id).eq('user_id', userId);
+	const { data, error } = await supabase
+		.from('todos')
+		.delete()
+		.eq('id', id)
+		.eq('user_id', userId)
+		.select('id')
+		.single();
 
 	if (error) return fail(500, { error: errorMessage(error, "Couldn't delete task.") });
-	return { ok: true };
+	return { ok: true, id: data?.id ?? id };
 }
