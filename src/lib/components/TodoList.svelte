@@ -62,9 +62,9 @@
 	$: visibleTodos = sortedTodos.filter((todo) => filter === 'all' || todo.status === filter);
 	$: stats = getTodoStats(draftTodos);
 	$: filterTabs = [
-		{ value: 'all', label: `All ${stats.all}` },
-		{ value: 'pending', label: `Pending ${stats.pending}` },
-		{ value: 'done', label: `Done ${stats.done}` }
+		{ value: 'all', label: `All (${stats.all})` },
+		{ value: 'pending', label: `Pending (${stats.pending})` },
+		{ value: 'done', label: `Done (${stats.done})` }
 	];
 
 	function setError(message: string | null) {

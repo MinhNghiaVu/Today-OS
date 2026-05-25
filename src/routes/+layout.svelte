@@ -170,7 +170,7 @@
 	}
 
 	.sidebar.collapsed {
-		width: 64px;
+		width: 56px;
 	}
 
 	.sidebar-top {
@@ -251,15 +251,13 @@
 	}
 
 	.sidebar.collapsed .sidebar-top {
-		flex-direction: column;
 		justify-content: center;
-		padding-inline: 0;
-		min-height: 72px;
+		padding: 0 0 8px;
+		min-height: 36px;
 	}
 
 	.sidebar.collapsed .logo {
-		flex: 0 0 auto;
-		padding-inline: 0;
+		display: none;
 	}
 
 	/* ── Nav list ── */
@@ -309,7 +307,14 @@
 
 	.sidebar.collapsed .nav-list a {
 		justify-content: center;
-		padding-inline: 0;
+		gap: 0;
+		width: 40px;
+		min-height: 40px;
+		padding: 0;
+	}
+
+	.sidebar.collapsed .nav-list {
+		align-items: center;
 	}
 
 	/* ── Account wrapper (anchors popover) ── */
@@ -413,7 +418,15 @@
 
 	.sidebar.collapsed .account-block {
 		justify-content: center;
-		padding-inline: 0;
+		gap: 0;
+		width: 40px;
+		height: 40px;
+		padding: 0;
+	}
+
+	.sidebar.collapsed .account-wrapper {
+		display: flex;
+		justify-content: center;
 	}
 
 	.avatar {
@@ -491,35 +504,52 @@
 
 	@media (max-width: 760px) {
 		.sidebar {
-			width: 64px;
+			width: 56px;
 			padding: 12px 8px;
 			z-index: 20;
 		}
 
 		.nav-list {
+			align-items: center;
 			gap: 2px;
 		}
 
 		.nav-list a {
 			justify-content: center;
-			padding: 8px 0;
+			gap: 0;
+			width: 40px;
+			min-height: 40px;
+			padding: 0;
 		}
 
 		.account-block {
 			justify-content: center;
-			padding-inline: 0;
+			gap: 0;
+			width: 40px;
+			height: 40px;
+			padding: 0;
+		}
+
+		.account-wrapper {
+			display: flex;
+			justify-content: center;
 		}
 
 		.sidebar-top {
-			flex-direction: column;
 			justify-content: center;
-			padding-inline: 0;
-			min-height: 72px;
+			padding: 0 0 8px;
+			min-height: 36px;
 		}
 
 		.logo {
-			flex: 0 0 auto;
-			padding-inline: 0;
+			display: none;
+		}
+
+		.account-popover {
+			left: calc(100% + 8px);
+			right: auto;
+			bottom: 0;
+			width: 224px;
 		}
 
 		.label-text,

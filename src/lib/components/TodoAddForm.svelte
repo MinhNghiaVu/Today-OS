@@ -65,7 +65,7 @@
 		</button>
 	{:else}
 		<div class="todo-add-meta">
-			<input type="date" class="meta-input" name="due_date" value={today} />
+			<input type="date" class="meta-input" name="due_date" value={today} aria-label="Due date" />
 			<Select name="priority" options={priorityOptions} />
 			<button type="submit" class="btn-primary">Add</button>
 		</div>
@@ -173,6 +173,22 @@
 	.icon-button:active {
 		background: var(--accent-pressed);
 		transform: translateY(1px);
+	}
+
+	@media (min-width: 720px) {
+		.todo-add-form:not(.compact) {
+			display: grid;
+			grid-template-columns: minmax(220px, 1fr) auto;
+			align-items: center;
+		}
+
+		.todo-add-form:not(.compact) .todo-add-meta {
+			min-width: max-content;
+		}
+
+		.todo-add-form:not(.compact) .meta-input {
+			width: 132px;
+		}
 	}
 
 	@media (max-width: 560px) {
