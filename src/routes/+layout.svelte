@@ -155,7 +155,7 @@
 		width: 240px;
 		background: var(--surface-1);
 		border-right: 1px solid var(--border-subtle);
-		padding: 24px 8px 16px;
+		padding: 16px 8px;
 		display: flex;
 		flex-direction: column;
 		gap: 8px;
@@ -274,6 +274,7 @@
 
 	.sidebar.collapsed .logo {
 		justify-content: center;
+		gap: 0;
 		width: 40px;
 		height: 40px;
 		flex: 0 0 40px;
@@ -539,7 +540,7 @@
 	@media (max-width: 760px) {
 		.sidebar {
 			width: 56px;
-			padding: 20px 8px 12px;
+			padding: 16px 8px 12px;
 			z-index: 20;
 		}
 
@@ -579,6 +580,7 @@
 
 		.logo {
 			justify-content: center;
+			gap: 0;
 			width: 40px;
 			height: 40px;
 			flex: 0 0 40px;
