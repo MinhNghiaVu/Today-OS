@@ -6,7 +6,8 @@ import {
 	getHabitTotalsForDate,
 	getNotesForDate
 } from '$lib/db';
-import { getEventsForDate, type CalendarEvent } from '$lib/google-calendar';
+import { getEventsForDate } from '$lib/google-calendar';
+import type { CalendarDayData, CalendarEvent } from '$lib/types';
 
 export const load: PageServerLoad = async ({ locals, url }) => {
 	const { supabase, user } = locals;
@@ -34,12 +35,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	const gcExpiry = tokenRow.data?.google_token_expiry ?? null;
 	const gcConnected = gcToken !== null && !(gcExpiry && new Date(gcExpiry) < new Date());
 
-	let dayData: {
-		todos: Awaited<ReturnType<typeof getTodosForDate>>;
-		habits: Awaited<ReturnType<typeof getHabitTotalsForDate>>;
-		notes: Awaited<ReturnType<typeof getNotesForDate>>;
-		gcEvents: CalendarEvent[];
-	} | null = null;
+	let dayData: CalendarDayData | null = null;
 
 	if (dateParam) {
 		const [todos, habits, notes, gcEvents] = await Promise.all([

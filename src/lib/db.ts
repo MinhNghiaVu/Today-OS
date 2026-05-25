@@ -137,8 +137,6 @@ export async function getNotesForDate(
 	return (data ?? []) as any;
 }
 
-export type DayActivity = CalendarDayActivity;
-
 export async function getCalendarMonthActivity(
 	sb: AppDbClient,
 	userId: string,

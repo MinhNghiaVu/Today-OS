@@ -1,7 +1,7 @@
 import { fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { getTodosToday, getHabitSummariesToday, getNotesForDate } from '$lib/db';
-import { getEventsForDate, type CalendarEvent } from '$lib/google-calendar';
+import { getEventsForDate } from '$lib/google-calendar';
 import { logHabitToday, removeHabitLog, updateHabitLog } from '$lib/server/habit-actions';
 import {
 	addTodoAction,
@@ -9,6 +9,7 @@ import {
 	toggleTodoAction,
 	updateTodoAction
 } from '$lib/server/todo-actions';
+import type { CalendarEvent } from '$lib/types';
 
 export const load: PageServerLoad = async ({ locals }) => {
 	const { user } = locals;

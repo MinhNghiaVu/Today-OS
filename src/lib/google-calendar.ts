@@ -1,7 +1,5 @@
 import type { CalendarEvent } from './types';
 
-export type { CalendarEvent };
-
 const CALENDAR_TIMEOUT_MS = 2500;
 
 export async function getEventsForDate(accessToken: string, date: string): Promise<CalendarEvent[]> {
@@ -49,12 +47,4 @@ export async function getEventsForDate(accessToken: string, date: string): Promi
 	} finally {
 		clearTimeout(timeout);
 	}
-}
-
-export function formatEventTime(iso: string): string {
-	return new Date(iso).toLocaleTimeString('en-US', {
-		hour: 'numeric',
-		minute: '2-digit',
-		hour12: true
-	});
 }
