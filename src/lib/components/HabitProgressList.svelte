@@ -34,11 +34,10 @@
 	export let removeLogAction = '?/removeHabitLog';
 	export let toggleActiveAction = '?/toggleActive';
 	export let removeHabitAction = '?/remove';
+	export let date = new Date().toISOString().slice(0, 10);
 	export let showLogs = true;
 	export let showManageActions = false;
 	export let onEdit: (habit: HabitWithTodayLogs) => void = () => {};
-
-	const todayStr = new Date().toISOString().slice(0, 10);
 
 	let activeHabitId: string | null = null;
 	let logAmount = '';
@@ -174,7 +173,7 @@
 									habitId: habit.id,
 									value,
 									sequence: ++optimisticLogSeq,
-									date: todayStr
+									date
 								})
 							: null;
 						if (optimistic) habits = applyHabitLogAdd(habits, optimistic);
@@ -191,6 +190,7 @@
 					}}
 				>
 					<input type="hidden" name="habit_id" value={habit.id} />
+					<input type="hidden" name="date" value={date} />
 					<input
 						type="text"
 						inputmode="decimal"

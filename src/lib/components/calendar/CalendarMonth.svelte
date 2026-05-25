@@ -9,7 +9,6 @@
 	export let today: string;
 	export let onNavigate: (direction: -1 | 1) => void = () => {};
 	export let onSelectDate: (date: string) => void = () => {};
-	export let onSelectToday: () => void = () => {};
 
 	const MONTH_NAMES = [
 		'January',
@@ -32,7 +31,7 @@
 	$: activityMap = new Map(activity.map((item) => [item.date, item]));
 	$: firstDayOfWeek = new Date(year, month - 1, 1).getDay();
 	$: daysInMonth = new Date(year, month, 0).getDate();
-	$: monthLabel = `${MONTH_NAMES[month - 1]} ${year}`;
+	$: monthName = MONTH_NAMES[month - 1];
 
 	$: calendarCells = (() => {
 		const cells: CalendarCell[] = [];
@@ -60,21 +59,15 @@
 
 <section class="calendar-card" aria-label="Calendar month">
 	<div class="calendar-toolbar">
-		<div class="toolbar-copy">
-			<h2>{monthLabel}</h2>
-			<p>{selectedDate ?? today}</p>
-		</div>
+		<h2><span>{monthName}</span> <span class="muted-year">{year}</span></h2>
 
-		<div class="toolbar-actions">
-			<button class="today-button" type="button" on:click={onSelectToday}>Today</button>
-			<div class="icon-group" aria-label="Month navigation">
-				<button class="icon-button" type="button" on:click={() => onNavigate(-1)} aria-label="Previous month">
-					<ChevronLeft size={16} strokeWidth={2} />
-				</button>
-				<button class="icon-button" type="button" on:click={() => onNavigate(1)} aria-label="Next month">
-					<ChevronRight size={16} strokeWidth={2} />
-				</button>
-			</div>
+		<div class="icon-group" aria-label="Month navigation">
+			<button class="icon-button" type="button" on:click={() => onNavigate(-1)} aria-label="Previous month">
+				<ChevronLeft size={17} strokeWidth={2.2} />
+			</button>
+			<button class="icon-button" type="button" on:click={() => onNavigate(1)} aria-label="Next month">
+				<ChevronRight size={17} strokeWidth={2.2} />
+			</button>
 		</div>
 	</div>
 
@@ -102,115 +95,74 @@
 					<span class="day-number">{cell.day}</span>
 					{#if dayActivity}
 						<span class="markers" aria-hidden="true">
-							{#if dayActivity.hasTodos}
-								<span class="marker todo"></span>
-							{/if}
-							{#if dayActivity.hasHabitLogs}
-								<span class="marker habit"></span>
-							{/if}
-							{#if dayActivity.hasNotes}
-								<span class="marker note"></span>
-							{/if}
+							<span class="marker" class:active={dayActivity.hasTodos || dayActivity.hasHabitLogs || dayActivity.hasNotes}></span>
 						</span>
 					{/if}
 				</button>
 			{/if}
 		{/each}
 	</div>
-
-	<div class="legend" aria-label="Activity legend">
-		<span><span class="marker todo"></span>Todos</span>
-		<span><span class="marker habit"></span>Habits</span>
-		<span><span class="marker note"></span>Notes</span>
-	</div>
 </section>
 
 <style>
 	.calendar-card {
-		min-width: 0;
-		overflow: hidden;
+		width: 320px;
+		max-width: 100%;
 		background: var(--surface-1);
-		border: 1px solid var(--border-default);
 		border-radius: var(--radius-lg);
+		padding: 20px;
+		box-shadow: var(--shadow-sm);
 	}
 
 	.calendar-toolbar {
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		gap: 16px;
-		padding: 16px 20px;
-		border-bottom: 1px solid var(--border-subtle);
-	}
-
-	.toolbar-copy {
-		display: flex;
-		flex-direction: column;
-		gap: 2px;
-		min-width: 0;
-	}
-
-	h2,
-	p {
-		margin: 0;
+		gap: 12px;
+		margin-bottom: 20px;
 	}
 
 	h2 {
+		margin: 0;
 		color: var(--text-primary);
 		font-size: 18px;
 		font-weight: 600;
-		line-height: 1.3;
+		line-height: 1.2;
 	}
 
-	p {
+	.muted-year {
 		color: var(--text-tertiary);
-		font-size: 13px;
-		line-height: 1.4;
+		font-weight: 600;
 	}
 
-	.toolbar-actions,
 	.icon-group {
 		display: flex;
 		align-items: center;
 		gap: 8px;
 	}
 
-	.today-button,
 	.icon-button {
-		height: 32px;
-		border: 1px solid var(--border-default);
-		border-radius: var(--radius-md);
-		background: var(--surface-2);
-		color: var(--text-secondary);
-		font: inherit;
-		font-size: 13px;
-		cursor: pointer;
-		transition:
-			background-color 120ms var(--ease-out),
-			border-color 120ms var(--ease-out),
-			color 120ms var(--ease-out);
-	}
-
-	.today-button {
-		padding: 0 12px;
-	}
-
-	.icon-button {
-		width: 32px;
+		width: 30px;
+		height: 30px;
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
-		padding: 0;
+		border: none;
+		border-radius: var(--radius-md);
+		background: transparent;
+		color: var(--text-secondary);
+		font: inherit;
+		cursor: pointer;
+		transition:
+			background-color 120ms var(--ease-out),
+			color 120ms var(--ease-out);
 	}
 
-	.today-button:hover,
 	.icon-button:hover {
-		background: var(--surface-3);
-		border-color: var(--border-strong);
+		background: var(--surface-2);
 		color: var(--text-primary);
 	}
 
-	.today-button:focus-visible,
 	.icon-button:focus-visible,
 	.day-cell:focus-visible {
 		outline: 2px solid var(--border-focus);
@@ -220,54 +172,50 @@
 	.month-grid {
 		display: grid;
 		grid-template-columns: repeat(7, minmax(0, 1fr));
+		gap: 6px;
 	}
 
 	.weekday {
 		display: flex;
 		align-items: center;
-		height: 36px;
-		padding: 0 12px;
-		border-bottom: 1px solid var(--border-subtle);
+		justify-content: center;
+		height: 28px;
 		color: var(--text-tertiary);
 		font-size: 11px;
-		font-weight: 500;
+		font-weight: 600;
+		letter-spacing: 0.08em;
 		line-height: 1;
+		text-transform: uppercase;
 	}
 
 	.day-cell {
+		width: 100%;
 		min-width: 0;
-		min-height: 88px;
+		height: 40px;
 		display: flex;
 		flex-direction: column;
-		align-items: flex-start;
-		justify-content: space-between;
-		gap: 8px;
-		padding: 12px;
+		align-items: center;
+		justify-content: center;
+		gap: 3px;
+		padding: 0;
 		border: 0;
-		border-right: 1px solid var(--border-subtle);
-		border-bottom: 1px solid var(--border-subtle);
-		background: transparent;
-		color: var(--text-secondary);
+		border-radius: var(--radius-md);
+		background: var(--surface-2);
+		color: var(--text-primary);
 		font: inherit;
-		text-align: left;
 		cursor: pointer;
 		transition:
 			background-color 120ms var(--ease-out),
 			color 120ms var(--ease-out);
 	}
 
-	.day-cell:nth-child(7n) {
-		border-right: 0;
-	}
-
 	.day-cell.empty {
 		cursor: default;
-		background: color-mix(in oklab, var(--surface-2) 28%, transparent);
+		background: transparent;
 	}
 
 	.day-cell:not(.empty):hover {
-		background: var(--surface-2);
-		color: var(--text-primary);
+		background: var(--surface-3);
 	}
 
 	.day-cell.is-selected {
@@ -283,23 +231,17 @@
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
-		width: 28px;
-		height: 28px;
-		border-radius: var(--radius-md);
-		font-size: 13px;
-		font-weight: 500;
+		font-size: 14px;
+		font-weight: 600;
 		line-height: 1;
 	}
 
 	.day-cell.is-today .day-number {
 		color: var(--accent);
-		box-shadow: inset 0 0 0 1px var(--accent);
 	}
 
 	.day-cell.is-selected .day-number {
-		background: var(--accent);
-		color: var(--text-on-accent);
-		box-shadow: none;
+		color: var(--accent);
 	}
 
 	.markers {
@@ -311,70 +253,19 @@
 
 	.marker {
 		display: inline-block;
-		width: 6px;
-		height: 6px;
+		width: 5px;
+		height: 5px;
 		border-radius: var(--radius-full);
+		background: transparent;
 	}
 
-	.marker.todo {
-		background: var(--accent);
-	}
-
-	.marker.habit {
-		background: var(--success);
-	}
-
-	.marker.note {
-		background: var(--info);
-	}
-
-	.legend {
-		display: flex;
-		align-items: center;
-		gap: 16px;
-		padding: 12px 20px;
-		color: var(--text-tertiary);
-		font-size: 12px;
-		border-top: 1px solid var(--border-subtle);
-	}
-
-	.legend span {
-		display: inline-flex;
-		align-items: center;
-		gap: 6px;
+	.marker.active {
+		background: var(--text-primary);
 	}
 
 	@media (max-width: 760px) {
 		.calendar-toolbar {
-			align-items: flex-start;
-			flex-direction: column;
-			padding: 16px;
-		}
-
-		.toolbar-actions {
-			width: 100%;
-			justify-content: space-between;
-		}
-
-		.day-cell {
-			min-height: 56px;
-			padding: 8px;
-		}
-
-		.weekday {
-			height: 32px;
-			justify-content: center;
-			padding: 0;
-		}
-
-		.day-number {
-			width: 24px;
-			height: 24px;
-		}
-
-		.legend {
-			padding: 12px 16px;
-			flex-wrap: wrap;
+			margin-bottom: 16px;
 		}
 	}
 </style>

@@ -2,12 +2,12 @@ import { fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { getNotes } from '$lib/db';
 
-export const load: PageServerLoad = async ({ locals }) => {
+export const load: PageServerLoad = async ({ locals, url }) => {
 	const { user } = locals;
 	if (!user) redirect(303, '/login');
 
 	const notes = await getNotes(locals.supabase, user.id);
-	return { notes };
+	return { notes, selectedId: url.searchParams.get('id') };
 };
 
 export const actions: Actions = {

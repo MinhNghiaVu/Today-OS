@@ -9,7 +9,8 @@
 
 	export let data: PageData;
 
-	let selectedId: string | null = data.notes[0]?.id ?? null;
+	let selectedId: string | null = data.selectedId ?? data.notes[0]?.id ?? null;
+	let requestedId: string | null = data.selectedId;
 	let activeTab = 'edit';
 	const editorTabs = [{ value: 'edit', label: 'Edit' }, { value: 'preview', label: 'Preview' }];
 	let editTitle = '';
@@ -17,11 +18,14 @@
 	let saveTimer: ReturnType<typeof setTimeout>;
 	let prevId: string | null = null;
 
-	$: sorted = [...data.notes].sort(
-		(a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
-	);
+	$: sorted = [...data.notes].sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
 
 	$: selected = data.notes.find((n) => n.id === selectedId) ?? null;
+
+	$: if (data.selectedId && data.selectedId !== requestedId) {
+		requestedId = selectedId = data.selectedId;
+		activeTab = 'edit';
+	}
 
 	$: if (selectedId !== prevId) {
 		prevId = selectedId;

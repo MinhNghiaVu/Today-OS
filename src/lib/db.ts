@@ -4,7 +4,6 @@ import type {
 	Todo,
 	Habit,
 	HabitLog,
-	HabitWithTotal,
 	HabitWithTodayLogs,
 	Note,
 	Job
@@ -100,28 +99,6 @@ export async function getTodosForDate(
 	return sortTodos((data ?? []) as Todo[]);
 }
 
-export async function getHabitTotalsForDate(
-	sb: AppDbClient,
-	userId: string,
-	date: string
-): Promise<HabitWithTotal[]> {
-	const [{ data: habits, error: hErr }, { data: logs, error: lErr }] = await Promise.all([
-		sb.from('habit_definitions').select('*').eq('user_id', userId).eq('is_active', true).order('created_at'),
-		sb.from('habit_logs').select('*').eq('user_id', userId).eq('date', date)
-	]);
-	if (hErr) throw hErr;
-	if (lErr) throw lErr;
-
-	const totals = new Map<string, number>();
-	for (const log of ((logs ?? []) as HabitLog[])) {
-		totals.set(log.habit_id, (totals.get(log.habit_id) ?? 0) + log.value);
-	}
-	return ((habits ?? []) as Habit[]).map((h) => ({
-		...h,
-		total: parseFloat(((totals.get(h.id) ?? 0)).toFixed(6))
-	}));
-}
-
 export async function getNotesForDate(
 	sb: AppDbClient,
 	userId: string,
@@ -182,8 +159,17 @@ export async function getHabitSummariesToday(
 	userId: string,
 	options: { includeInactive?: boolean } = {}
 ): Promise<HabitWithTodayLogs[]> {
-	const todayDate = today();
-	const start = new Date(`${todayDate}T00:00:00`);
+	return getHabitSummariesForDate(sb, userId, today(), options);
+}
+
+export async function getHabitSummariesForDate(
+	sb: AppDbClient,
+	userId: string,
+	date: string,
+	options: { includeInactive?: boolean } = {}
+): Promise<HabitWithTodayLogs[]> {
+	const targetDate = date;
+	const start = new Date(`${targetDate}T00:00:00`);
 	start.setDate(start.getDate() - 6);
 	const startDate = start.toISOString().slice(0, 10);
 
@@ -201,7 +187,7 @@ export async function getHabitSummariesToday(
 			.select('*')
 			.eq('user_id', userId)
 			.gte('date', startDate)
-			.lte('date', todayDate)
+			.lte('date', targetDate)
 			.order('created_at', { ascending: false })
 	]);
 
@@ -219,7 +205,7 @@ export async function getHabitSummariesToday(
 		let daysMet = 0;
 		let todayTotal = 0;
 		const todayLogs = ((logs ?? []) as HabitLog[]).filter(
-			(log) => log.habit_id === habit.id && log.date === todayDate
+			(log) => log.habit_id === habit.id && log.date === targetDate
 		);
 
 		for (let offset = 0; offset < 7; offset++) {
@@ -228,7 +214,7 @@ export async function getHabitSummariesToday(
 			const date = d.toISOString().slice(0, 10);
 			const total = totalsByHabitDate.get(`${habit.id}:${date}`) ?? 0;
 
-			if (date === todayDate) todayTotal = total;
+			if (date === targetDate) todayTotal = total;
 			if (total > 0) daysLogged += 1;
 			if (habit.daily_goal !== null) {
 				if (habit.type === 'min_goal' && total >= habit.daily_goal) daysMet += 1;

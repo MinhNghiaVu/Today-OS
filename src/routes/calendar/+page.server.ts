@@ -1,12 +1,19 @@
 import { error } from '@sveltejs/kit';
-import type { PageServerLoad } from './$types';
+import type { Actions, PageServerLoad } from './$types';
 import {
 	getCalendarMonthActivity,
 	getTodosForDate,
-	getHabitTotalsForDate,
+	getHabitSummariesForDate,
 	getNotesForDate
 } from '$lib/db';
 import { getEventsForDate } from '$lib/google-calendar';
+import { logHabit, removeHabitLog, updateHabitLog } from '$lib/server/habit-actions';
+import {
+	addTodoAction,
+	removeTodoAction,
+	toggleTodoAction,
+	updateTodoAction
+} from '$lib/server/todo-actions';
 import type { CalendarDayData, CalendarEvent } from '$lib/types';
 
 export const load: PageServerLoad = async ({ locals, url }) => {
@@ -40,7 +47,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	if (dateParam) {
 		const [todos, habits, notes, gcEvents] = await Promise.all([
 			getTodosForDate(supabase, user.id, dateParam),
-			getHabitTotalsForDate(supabase, user.id, dateParam),
+			getHabitSummariesForDate(supabase, user.id, dateParam),
 			getNotesForDate(supabase, user.id, dateParam),
 			gcConnected ? getEventsForDate(gcToken!, dateParam).catch(() => []) : Promise.resolve([] as CalendarEvent[])
 		]);
@@ -56,4 +63,40 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		gcConnected,
 		today: now.toISOString().slice(0, 10)
 	};
+};
+
+export const actions: Actions = {
+	addTodo: async ({ locals, request, url }) => {
+		const defaultDueDate = url.searchParams.get('date') ?? new Date().toISOString().slice(0, 10);
+		return addTodoAction({
+			request,
+			supabase: locals.supabase,
+			userId: locals.user?.id,
+			defaultDueDate
+		});
+	},
+
+	toggleTodo: async ({ locals, request }) => {
+		return toggleTodoAction({ request, supabase: locals.supabase, userId: locals.user?.id });
+	},
+
+	updateTodo: async ({ locals, request }) => {
+		return updateTodoAction({ request, supabase: locals.supabase, userId: locals.user?.id });
+	},
+
+	removeTodo: async ({ locals, request }) => {
+		return removeTodoAction({ request, supabase: locals.supabase, userId: locals.user?.id });
+	},
+
+	logHabit: async ({ locals, request }) => {
+		return logHabit({ request, supabase: locals.supabase, userId: locals.user?.id });
+	},
+
+	updateHabitLog: async ({ locals, request }) => {
+		return updateHabitLog({ request, supabase: locals.supabase, userId: locals.user?.id });
+	},
+
+	removeHabitLog: async ({ locals, request }) => {
+		return removeHabitLog({ request, supabase: locals.supabase, userId: locals.user?.id });
+	}
 };

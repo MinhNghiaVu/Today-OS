@@ -2,7 +2,7 @@ import { fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { getTodosToday, getHabitSummariesToday, getNotesForDate } from '$lib/db';
 import { getEventsForDate } from '$lib/google-calendar';
-import { logHabitToday, removeHabitLog, updateHabitLog } from '$lib/server/habit-actions';
+import { logHabit, removeHabitLog, updateHabitLog } from '$lib/server/habit-actions';
 import {
 	addTodoAction,
 	removeTodoAction,
@@ -68,7 +68,7 @@ export const actions: Actions = {
 	},
 
 	logHabit: async ({ locals, request }) => {
-		return logHabitToday({ request, supabase: locals.supabase, userId: locals.user?.id });
+		return logHabit({ request, supabase: locals.supabase, userId: locals.user?.id });
 	},
 
 	updateHabitLog: async ({ locals, request }) => {

@@ -8,12 +8,22 @@ type HabitActionInput = {
 	userId: string | undefined;
 };
 
-export async function logHabitToday({ request, supabase, userId }: HabitActionInput) {
+function today(): string {
+	return new Date().toISOString().slice(0, 10);
+}
+
+function readDate(value: FormDataEntryValue | null): string {
+	const raw = typeof value === 'string' ? value : '';
+	return /^\d{4}-\d{2}-\d{2}$/.test(raw) ? raw : today();
+}
+
+export async function logHabit({ request, supabase, userId }: HabitActionInput) {
 	if (!userId) return fail(401);
 
 	const form = await request.formData();
 	const habit_id = form.get('habit_id') as string;
 	const value = parseLocalizedNumber(form.get('value'));
+	const date = readDate(form.get('date'));
 
 	if (!habit_id || isNaN(value) || value <= 0) return fail(400, { error: 'Invalid log' });
 
@@ -26,10 +36,9 @@ export async function logHabitToday({ request, supabase, userId }: HabitActionIn
 
 	if (habitError || !habit) return fail(404, { error: 'Habit not found' });
 
-	const today = new Date().toISOString().slice(0, 10);
 	const { data, error } = await supabase
 		.from('habit_logs')
-		.insert({ user_id: userId, habit_id, date: today, value })
+		.insert({ user_id: userId, habit_id, date, value })
 		.select('*')
 		.single();
 

@@ -1,24 +1,28 @@
 <script lang="ts">
-	import { CalendarDays, X } from 'lucide-svelte';
+	import { CalendarDays, ChevronRight, Clock, FileText, X } from 'lucide-svelte';
+	import HabitProgressList from '$lib/components/HabitProgressList.svelte';
+	import TodoList from '$lib/components/TodoList.svelte';
 	import type { CalendarDayData } from '$lib/types';
-	import CalendarDaySections from './CalendarDaySections.svelte';
 
 	export let selectedDate: string | null = null;
 	export let dayData: CalendarDayData | null = null;
 	export let gcConnected = false;
 	export let onClose: () => void = () => {};
 
+	function formatTime(iso: string): string {
+		return new Date(iso).toLocaleTimeString('en-US', {
+			hour: 'numeric',
+			minute: '2-digit',
+			hour12: true
+		});
+	}
+
 	function formatSelectedDate(date: string): string {
 		return new Date(`${date}T00:00:00`).toLocaleDateString('en-AU', {
 			weekday: 'long',
 			day: 'numeric',
-			month: 'long',
-			year: 'numeric'
+			month: 'long'
 		});
-	}
-
-	function plural(count: number, singular: string, pluralForm = `${singular}s`): string {
-		return `${count} ${count === 1 ? singular : pluralForm}`;
 	}
 </script>
 
@@ -34,14 +38,97 @@
 			</button>
 		</header>
 
-		<div class="summary-strip" aria-label="Daily activity totals">
-			<span>{plural(dayData.gcEvents.length, 'event')}</span>
-			<span>{plural(dayData.todos.length, 'todo')}</span>
-			<span>{plural(dayData.habits.filter((habit) => habit.total > 0).length, 'habit logged', 'habits logged')}</span>
-			<span>{plural(dayData.notes.length, 'note')}</span>
-		</div>
+		<section class="panel-section">
+			<div class="section-heading">
+				<span class="section-title">
+					<Clock size={14} strokeWidth={2} aria-hidden="true" />
+					Schedule
+				</span>
+				<span class="section-count">{dayData.gcEvents.length}</span>
+			</div>
 
-		<CalendarDaySections {dayData} {gcConnected} />
+			{#if !gcConnected}
+				<a href="/auth/connect-calendar" class="connect-link">
+					<span>Connect Google Calendar</span>
+					<ChevronRight size={14} strokeWidth={2} aria-hidden="true" />
+				</a>
+			{:else if dayData.gcEvents.length === 0}
+				<p class="empty-inline">No events.</p>
+			{:else}
+				<ul class="event-list">
+					{#each dayData.gcEvents as event (event.id)}
+						<li>
+							<span class="event-time">{event.allDay ? 'All day' : formatTime(event.start)}</span>
+							<span class="event-copy">
+								<span class="event-title">{event.title}</span>
+								{#if event.location}
+									<span class="event-location">{event.location}</span>
+								{/if}
+							</span>
+						</li>
+					{/each}
+				</ul>
+			{/if}
+		</section>
+
+		<section class="panel-section">
+			<div class="section-heading">
+				<span class="section-title">Todos</span>
+				<span class="section-count">{dayData.todos.length}</span>
+			</div>
+			<TodoList
+				todos={dayData.todos}
+				today={selectedDate}
+				addAction="?/addTodo"
+				toggleAction="?/toggleTodo"
+				updateAction="?/updateTodo"
+				removeAction="?/removeTodo"
+				compact
+				showDueDate={false}
+				emptyMode="inline"
+				emptyTitle="No todos"
+				emptyDescription="Add one for this day."
+			/>
+		</section>
+
+		<section class="panel-section">
+			<div class="section-heading">
+				<span class="section-title">Habits</span>
+				<span class="section-count">{dayData.habits.length}</span>
+			</div>
+			<HabitProgressList
+				habits={dayData.habits}
+				date={selectedDate}
+				logAction="?/logHabit"
+				updateLogAction="?/updateHabitLog"
+				removeLogAction="?/removeHabitLog"
+			/>
+		</section>
+
+		<section class="panel-section">
+			<div class="section-heading">
+				<span class="section-title">
+					<FileText size={14} strokeWidth={2} aria-hidden="true" />
+					Notes
+				</span>
+				<span class="section-count">{dayData.notes.length}</span>
+			</div>
+
+			{#if dayData.notes.length === 0}
+				<p class="empty-inline">No notes for this day.</p>
+			{:else}
+				<ul class="note-list">
+					{#each dayData.notes as note}
+						<li>
+							<a href="/notes?id={note.id}" class="note-link">
+								<span>{note.title || 'Untitled'}</span>
+								<ChevronRight size={14} strokeWidth={2} aria-hidden="true" />
+							</a>
+						</li>
+					{/each}
+				</ul>
+			{/if}
+		</section>
 	</aside>
 {:else}
 	<aside class="day-panel empty-panel" aria-label="Selected day activity">
@@ -49,7 +136,7 @@
 			<CalendarDays size={28} strokeWidth={1.5} aria-hidden="true" />
 			<div>
 				<h2>No day selected</h2>
-				<p>Choose a date to see schedule, todos, habits, and notes.</p>
+				<p>Choose a date to edit its todos, habits, and notes.</p>
 			</div>
 		</div>
 	</aside>
@@ -69,7 +156,7 @@
 		align-items: flex-start;
 		justify-content: space-between;
 		gap: 16px;
-		padding: 16px 20px;
+		padding: 16px;
 		border-bottom: 1px solid var(--border-subtle);
 	}
 
@@ -101,65 +188,169 @@
 	}
 
 	.icon-button {
-		width: 32px;
-		height: 32px;
+		width: 30px;
+		height: 30px;
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
 		flex: 0 0 auto;
-		border: 1px solid var(--border-default);
+		border: none;
 		border-radius: var(--radius-md);
-		background: var(--surface-2);
+		background: transparent;
 		color: var(--text-secondary);
 		cursor: pointer;
 		transition:
 			background-color 120ms var(--ease-out),
-			border-color 120ms var(--ease-out),
 			color 120ms var(--ease-out);
 	}
 
 	.icon-button:hover {
-		background: var(--surface-3);
-		border-color: var(--border-strong);
+		background: var(--surface-2);
 		color: var(--text-primary);
 	}
 
-	.icon-button:focus-visible {
+	.icon-button:focus-visible,
+	.connect-link:focus-visible,
+	.note-link:focus-visible {
 		outline: 2px solid var(--border-focus);
 		outline-offset: 2px;
 	}
 
-	.summary-strip {
-		display: grid;
-		grid-template-columns: repeat(2, minmax(0, 1fr));
-		gap: 0;
+	.panel-section {
+		display: flex;
+		flex-direction: column;
+		gap: 12px;
+		padding: 16px;
 		border-bottom: 1px solid var(--border-subtle);
-		background: color-mix(in oklab, var(--surface-2) 42%, transparent);
 	}
 
-	.summary-strip span {
-		min-width: 0;
-		padding: 10px 16px;
-		color: var(--text-secondary);
-		font-size: 12px;
-		line-height: 1.4;
-		border-right: 1px solid var(--border-subtle);
-		border-bottom: 1px solid var(--border-subtle);
-		white-space: nowrap;
-		overflow: hidden;
-		text-overflow: ellipsis;
-	}
-
-	.summary-strip span:nth-child(2n) {
-		border-right: 0;
-	}
-
-	.summary-strip span:nth-last-child(-n + 2) {
+	.panel-section:last-child {
 		border-bottom: 0;
 	}
 
+	.section-heading,
+	.section-title,
+	.connect-link,
+	.note-link {
+		display: flex;
+		align-items: center;
+	}
+
+	.section-heading {
+		justify-content: space-between;
+		gap: 12px;
+	}
+
+	.section-title {
+		gap: 8px;
+		min-width: 0;
+		color: var(--text-secondary);
+		font-size: 13px;
+		font-weight: 500;
+		line-height: 1.4;
+	}
+
+	.section-count {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		min-width: 24px;
+		height: 22px;
+		padding: 0 8px;
+		border-radius: var(--radius-full);
+		background: var(--surface-2);
+		color: var(--text-tertiary);
+		font-size: 12px;
+		line-height: 1;
+	}
+
+	.empty-inline {
+		margin: 0;
+		color: var(--text-tertiary);
+		font-size: 13px;
+		line-height: 1.5;
+	}
+
+	.connect-link,
+	.note-link {
+		justify-content: space-between;
+		gap: 12px;
+		min-height: 36px;
+		border-radius: var(--radius-md);
+		color: var(--accent);
+		font-size: 13px;
+		font-weight: 500;
+	}
+
+	.event-list,
+	.note-list {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+		display: flex;
+		flex-direction: column;
+		border-top: 1px solid var(--border-subtle);
+	}
+
+	.event-list li,
+	.note-list li {
+		min-width: 0;
+		border-bottom: 1px solid var(--border-subtle);
+	}
+
+	.event-list li:last-child,
+	.note-list li:last-child {
+		border-bottom: 0;
+	}
+
+	.event-list li {
+		display: grid;
+		grid-template-columns: 68px minmax(0, 1fr);
+		gap: 12px;
+		padding: 10px 0;
+	}
+
+	.event-time,
+	.event-location {
+		color: var(--text-tertiary);
+		font-size: 12px;
+		line-height: 1.5;
+	}
+
+	.event-copy {
+		min-width: 0;
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+	}
+
+	.event-title,
+	.event-location,
+	.note-link span {
+		min-width: 0;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.event-title,
+	.note-link span {
+		color: var(--text-primary);
+		font-size: 13px;
+		line-height: 1.5;
+	}
+
+	.note-link {
+		padding: 10px 0;
+		color: var(--text-secondary);
+	}
+
+	.note-link:hover span {
+		color: var(--accent);
+	}
+
 	.empty-panel {
-		min-height: 360px;
+		min-height: 260px;
 		display: flex;
 		align-items: center;
 		justify-content: center;
@@ -188,15 +379,8 @@
 		line-height: 1.5;
 	}
 
-	@media (max-width: 760px) {
-		.panel-header {
-			padding-right: 16px;
-			padding-left: 16px;
-		}
-
-		.summary-strip span {
-			padding-right: 12px;
-			padding-left: 12px;
-		}
+	.panel-section :global(.todo-list-shell),
+	.panel-section :global(.habit-list) {
+		min-width: 0;
 	}
 </style>

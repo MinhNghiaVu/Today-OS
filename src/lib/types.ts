@@ -77,7 +77,7 @@ export interface CalendarDayActivity {
 
 export interface CalendarDayData {
 	todos: Todo[];
-	habits: HabitWithTotal[];
+	habits: HabitWithTodayLogs[];
 	notes: Note[];
 	gcEvents: CalendarEvent[];
 }

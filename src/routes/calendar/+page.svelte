@@ -30,16 +30,6 @@
 		goto(`/calendar?${params}`);
 	}
 
-	function selectToday(): void {
-		const todayDate = new Date(`${today}T00:00:00`);
-		const params = new URLSearchParams({
-			year: String(todayDate.getFullYear()),
-			month: String(todayDate.getMonth() + 1),
-			date: today
-		});
-		goto(`/calendar?${params}`);
-	}
-
 	function clearDate(): void {
 		goto(`/calendar?year=${year}&month=${month}`);
 	}
@@ -60,7 +50,6 @@
 				{today}
 				onNavigate={navigate}
 				onSelectDate={selectDate}
-				onSelectToday={selectToday}
 			/>
 
 			<CalendarDayPanel
@@ -105,7 +94,7 @@
 
 	.calendar-shell {
 		display: grid;
-		grid-template-columns: minmax(0, 1fr) minmax(320px, 380px);
+		grid-template-columns: 320px minmax(0, 620px);
 		align-items: start;
 		gap: 16px;
 	}
