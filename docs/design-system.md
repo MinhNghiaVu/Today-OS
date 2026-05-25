@@ -240,7 +240,7 @@ Page-level structure (top to bottom):
 Fixed width 240–260px, `--surface-1` background, 1px right border (`--border-subtle`). Inside:
 
 - **Brand mark** — top, 20px height, 16–20px page padding around it.
-- **Collapse state** — desktop sidebar may collapse to a 64px icon rail. The collapse/expand control stays in the sidebar header, labels fade away, nav items keep their icon targets centered, and the account popover opens beside the rail instead of being clipped.
+- **Collapse state** — desktop sidebar may collapse to a 56px icon rail. The logo is hidden in the rail, the collapse/expand control stays in the same sidebar header position, labels fade away, nav items keep their icon targets centered, and the account popover opens beside the rail instead of being clipped.
 - **Nav section** — 8px padding, 2px gap between items. Section labels (uppercase, 11px) above grouped items if there are multiple groups.
 - **Spacer** — `flex-1`, pushes the account block to the bottom.
 - **Account block** — single button at the bottom (see Component specs §8.7).
@@ -305,7 +305,7 @@ States:
 - **Error:** `border-color: --danger`, with a `--danger` helper text 4px below.
 - **Disabled:** 50% opacity.
 
-**Inputs never contain other controls.** No date pickers, dropdowns, priority badges, or submit buttons crammed inside a text input. The Add-Todo pattern: a single text input on the top row, then a separate row below (or a popover that opens on focus) for date / priority / submit. The current Todos page violates this and is the canonical "what not to ship" example.
+**Inputs never contain other controls.** No date pickers, dropdowns, priority badges, or submit buttons crammed inside a text input. The Add-Todo pattern keeps title, date, priority, and submit as separate controls; on wide desktop they may share one row, while narrower widths stack metadata below the title input.
 
 Textarea: same recipe, vertical padding `py-2.5`, min-height by lines (e.g. `min-h-[80px]` for a description, `min-h-[200px]` for a body). Auto-grow if the content allows it.
 
