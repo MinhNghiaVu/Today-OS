@@ -1,5 +1,14 @@
 import type { AppDbClient } from '$lib/server/neon-client';
-import type { Todo, Habit, HabitLog, HabitWithTotal, HabitWithTodayLogs, Note, Job } from './types';
+import type {
+	CalendarDayActivity,
+	Todo,
+	Habit,
+	HabitLog,
+	HabitWithTotal,
+	HabitWithTodayLogs,
+	Note,
+	Job
+} from './types';
 import { sortTodos } from '$lib/utils/todos';
 
 function today(): string {
@@ -128,19 +137,14 @@ export async function getNotesForDate(
 	return (data ?? []) as any;
 }
 
-export interface DayActivity {
-	date: string;
-	hasTodos: boolean;
-	hasHabitLogs: boolean;
-	hasNotes: boolean;
-}
+export type DayActivity = CalendarDayActivity;
 
 export async function getCalendarMonthActivity(
 	sb: AppDbClient,
 	userId: string,
 	year: number,
 	month: number
-): Promise<DayActivity[]> {
+): Promise<CalendarDayActivity[]> {
 	const start = `${year}-${String(month).padStart(2, '0')}-01`;
 	const lastDay = new Date(year, month, 0).getDate();
 	const end = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
@@ -155,7 +159,7 @@ export async function getCalendarMonthActivity(
 	const logSet = new Set(((logs ?? []) as Pick<HabitLog, 'date'>[]).map((l) => l.date));
 	const noteSet = new Set(((notes ?? []) as Pick<Note, 'date'>[]).map((n) => n.date));
 
-	const days: DayActivity[] = [];
+	const days: CalendarDayActivity[] = [];
 	for (let d = 1; d <= lastDay; d++) {
 		const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
 		days.push({

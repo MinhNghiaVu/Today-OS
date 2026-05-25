@@ -1,11 +1,6 @@
-export interface CalendarEvent {
-	id: string;
-	title: string;
-	start: string;
-	end: string;
-	allDay: boolean;
-	location?: string;
-}
+import type { CalendarEvent } from './types';
+
+export type { CalendarEvent };
 
 const CALENDAR_TIMEOUT_MS = 2500;
 

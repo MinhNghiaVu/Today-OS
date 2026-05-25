@@ -59,6 +59,29 @@ export interface HabitWithTodayLogs extends HabitWithTotal {
 	todayLogs: HabitLog[];
 }
 
+export interface CalendarEvent {
+	id: string;
+	title: string;
+	start: string;
+	end: string;
+	allDay: boolean;
+	location?: string;
+}
+
+export interface CalendarDayActivity {
+	date: string;
+	hasTodos: boolean;
+	hasHabitLogs: boolean;
+	hasNotes: boolean;
+}
+
+export interface CalendarDayData {
+	todos: Todo[];
+	habits: HabitWithTotal[];
+	notes: Note[];
+	gcEvents: CalendarEvent[];
+}
+
 export type JobStatus =
 	| 'pending' | 'applied' | 'recruiter_screen' | 'interview'
 	| 'offer' | 'rejected' | 'ghosted' | 'dropped';
