@@ -155,7 +155,7 @@
 		width: 240px;
 		background: var(--surface-1);
 		border-right: 1px solid var(--border-subtle);
-		padding: 16px 8px;
+		padding: 24px 8px 16px;
 		display: flex;
 		flex-direction: column;
 		gap: 8px;
@@ -174,6 +174,7 @@
 	}
 
 	.sidebar-top {
+		position: relative;
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
@@ -194,6 +195,10 @@
 		padding: 4px 8px;
 		color: var(--text-primary);
 		letter-spacing: -0.01em;
+		border-radius: var(--radius-md);
+		transition:
+			background-color 120ms var(--ease-out),
+			opacity 120ms var(--ease-out);
 	}
 
 	.logo-mark {
@@ -217,10 +222,19 @@
 		color: var(--text-tertiary);
 		cursor: pointer;
 		flex-shrink: 0;
+		opacity: 0;
+		pointer-events: none;
 		transition:
 			background-color 120ms var(--ease-out),
 			color 120ms var(--ease-out),
+			opacity 120ms var(--ease-out),
 			transform 120ms var(--ease-out);
+	}
+
+	.sidebar-top:hover .collapse-button,
+	.collapse-button:focus-visible {
+		opacity: 1;
+		pointer-events: auto;
 	}
 
 	.collapse-button:hover {
@@ -251,13 +265,33 @@
 	}
 
 	.sidebar.collapsed .sidebar-top {
+		width: 40px;
+		height: 40px;
 		justify-content: center;
-		padding: 0 0 8px;
-		min-height: 36px;
+		padding: 0;
+		min-height: 40px;
 	}
 
 	.sidebar.collapsed .logo {
-		display: none;
+		justify-content: center;
+		width: 40px;
+		height: 40px;
+		flex: 0 0 40px;
+		padding: 0;
+	}
+
+	.sidebar.collapsed .sidebar-top:hover .logo,
+	.sidebar.collapsed .sidebar-top:has(.collapse-button:focus-visible) .logo {
+		opacity: 0;
+		pointer-events: none;
+	}
+
+	.sidebar.collapsed .collapse-button {
+		position: absolute;
+		inset: 0;
+		width: 40px;
+		height: 40px;
+		background: var(--surface-2);
 	}
 
 	/* ── Nav list ── */
@@ -505,7 +539,7 @@
 	@media (max-width: 760px) {
 		.sidebar {
 			width: 56px;
-			padding: 12px 8px;
+			padding: 20px 8px 12px;
 			z-index: 20;
 		}
 
@@ -536,13 +570,33 @@
 		}
 
 		.sidebar-top {
+			width: 40px;
+			height: 40px;
 			justify-content: center;
-			padding: 0 0 8px;
-			min-height: 36px;
+			padding: 0;
+			min-height: 40px;
 		}
 
 		.logo {
-			display: none;
+			justify-content: center;
+			width: 40px;
+			height: 40px;
+			flex: 0 0 40px;
+			padding: 0;
+		}
+
+		.sidebar-top:hover .logo,
+		.sidebar-top:has(.collapse-button:focus-visible) .logo {
+			opacity: 0;
+			pointer-events: none;
+		}
+
+		.collapse-button {
+			position: absolute;
+			inset: 0;
+			width: 40px;
+			height: 40px;
+			background: var(--surface-2);
 		}
 
 		.account-popover {
