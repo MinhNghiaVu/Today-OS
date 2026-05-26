@@ -241,6 +241,7 @@ Fixed width 240–260px, `--surface-1` background, 1px right border (`--border-s
 
 - **Brand mark** — top, 20px height, 16–20px page padding around it.
 - **Collapse state** — desktop sidebar may collapse to a 56px icon rail. The top rail uses the standard 16px sidebar padding, shows the app logo by default, and swaps to the expand/collapse control on hover or keyboard focus using the same fixed 40px target so nothing jumps. Labels fade away, nav items keep their icon targets centered, and the account popover opens beside the rail instead of being clipped.
+- **Mobile drawer** — mobile does not use the collapsed icon rail. A 56px top bar exposes a 40px hamburger target, and the full sidebar slides in from the left as a full-viewport sheet with labels visible. Backdrop click, Esc, close button, and route selection close it. Animate only transform and opacity.
 - **Nav section** — 8px padding, 2px gap between items. Section labels (uppercase, 11px) above grouped items if there are multiple groups.
 - **Spacer** — `flex-1`, pushes the account block to the bottom.
 - **Account block** — single button at the bottom (see Component specs §8.7).

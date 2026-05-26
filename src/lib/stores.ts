@@ -18,6 +18,7 @@ const STORAGE_SIDEBAR_KEY = 'today-os-sidebar-collapsed';
 
 const _settings = writable({ theme: 'dark' as 'dark' | 'light', accentIndex: 0 });
 const _sidebarCollapsed = writable(false);
+const _mobileSidebarOpen = writable(false);
 
 function persistPreferences(prefs: Preferences): void {
 	if (!browser) return;
@@ -72,5 +73,18 @@ export const sidebarCollapsed = {
 			if (browser) localStorage.setItem(STORAGE_SIDEBAR_KEY, String(next));
 			return next;
 		});
+	}
+};
+
+export const mobileSidebarOpen = {
+	subscribe: _mobileSidebarOpen.subscribe,
+	open() {
+		_mobileSidebarOpen.set(true);
+	},
+	close() {
+		_mobileSidebarOpen.set(false);
+	},
+	toggle() {
+		_mobileSidebarOpen.update((open) => !open);
 	}
 };

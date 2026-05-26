@@ -1,140 +1,37 @@
 <script lang="ts">
 	import '../app.css';
 	import { page } from '$app/stores';
-	import { settings, sidebarCollapsed } from '$lib/stores';
-	import { fly } from 'svelte/transition';
-	import { cubicOut } from 'svelte/easing';
-	import { Sun, CheckSquare, Activity, FileText, Settings2, ChevronUp, CalendarDays, PanelLeftClose, PanelLeftOpen } from 'lucide-svelte';
+	import { settings, mobileSidebarOpen } from '$lib/stores';
+	import { Menu } from 'lucide-svelte';
+	import AppSidebar from '$lib/components/AppSidebar.svelte';
 	import Toast from '$lib/components/Toast.svelte';
 
 	export let data: { preferences?: { theme: 'dark' | 'light'; accentIndex: number }; user?: { email?: string } | null };
 
 	$: if (data.preferences) settings.init(data.preferences);
 
-	const nav = [
-		{ href: '/today', label: 'Today', icon: Sun },
-		{ href: '/todos', label: 'Todos', icon: CheckSquare },
-		{ href: '/habits', label: 'Habits', icon: Activity },
-		{ href: '/notes', label: 'Notes', icon: FileText },
-		{ href: '/calendar', label: 'Calendar', icon: CalendarDays },
-		{ href: '/settings', label: 'Settings', icon: Settings2 }
-	];
-
 	$: isAuthRoute = $page.url.pathname.startsWith('/login') || $page.url.pathname.startsWith('/auth');
-
-	let accountOpen = false;
-
-	function getInitial(email: string | undefined): string {
-		if (!email) return '?';
-		return email[0].toUpperCase();
-	}
-
-	function getDisplayName(email: string | undefined): string {
-		if (!email) return '';
-		return email.split('@')[0];
-	}
-
-	function handleWindowClick(event: MouseEvent) {
-		if (!(event.target as HTMLElement).closest('.account-wrapper')) {
-			accountOpen = false;
-		}
-	}
 </script>
-
-<svelte:window on:click={handleWindowClick} />
 
 <div class="layout">
 	{#if !isAuthRoute}
-		<nav class="sidebar" class:collapsed={$sidebarCollapsed} aria-label="Primary">
-			<div class="sidebar-top">
-				<a href="/today" class="logo" aria-label="Today OS home">
-					<img class="logo-mark" src="/icon-192.png" alt="" aria-hidden="true" width="24" height="24" />
-					<span class="label-text">Today OS</span>
-				</a>
-				<button
-					type="button"
-					class="collapse-button"
-					on:click={() => sidebarCollapsed.toggle()}
-					aria-label={$sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-					aria-pressed={$sidebarCollapsed}
-					title={$sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-				>
-					{#if $sidebarCollapsed}
-						<PanelLeftOpen size={16} strokeWidth={2} />
-					{:else}
-						<PanelLeftClose size={16} strokeWidth={2} />
-					{/if}
-				</button>
-			</div>
-
-			<ul class="nav-list">
-				{#each nav as item}
-					<li>
-						<a
-							href={item.href}
-							class:active={$page.url.pathname.startsWith(item.href)}
-							aria-current={$page.url.pathname.startsWith(item.href) ? 'page' : undefined}
-							title={$sidebarCollapsed ? item.label : undefined}
-						>
-							<span class="nav-icon" aria-hidden="true">
-								<svelte:component this={item.icon} size={16} strokeWidth={2} />
-							</span>
-							<span class="label-text">{item.label}</span>
-						</a>
-					</li>
-				{/each}
-			</ul>
-
-			{#if data.user}
-				<div class="account-wrapper">
-					{#if accountOpen}
-						<div
-							class="account-popover"
-							transition:fly={{ y: 8, duration: 180, easing: cubicOut }}
-							role="menu"
-						>
-							<div class="popover-email">{data.user.email}</div>
-							<div class="popover-divider"></div>
-							<a
-								href="/settings"
-								class="popover-item"
-								role="menuitem"
-								on:click={() => (accountOpen = false)}
-							>
-								<span aria-hidden="true"><Settings2 size={14} strokeWidth={2} /></span>
-								Settings
-								<span class="popover-hint">⌘,</span>
-							</a>
-							<div class="popover-divider"></div>
-							<form method="POST" action="/logout">
-								<button type="submit" class="popover-item popover-danger" role="menuitem">
-									Sign out
-								</button>
-							</form>
-						</div>
-					{/if}
-
-					<button
-						class="account-block"
-						class:open={accountOpen}
-						on:click|stopPropagation={() => (accountOpen = !accountOpen)}
-						aria-label={data.user.email ? `Account menu for ${data.user.email}` : 'Account menu'}
-						aria-expanded={accountOpen}
-						aria-haspopup="menu"
-						title={$sidebarCollapsed ? data.user.email : undefined}
-					>
-						<div class="avatar" aria-hidden="true">{getInitial(data.user.email)}</div>
-						<div class="account-info">
-							<span class="account-name">{getDisplayName(data.user.email)}</span>
-							<span class="account-email">{data.user.email}</span>
-						</div>
-						<span class="chevron" aria-hidden="true">
-							<ChevronUp size={14} strokeWidth={2} />
-						</span>
-					</button>
-				</div>
-			{/if}
-		</nav>
+		<AppSidebar user={data.user ?? null} pathname={$page.url.pathname} />
+		<header class="mobile-topbar">
+			<button
+				type="button"
+				class="mobile-menu-button"
+				on:click={() => mobileSidebarOpen.open()}
+				aria-label="Open navigation"
+				aria-controls="app-sidebar"
+				aria-expanded={$mobileSidebarOpen}
+			>
+				<Menu size={20} strokeWidth={2} />
+			</button>
+			<a href="/today" class="mobile-brand" aria-label="Today OS home">
+				<img src="/icon-192.png" alt="" aria-hidden="true" width="24" height="24" />
+				<span>Today OS</span>
+			</a>
+		</header>
 	{/if}
 
 	<main class="content">
@@ -150,374 +47,10 @@
 		min-height: 100vh;
 	}
 
-	/* ── Sidebar shell ── */
-	.sidebar {
-		width: 240px;
-		background: var(--surface-1);
-		border-right: 1px solid var(--border-subtle);
-		padding: 16px 8px;
-		display: flex;
-		flex-direction: column;
-		gap: 8px;
-		flex-shrink: 0;
-		position: sticky;
-		top: 0;
-		height: 100vh;
-		overflow: hidden;
-		transition:
-			width 180ms var(--ease-out),
-			padding 180ms var(--ease-out);
+	.mobile-topbar {
+		display: none;
 	}
 
-	.sidebar.collapsed {
-		width: 56px;
-	}
-
-	.sidebar-top {
-		position: relative;
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		gap: 8px;
-		min-height: 36px;
-		padding: 0 4px 8px;
-	}
-
-	/* ── Brand mark ── */
-	.logo {
-		display: flex;
-		align-items: center;
-		gap: 8px;
-		min-width: 0;
-		flex: 1;
-		font-size: 15px;
-		font-weight: 600;
-		padding: 4px 8px;
-		color: var(--text-primary);
-		letter-spacing: -0.01em;
-		border-radius: var(--radius-md);
-		transition:
-			background-color 120ms var(--ease-out),
-			opacity 120ms var(--ease-out);
-	}
-
-	.logo-mark {
-		width: 24px;
-		height: 24px;
-		border-radius: var(--radius-md);
-		object-fit: cover;
-		box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
-		flex-shrink: 0;
-	}
-
-	.collapse-button {
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		width: 30px;
-		height: 30px;
-		border: none;
-		border-radius: var(--radius-md);
-		background: transparent;
-		color: var(--text-tertiary);
-		cursor: pointer;
-		flex-shrink: 0;
-		opacity: 0;
-		pointer-events: none;
-		transition:
-			background-color 120ms var(--ease-out),
-			color 120ms var(--ease-out),
-			opacity 120ms var(--ease-out),
-			transform 120ms var(--ease-out);
-	}
-
-	.sidebar-top:hover .collapse-button,
-	.collapse-button:focus-visible {
-		opacity: 1;
-		pointer-events: auto;
-	}
-
-	.collapse-button:hover {
-		background: var(--surface-2);
-		color: var(--text-primary);
-	}
-
-	.collapse-button:active {
-		transform: translateY(1px);
-	}
-
-	.label-text {
-		overflow: hidden;
-		text-overflow: ellipsis;
-		white-space: nowrap;
-		opacity: 1;
-		transition:
-			opacity 120ms var(--ease-out),
-			width 180ms var(--ease-out);
-	}
-
-	.sidebar.collapsed .label-text,
-	.sidebar.collapsed .account-info,
-	.sidebar.collapsed .chevron {
-		width: 0;
-		opacity: 0;
-		pointer-events: none;
-	}
-
-	.sidebar.collapsed .sidebar-top {
-		width: 40px;
-		height: 40px;
-		justify-content: center;
-		padding: 0;
-		min-height: 40px;
-	}
-
-	.sidebar.collapsed .logo {
-		justify-content: center;
-		gap: 0;
-		width: 40px;
-		height: 40px;
-		flex: 0 0 40px;
-		padding: 0;
-	}
-
-	.sidebar.collapsed .sidebar-top:hover .logo,
-	.sidebar.collapsed .sidebar-top:has(.collapse-button:focus-visible) .logo {
-		opacity: 0;
-		pointer-events: none;
-	}
-
-	.sidebar.collapsed .collapse-button {
-		position: absolute;
-		inset: 0;
-		width: 40px;
-		height: 40px;
-		background: var(--surface-2);
-	}
-
-	/* ── Nav list ── */
-	.nav-list {
-		list-style: none;
-		margin: 0;
-		padding: 0;
-		display: flex;
-		flex-direction: column;
-		gap: 2px;
-		flex: 1;
-	}
-
-	.nav-list a {
-		display: flex;
-		align-items: center;
-		gap: 8px;
-		padding: 7px 12px;
-		min-height: 34px;
-		border-radius: var(--radius-md);
-		color: var(--text-secondary);
-		font-size: 14px;
-		font-weight: 400;
-		transition:
-			background-color 120ms cubic-bezier(0.22, 1, 0.36, 1),
-			color 120ms cubic-bezier(0.22, 1, 0.36, 1);
-	}
-
-	.nav-list a:hover {
-		background: var(--surface-2);
-		color: var(--text-primary);
-	}
-
-	.nav-list a.active {
-		background: var(--surface-3);
-		color: var(--text-primary);
-		font-weight: 500;
-	}
-
-	.nav-icon {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		width: 16px;
-		flex-shrink: 0;
-	}
-
-	.sidebar.collapsed .nav-list a {
-		justify-content: center;
-		gap: 0;
-		width: 40px;
-		min-height: 40px;
-		padding: 0;
-	}
-
-	.sidebar.collapsed .nav-list {
-		align-items: center;
-	}
-
-	/* ── Account wrapper (anchors popover) ── */
-	.account-wrapper {
-		position: relative;
-		margin-top: auto;
-	}
-
-	/* ── Account popover ── */
-	.account-popover {
-		position: absolute;
-		bottom: calc(100% + 8px);
-		left: 0;
-		right: 0;
-		background: var(--surface-overlay);
-		border-radius: var(--radius-lg);
-		box-shadow: var(--shadow-popover);
-		padding: 6px;
-		z-index: 100;
-		min-width: 224px;
-	}
-
-	.sidebar.collapsed .account-popover {
-		left: calc(100% + 8px);
-		right: auto;
-		bottom: 0;
-		width: 224px;
-	}
-
-	.popover-email {
-		font-size: 12px;
-		color: var(--text-tertiary);
-		padding: 6px 10px;
-		overflow: hidden;
-		text-overflow: ellipsis;
-		white-space: nowrap;
-	}
-
-	.popover-divider {
-		height: 1px;
-		background: var(--border-subtle);
-		margin: 4px 0;
-	}
-
-	.popover-item {
-		display: flex;
-		align-items: center;
-		gap: 8px;
-		width: 100%;
-		padding: 7px 10px;
-		border-radius: var(--radius-sm);
-		font-size: 14px;
-		font-weight: 400;
-		color: var(--text-primary);
-		background: transparent;
-		border: none;
-		cursor: pointer;
-		text-align: left;
-		transition:
-			background-color 120ms cubic-bezier(0.22, 1, 0.36, 1),
-			color 120ms cubic-bezier(0.22, 1, 0.36, 1);
-	}
-
-	.popover-item:hover {
-		background: var(--surface-2);
-	}
-
-	.popover-danger {
-		color: var(--danger);
-	}
-
-	.popover-danger:hover {
-		background: var(--danger-soft);
-	}
-
-	.popover-hint {
-		margin-left: auto;
-		font-size: 12px;
-		color: var(--text-tertiary);
-	}
-
-	/* ── Account block button ── */
-	.account-block {
-		display: flex;
-		align-items: center;
-		gap: 10px;
-		width: 100%;
-		padding: 8px 10px;
-		border-radius: var(--radius-md);
-		background: transparent;
-		border: none;
-		cursor: pointer;
-		transition:
-			background-color 120ms cubic-bezier(0.22, 1, 0.36, 1);
-	}
-
-	.account-block:hover,
-	.account-block.open {
-		background: var(--surface-2);
-	}
-
-	.sidebar.collapsed .account-block {
-		justify-content: center;
-		gap: 0;
-		width: 40px;
-		height: 40px;
-		padding: 0;
-	}
-
-	.sidebar.collapsed .account-wrapper {
-		display: flex;
-		justify-content: center;
-	}
-
-	.avatar {
-		width: 24px;
-		height: 24px;
-		border-radius: var(--radius-full);
-		background: var(--accent-soft);
-		color: var(--accent);
-		font-size: 12px;
-		font-weight: 600;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		flex-shrink: 0;
-	}
-
-	.account-info {
-		display: flex;
-		flex-direction: column;
-		min-width: 0;
-		flex: 1;
-		text-align: left;
-	}
-
-	.account-name {
-		font-size: 13px;
-		font-weight: 500;
-		color: var(--text-primary);
-		overflow: hidden;
-		text-overflow: ellipsis;
-		white-space: nowrap;
-		line-height: 1.3;
-	}
-
-	.account-email {
-		font-size: 11px;
-		color: var(--text-tertiary);
-		overflow: hidden;
-		text-overflow: ellipsis;
-		white-space: nowrap;
-		line-height: 1.3;
-	}
-
-	.chevron {
-		display: flex;
-		align-items: center;
-		color: var(--text-tertiary);
-		flex-shrink: 0;
-		transition: transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
-	}
-
-	.account-block.open .chevron {
-		transform: rotate(180deg);
-	}
-
-	/* ── Main content ── */
 	.content {
 		flex: 1;
 		min-width: 0;
@@ -538,82 +71,69 @@
 	}
 
 	@media (max-width: 760px) {
-		.sidebar {
-			width: 56px;
-			padding: 16px 8px 12px;
-			z-index: 20;
+		.layout {
+			display: block;
 		}
 
-		.nav-list {
-			align-items: center;
-			gap: 2px;
-		}
-
-		.nav-list a {
-			justify-content: center;
-			gap: 0;
-			width: 40px;
-			min-height: 40px;
-			padding: 0;
-		}
-
-		.account-block {
-			justify-content: center;
-			gap: 0;
-			width: 40px;
-			height: 40px;
-			padding: 0;
-		}
-
-		.account-wrapper {
+		.mobile-topbar {
+			position: sticky;
+			top: 0;
+			z-index: 30;
 			display: flex;
-			justify-content: center;
+			align-items: center;
+			gap: 8px;
+			height: 56px;
+			padding: 8px 12px;
+			background: color-mix(in oklab, var(--bg) 94%, transparent);
+			border-bottom: 1px solid var(--border-subtle);
+			backdrop-filter: blur(12px);
 		}
 
-		.sidebar-top {
+		.mobile-menu-button {
+			display: inline-flex;
+			align-items: center;
+			justify-content: center;
 			width: 40px;
 			height: 40px;
-			justify-content: center;
-			padding: 0;
-			min-height: 40px;
+			border: none;
+			border-radius: var(--radius-md);
+			background: transparent;
+			color: var(--text-primary);
+			cursor: pointer;
+			transition:
+				background-color 120ms var(--ease-out),
+				transform 120ms var(--ease-out);
 		}
 
-		.logo {
-			justify-content: center;
-			gap: 0;
-			width: 40px;
-			height: 40px;
-			flex: 0 0 40px;
-			padding: 0;
-		}
-
-		.sidebar-top:hover .logo,
-		.sidebar-top:has(.collapse-button:focus-visible) .logo {
-			opacity: 0;
-			pointer-events: none;
-		}
-
-		.collapse-button {
-			position: absolute;
-			inset: 0;
-			width: 40px;
-			height: 40px;
+		.mobile-menu-button:hover {
 			background: var(--surface-2);
 		}
 
-		.account-popover {
-			left: calc(100% + 8px);
-			right: auto;
-			bottom: 0;
-			width: 224px;
+		.mobile-menu-button:active {
+			transform: translateY(1px);
 		}
 
-		.label-text,
-		.account-info,
-		.chevron {
-			width: 0;
-			opacity: 0;
-			pointer-events: none;
+		.mobile-brand {
+			display: inline-flex;
+			align-items: center;
+			gap: 8px;
+			min-width: 0;
+			height: 40px;
+			border-radius: var(--radius-md);
+			padding: 0 8px;
+			color: var(--text-primary);
+			font-size: 15px;
+			font-weight: 600;
+			letter-spacing: -0.01em;
+		}
+
+		.mobile-brand img {
+			width: 24px;
+			height: 24px;
+			border-radius: var(--radius-md);
+			object-fit: cover;
+			box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+			flex-shrink: 0;
 		}
 	}
 
