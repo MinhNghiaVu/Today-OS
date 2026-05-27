@@ -2,7 +2,7 @@ import { writable } from 'svelte/store';
 
 export type ToastVariant = 'success' | 'error' | 'info';
 
-export interface ToastItem {
+interface ToastItem {
 	id: string;
 	message: string;
 	variant: ToastVariant;

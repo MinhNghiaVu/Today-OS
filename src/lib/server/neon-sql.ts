@@ -88,7 +88,7 @@ function param(index: number, column: string, table: string) {
 	return cast ? `cast($${index} as ${cast})` : `$${index}`;
 }
 
-export function addFilterParts(filters: Filter[], table: string, parts: string[], values: unknown[]) {
+function addFilterParts(filters: Filter[], table: string, parts: string[], values: unknown[]) {
 	for (const filter of filters) {
 		if (filter.kind === 'not-null') {
 			parts.push(`${ident(filter.column)} is not null`);

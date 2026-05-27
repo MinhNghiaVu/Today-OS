@@ -80,6 +80,9 @@ bun run dev
 
 ```bash
 bun run check        # type-check
+bun run check:dead   # unused files, exports, and dependencies
+bun run check:all    # type-check + dead-code check
+bun test             # unit tests
 bun run build        # production build
 bun run preview      # preview production build
 ```

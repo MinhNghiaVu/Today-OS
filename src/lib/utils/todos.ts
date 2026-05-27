@@ -1,7 +1,6 @@
 import type { Todo, TodoPriority, TodoStatus } from '$lib/types';
 import { getActionData } from '$lib/utils/optimistic';
 
-export type TodoFilter = 'all' | TodoStatus;
 export type TodoView = Todo & { ui_id?: string };
 
 export interface TodoStats {
@@ -105,7 +104,7 @@ export function createOptimisticTodo(options: {
 	};
 }
 
-export function sameTodoIntent(a: TodoView, b: Todo): boolean {
+function sameTodoIntent(a: TodoView, b: Todo): boolean {
 	return (
 		isOptimisticTodo(a) &&
 		a.title === b.title &&

@@ -36,7 +36,7 @@ export interface HabitLog {
 	created_at: string;
 }
 
-export type NoteType = 'note' | 'draft' | 'list';
+type NoteType = 'note' | 'draft' | 'list';
 
 export interface Note {
 	id: string;
@@ -49,7 +49,7 @@ export interface Note {
 	updated_at: string;
 }
 
-export interface HabitWithTotal extends Habit {
+interface HabitWithTotal extends Habit {
 	total: number;
 }
 
@@ -86,7 +86,7 @@ export type JobStatus =
 	| 'pending' | 'applied' | 'recruiter_screen' | 'interview'
 	| 'offer' | 'rejected' | 'ghosted' | 'dropped';
 
-export type JobInterviewStage =
+type JobInterviewStage =
 	| 'first_round' | 'second_round' | 'third_round' | 'fourth_round' | 'fifth_round';
 
 export interface Job {

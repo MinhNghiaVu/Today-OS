@@ -10,7 +10,7 @@ export const ACCENT_PRESETS = [
 	{ label: 'Rose', accent: '#f43f5e', hover: '#e11d48', pressed: '#be123c' }
 ];
 
-export const DEFAULT_ACCENT_INDEX = 5;
+const DEFAULT_ACCENT_INDEX = 5;
 
 type Preferences = { theme: 'dark' | 'light'; accentIndex: number };
 

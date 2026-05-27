@@ -23,12 +23,6 @@ export function habitProgressWidth(habit: Pick<HabitProgressInput, 'daily_goal' 
 	return Math.min(100, (habit.total / habit.daily_goal) * 100);
 }
 
-export function habitProgressColor(habit: HabitProgressInput & { color: string }): string {
-	if (isHabitOverLimit(habit)) return 'var(--danger)';
-	if (isHabitOnTrack(habit) && habit.type === 'min_goal') return 'var(--success)';
-	return habit.color;
-}
-
 export function habitStatus(
 	habit: HabitProgressInput & { unit: string; is_active?: boolean }
 ): string {
@@ -51,7 +45,7 @@ export function formatHabitTotal(total: number): string {
 	return Number.isInteger(total) ? String(total) : total.toFixed(1);
 }
 
-export const HABIT_OPTIMISTIC_LOG_PREFIX = 'optimistic-log-';
+const HABIT_OPTIMISTIC_LOG_PREFIX = 'optimistic-log-';
 
 function roundedTotal(value: number): number {
 	return parseFloat(value.toFixed(6));

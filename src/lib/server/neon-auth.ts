@@ -41,7 +41,7 @@ function neonCookieHeader(cookieHeader: string | null) {
 		.join('; ');
 }
 
-export function hasNeonAuthCookies(cookieHeader: string | null) {
+function hasNeonAuthCookies(cookieHeader: string | null) {
 	return neonCookieHeader(cookieHeader).length > 0;
 }
 
