@@ -2,6 +2,7 @@
 	import { enhance } from '$app/forms';
 	import { invalidateAll } from '$app/navigation';
 	import { settings, ACCENT_PRESETS } from '$lib/stores';
+	import PageShell from '$lib/components/PageShell.svelte';
 	import PwaInstallSetting from '$lib/components/PwaInstallSetting.svelte';
 	import SettingsButton from '$lib/components/settings/SettingsButton.svelte';
 	import SettingsRow from '$lib/components/settings/SettingsRow.svelte';
@@ -31,11 +32,7 @@
 	}
 </script>
 
-<div class="page">
-	<header class="page-header">
-		<h1>Settings</h1>
-	</header>
-
+<PageShell title="Settings" subtitle="Appearance, account, and local data controls." maxWidth="narrow">
 	<SettingsSection title="Appearance">
 		<SettingsRow label="Theme">
 			<div class="seg-group">
@@ -93,29 +90,9 @@
 			<SettingsButton variant="destructive" on:click={clearData}>Clear</SettingsButton>
 		</SettingsRow>
 	</SettingsSection>
-</div>
+</PageShell>
 
 <style>
-	.page {
-		display: flex;
-		flex-direction: column;
-		gap: 0;
-		padding: 32px 24px;
-	}
-
-	/* Page header */
-	.page-header {
-		margin-bottom: 32px;
-	}
-
-	h1 {
-		margin: 0;
-		font-size: 24px;
-		font-weight: 600;
-		color: var(--text-primary);
-		letter-spacing: -0.01em;
-	}
-
 	/* Segmented button group (theme toggle) */
 	.seg-group {
 		position: relative;

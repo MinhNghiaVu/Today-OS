@@ -127,7 +127,7 @@
 		color: var(--text-primary);
 		font-size: 16px;
 		font-weight: 600;
-		letter-spacing: -0.01em;
+		letter-spacing: 0;
 		line-height: 1.3;
 	}
 

@@ -70,13 +70,13 @@ Contrast: every primary text on every surface meets WCAG AA (4.5:1). Secondary t
 
 | Token | Dark | Light | Use |
 |---|---|---|---|
-| `--accent` | `#38bdf8` | `#0ea5e9` | Primary CTAs, active states |
-| `--accent-hover` | `#0ea5e9` | `#0284c7` | Hover state for accent |
-| `--accent-pressed` | `#0284c7` | `#0369a1` | Active/pressed |
+| `--accent` | `#f43f5e` | `#e11d48` | Primary CTAs, active states |
+| `--accent-hover` | `#e11d48` | `#be123c` | Hover state for accent |
+| `--accent-pressed` | `#be123c` | `#9f1239` | Active/pressed |
 | `--accent-soft` | `color-mix(in oklab, var(--accent) 14%, transparent)` | same | Tinted bg for badges, active rows, soft highlights |
 | `--accent-soft-hover` | `color-mix(in oklab, var(--accent) 22%, transparent)` | same | Hover state for accent-soft surfaces |
 
-Default accent is sky `#38bdf8`. Settings → Accent picker swaps `--accent`, `--accent-hover`, and `--accent-pressed` together (and recomputes `--accent-soft` because it's a `color-mix`). Pressed states must stay in the selected accent family, never fall back to danger red.
+Default accent is rose `#f43f5e`. Settings → Accent picker swaps `--accent`, `--accent-hover`, and `--accent-pressed` together (and recomputes `--accent-soft` because it's a `color-mix`). Pressed states must stay in the selected accent family, never fall back to danger red.
 
 ### Semantic
 
@@ -156,7 +156,7 @@ Weights in use: **400, 500, 600**. That's it. No 700 in body/UI. No 300 — it m
 
 Line-height: tighter for headings (1.1–1.3), looser for body (1.5–1.6).
 
-Letter-spacing: −0.01em on titles ≥24px, +0.04em on uppercase labels, default everywhere else.
+Letter-spacing: 0 on titles and body text, +0.04em on uppercase labels.
 
 No `text-xs` (10px) in production UI. If something needs to be smaller than 11px, redesign the layout.
 
@@ -235,13 +235,20 @@ Page-level structure (top to bottom):
 3. **Content** — sections with 32–48px between them.
 4. **Empty state** if no content — see §10.
 
+Use `src/lib/components/PageShell.svelte` for route-level layout. It owns the responsive page width, header stack, subtitle, meta, and action slots. Route files should not recreate page padding/header CSS unless the route is a special full-height tool surface like Notes.
+
+### Product mental model
+
+Today OS should read like a personal Notion workspace, not a generic dashboard. Desktop uses a persistent workspace sidebar with page navigation; mobile uses bottom tabs for the daily core and a More sheet for the full workspace. Pages should feel like documents with useful blocks: quiet headers, restrained metadata, table/list density where useful, and minimal chrome around the content.
+
 ### Sidebar
 
 Fixed width 240–260px, `--surface-1` background, 1px right border (`--border-subtle`). Inside:
 
 - **Brand mark** — top, 20px height, 16–20px page padding around it.
 - **Collapse state** — desktop sidebar may collapse to a 56px icon rail. The top rail uses the standard 16px sidebar padding, shows the app logo by default, and swaps to the expand/collapse control on hover or keyboard focus using the same fixed 40px target so nothing jumps. Labels fade away, nav items keep their icon targets centered, and the account popover opens beside the rail instead of being clipped.
-- **Mobile drawer** — mobile does not use the collapsed icon rail. A 56px top bar exposes a 40px hamburger target, and the full sidebar slides in from the left as a full-viewport sheet with labels visible. The open drawer keeps the close control in the leading slot where the hamburger launched; the brand in the drawer is a static label, not a home link. Backdrop click, Esc, close button, and route selection close it. Animate only transform and opacity.
+- **Mobile primary nav** — mobile uses a fixed bottom tab bar as the primary route switcher. The canonical tabs are Today, Todos, Habits, Notes, and More. Each item uses one lucide icon plus an 11px label, a 48px touch target, and active state through `--surface-2`, not accent stripes. The tab bar height is `--mobile-bottom-nav-height`; the app content reserves that space globally, and full-height tool surfaces subtract it explicitly.
+- **Mobile drawer** — mobile does not use the collapsed icon rail. The bottom **More** tab opens the full sidebar as a full-viewport workspace sheet with labels visible. The open drawer keeps the close control in the leading slot; the brand in the drawer is a static label, not a home link. Backdrop click, Esc, close button, and route selection close it. Animate only transform and opacity.
 - **Nav section** — 8px padding, 2px gap between items. Section labels (uppercase, 11px) above grouped items if there are multiple groups.
 - **Spacer** — `flex-1`, pushes the account block to the bottom.
 - **Account block** — single button at the bottom (see Component specs §8.7).

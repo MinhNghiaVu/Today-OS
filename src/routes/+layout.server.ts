@@ -15,7 +15,7 @@ export const load: LayoutServerLoad = async ({ locals, url, cookies }) => {
 
 	let preferences: { theme: 'dark' | 'light'; accentIndex: number } = {
 		theme: 'dark',
-		accentIndex: 0
+		accentIndex: 5
 	};
 	const cookieTheme = cookies.get('theme');
 	const cookieAccentIndex = Number(cookies.get('accentIndex'));

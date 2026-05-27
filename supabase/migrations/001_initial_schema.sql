@@ -9,7 +9,7 @@ create table if not exists public.users (
   id uuid primary key references auth.users(id) on delete cascade,
   email text not null,
   display_name text,
-  preferences jsonb not null default '{"theme":"dark","accentIndex":0}'::jsonb,
+  preferences jsonb not null default '{"theme":"dark","accentIndex":5}'::jsonb,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );

@@ -297,7 +297,9 @@
 		padding: 12px;
 		border-radius: var(--radius-lg);
 		background: var(--surface-2);
-		transition: opacity 120ms var(--ease-out), background 120ms var(--ease-out);
+		transition:
+			opacity 120ms var(--ease-out),
+			background-color 120ms var(--ease-out);
 	}
 
 	.habit-list > li.inactive {
@@ -399,7 +401,10 @@
 		border: none;
 		cursor: pointer;
 		text-decoration: none;
-		transition: background 120ms var(--ease-out), color 120ms var(--ease-out), transform 120ms var(--ease-out);
+		transition:
+			background-color 120ms var(--ease-out),
+			color 120ms var(--ease-out),
+			transform 120ms var(--ease-out);
 	}
 
 	.small-square {
@@ -443,7 +448,9 @@
 		font-size: 14px;
 		outline: none;
 		padding: 0 12px;
-		transition: border-color 120ms var(--ease-out), background 120ms var(--ease-out);
+		transition:
+			border-color 120ms var(--ease-out),
+			background-color 120ms var(--ease-out);
 	}
 
 	input::placeholder {

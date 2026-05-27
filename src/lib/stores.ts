@@ -10,20 +10,22 @@ export const ACCENT_PRESETS = [
 	{ label: 'Rose', accent: '#f43f5e', hover: '#e11d48', pressed: '#be123c' }
 ];
 
+export const DEFAULT_ACCENT_INDEX = 5;
+
 type Preferences = { theme: 'dark' | 'light'; accentIndex: number };
 
 const STORAGE_THEME_KEY = 'today-os-theme';
 const STORAGE_ACCENT_KEY = 'today-os-accent-index';
 const STORAGE_SIDEBAR_KEY = 'today-os-sidebar-collapsed';
 
-const _settings = writable({ theme: 'dark' as 'dark' | 'light', accentIndex: 0 });
+const _settings = writable({ theme: 'dark' as 'dark' | 'light', accentIndex: DEFAULT_ACCENT_INDEX });
 const _sidebarCollapsed = writable(false);
 const _mobileSidebarOpen = writable(false);
 
 function persistPreferences(prefs: Preferences): void {
 	if (!browser) return;
 
-	const preset = ACCENT_PRESETS[prefs.accentIndex] ?? ACCENT_PRESETS[0];
+	const preset = ACCENT_PRESETS[prefs.accentIndex] ?? ACCENT_PRESETS[DEFAULT_ACCENT_INDEX];
 	document.documentElement.setAttribute('data-theme', prefs.theme);
 	document.documentElement.style.colorScheme = prefs.theme;
 	document.documentElement.style.setProperty('--accent', preset.accent);

@@ -3,31 +3,13 @@
 	import { browser } from '$app/environment';
 	import { sidebarCollapsed, mobileSidebarOpen } from '$lib/stores';
 	import AppSidebarAccount from '$lib/components/AppSidebarAccount.svelte';
-	import {
-		Activity,
-		CalendarDays,
-		CheckSquare,
-		FileText,
-		PanelLeftClose,
-		PanelLeftOpen,
-		Settings2,
-		Sun,
-		X
-	} from 'lucide-svelte';
+	import { appNavItems, isNavItemActive } from '$lib/navigation';
+	import { PanelLeftClose, PanelLeftOpen, X } from 'lucide-svelte';
 
 	type User = { email?: string } | null;
 
 	export let user: User = null;
 	export let pathname = '/today';
-
-	const nav = [
-		{ href: '/today', label: 'Today', icon: Sun },
-		{ href: '/todos', label: 'Todos', icon: CheckSquare },
-		{ href: '/habits', label: 'Habits', icon: Activity },
-		{ href: '/notes', label: 'Notes', icon: FileText },
-		{ href: '/calendar', label: 'Calendar', icon: CalendarDays },
-		{ href: '/settings', label: 'Settings', icon: Settings2 }
-	];
 
 	let isMobileViewport = false;
 	let closeButton: HTMLButtonElement;
@@ -113,9 +95,12 @@
 				<span class="label-text">Today OS</span>
 			</div>
 		{:else}
-			<a href="/today" class="logo" aria-label="Today OS home" on:click={closeMobileSidebar}>
+			<a href="/today" class="logo workspace-logo" aria-label="Today OS home" on:click={closeMobileSidebar}>
 				<img class="logo-mark" src="/icon-192.png" alt="" aria-hidden="true" width="24" height="24" />
-				<span class="label-text">Today OS</span>
+				<span class="workspace-copy label-text">
+					<span class="workspace-name">Today OS</span>
+					<span class="workspace-type">Private workspace</span>
+				</span>
 			</a>
 			<button
 				type="button"
@@ -134,13 +119,14 @@
 		{/if}
 	</div>
 
+	<div class="nav-section-label label-text">Pages</div>
 	<ul class="nav-list">
-		{#each nav as item}
+		{#each appNavItems as item}
 			<li>
 				<a
 					href={item.href}
-					class:active={pathname.startsWith(item.href)}
-					aria-current={pathname.startsWith(item.href) ? 'page' : undefined}
+					class:active={isNavItemActive(pathname, item.href)}
+					aria-current={isNavItemActive(pathname, item.href) ? 'page' : undefined}
 					title={navCollapsed ? item.label : undefined}
 					on:click={closeMobileSidebar}
 				>
@@ -205,7 +191,7 @@
 		font-weight: 600;
 		padding: 4px 8px;
 		color: var(--text-primary);
-		letter-spacing: -0.01em;
+		letter-spacing: 0;
 		border-radius: var(--radius-md);
 		transition:
 			background-color 120ms var(--ease-out),
@@ -283,6 +269,10 @@
 		pointer-events: none;
 	}
 
+	.sidebar.collapsed .nav-section-label {
+		display: none;
+	}
+
 	.sidebar.collapsed .sidebar-top {
 		width: 40px;
 		height: 40px;
@@ -322,6 +312,15 @@
 		flex-direction: column;
 		gap: 2px;
 		flex: 1;
+	}
+
+	.nav-section-label {
+		padding: 8px 12px 4px;
+		color: var(--text-tertiary);
+		font-size: 11px;
+		font-weight: 500;
+		letter-spacing: 0.04em;
+		text-transform: uppercase;
 	}
 
 	.nav-list a {
@@ -459,5 +458,41 @@
 			opacity: 1;
 			pointer-events: auto;
 		}
+
+		.nav-section-label {
+			padding-top: 12px;
+		}
+	}
+
+	.workspace-logo {
+		align-items: center;
+		padding: 6px 8px;
+	}
+
+	.workspace-copy {
+		display: flex;
+		min-width: 0;
+		flex-direction: column;
+		gap: 1px;
+	}
+
+	.workspace-name,
+	.workspace-type {
+		overflow: hidden;
+		line-height: 1.2;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.workspace-name {
+		color: var(--text-primary);
+		font-size: 14px;
+		font-weight: 600;
+	}
+
+	.workspace-type {
+		color: var(--text-tertiary);
+		font-size: 12px;
+		font-weight: 400;
 	}
 </style>

@@ -6,6 +6,7 @@
 		Clock3,
 	} from 'lucide-svelte';
 	import HabitProgressList from '$lib/components/HabitProgressList.svelte';
+	import PageShell from '$lib/components/PageShell.svelte';
 	import SummaryStatStrip from '$lib/components/SummaryStatStrip.svelte';
 	import TodayQuickNotesPanel from '$lib/components/TodayQuickNotesPanel.svelte';
 	import TodoList from '$lib/components/TodoList.svelte';
@@ -63,15 +64,10 @@
 
 </script>
 
-<div class="page">
-	<div class="page-inner">
-		<header class="hero">
-			<div>
-				<h1>{dateLabel}</h1>
-			</div>
-			<SummaryStatStrip items={summaryStats} ariaLabel="Today summary" />
-		</header>
-
+<PageShell title={dateLabel} subtitle="Your home base for tasks, habits, notes, and calendar context." maxWidth="wide">
+	<svelte:fragment slot="actions">
+		<SummaryStatStrip items={summaryStats} ariaLabel="Today summary" />
+	</svelte:fragment>
 		<div class="daily-layout">
 			<main class="primary-column">
 				<section class="panel focus-panel">
@@ -179,45 +175,13 @@
 				<TodayQuickNotesPanel bind:notes={notesToday} today={todayStr} />
 			</aside>
 		</div>
-	</div>
-</div>
+</PageShell>
 
 <style>
-	.page {
-		min-height: 100vh;
-		background: var(--bg);
-	}
-
-	.page-inner {
-		max-width: 1180px;
-		margin: 0 auto;
-		padding: 32px 24px 48px;
-	}
-
-	.hero {
-		display: flex;
-		align-items: end;
-		justify-content: space-between;
-		gap: 24px;
-		margin-bottom: 24px;
-	}
-
-	h1,
 	h2 {
 		margin: 0;
 		color: var(--text-primary);
-		letter-spacing: -0.01em;
-	}
-
-	h1 {
-		margin-top: 3px;
-		font-size: 28px;
-		font-weight: 600;
-		line-height: 1.15;
-	}
-
-	h2 {
-		margin-top: 2px;
+		letter-spacing: 0;
 		font-size: 16px;
 		font-weight: 600;
 		line-height: 1.3;
@@ -241,7 +205,7 @@
 	.panel {
 		background: var(--surface-1);
 		border: 1px solid var(--border-subtle);
-		border-radius: var(--radius-xl);
+		border-radius: var(--radius-lg);
 		padding: 18px;
 		box-shadow: var(--shadow-sm);
 	}
@@ -392,26 +356,12 @@
 	}
 
 	@media (max-width: 980px) {
-		.hero {
-			align-items: stretch;
-			flex-direction: column;
-			gap: 16px;
-		}
-
 		.daily-layout {
 			grid-template-columns: 1fr;
 		}
 	}
 
 	@media (max-width: 640px) {
-		.page-inner {
-			padding: 24px 16px 36px;
-		}
-
-		h1 {
-			font-size: 25px;
-		}
-
 		.panel {
 			padding: 14px;
 			border-radius: var(--radius-lg);

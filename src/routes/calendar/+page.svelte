@@ -2,6 +2,7 @@
 	import { goto } from '$app/navigation';
 	import CalendarDayPanel from '$lib/components/calendar/CalendarDayPanel.svelte';
 	import CalendarMonth from '$lib/components/calendar/CalendarMonth.svelte';
+	import PageShell from '$lib/components/PageShell.svelte';
 	import type { PageData } from './$types';
 
 	export let data: PageData;
@@ -35,63 +36,28 @@
 	}
 </script>
 
-<div class="page">
-	<div class="page-inner">
-		<header class="page-header">
-			<h1>Calendar</h1>
-		</header>
+<PageShell title="Calendar" subtitle="Read-only context for the day, with Today OS activity layered in." maxWidth="wide">
+	<div class="calendar-shell">
+		<CalendarMonth
+			{year}
+			{month}
+			{selectedDate}
+			{activity}
+			{today}
+			onNavigate={navigate}
+			onSelectDate={selectDate}
+		/>
 
-		<div class="calendar-shell">
-			<CalendarMonth
-				{year}
-				{month}
-				{selectedDate}
-				{activity}
-				{today}
-				onNavigate={navigate}
-				onSelectDate={selectDate}
-			/>
-
-			<CalendarDayPanel
-				{selectedDate}
-				{dayData}
-				{gcConnected}
-				onClose={clearDate}
-			/>
-		</div>
+		<CalendarDayPanel
+			{selectedDate}
+			{dayData}
+			{gcConnected}
+			onClose={clearDate}
+		/>
 	</div>
-</div>
+</PageShell>
 
 <style>
-	.page {
-		min-height: 100vh;
-		background: var(--bg);
-		padding: 32px 24px;
-	}
-
-	.page-inner {
-		width: min(100%, 1280px);
-		margin: 0 auto;
-		display: flex;
-		flex-direction: column;
-		gap: 24px;
-	}
-
-	.page-header {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		gap: 16px;
-	}
-
-	h1 {
-		margin: 0;
-		color: var(--text-primary);
-		font-size: 24px;
-		font-weight: 600;
-		line-height: 1.2;
-	}
-
 	.calendar-shell {
 		display: grid;
 		grid-template-columns: 320px minmax(0, 620px);
@@ -105,9 +71,4 @@
 		}
 	}
 
-	@media (max-width: 760px) {
-		.page {
-			padding: 24px 16px;
-		}
-	}
 </style>

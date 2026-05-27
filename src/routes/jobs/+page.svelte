@@ -6,6 +6,7 @@
 	import { page } from '$app/stores';
 	import { toast } from '$lib/toast';
 	import { Briefcase, Plus, Trash2 } from 'lucide-svelte';
+	import PageShell from '$lib/components/PageShell.svelte';
 	import Select from '$lib/components/Select.svelte';
 	import type { PageData } from './$types';
 	import type { JobStatus } from '$lib/types';
@@ -65,23 +66,21 @@
 	}
 </script>
 
-<div class="page">
-	<!-- Header -->
-	<header class="page-header">
-		<div class="header-left">
-			<h1>Jobs</h1>
-			{#if jobs.length > 0}
-				<span class="count-badge">
-					{jobs.length}
-					{jobs.length === 1 ? 'company' : 'companies'}
-				</span>
-			{/if}
-		</div>
+<PageShell title="Jobs" subtitle="A table-first tracker for companies, stages, and follow-ups." maxWidth="wide">
+	<svelte:fragment slot="meta">
+		{#if jobs.length > 0}
+			<span class="count-badge">
+				{jobs.length}
+				{jobs.length === 1 ? 'company' : 'companies'}
+			</span>
+		{/if}
+	</svelte:fragment>
+	<svelte:fragment slot="actions">
 		<button class="btn-primary btn-sm" on:click={() => (addingNew = true)}>
 			<Plus size={15} strokeWidth={2.2} aria-hidden="true" />
 			Add
 		</button>
-	</header>
+	</svelte:fragment>
 
 	<!-- Add form -->
 	{#if addingNew}
@@ -348,39 +347,9 @@
 			</tbody>
 		</table>
 	</div>
-</div>
+</PageShell>
 
 <style>
-	/* ── Page layout ── */
-	.page {
-		padding: 32px 24px;
-		display: flex;
-		flex-direction: column;
-		gap: 20px;
-	}
-
-	/* ── Header ── */
-	.page-header {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		gap: 12px;
-	}
-
-	.header-left {
-		display: flex;
-		align-items: center;
-		gap: 10px;
-	}
-
-	h1 {
-		font-size: 26px;
-		font-weight: 600;
-		color: var(--text-primary);
-		letter-spacing: -0.01em;
-		margin: 0;
-	}
-
 	.count-badge {
 		background: var(--surface-3);
 		color: var(--text-secondary);
@@ -441,6 +410,7 @@
 
 	/* ── Add form ── */
 	.add-form-wrap {
+		margin-bottom: 16px;
 		background: var(--surface-1);
 		border: 1px solid var(--border-subtle);
 		border-radius: var(--radius-lg);
@@ -487,11 +457,12 @@
 	.table-shell {
 		background: var(--surface-1);
 		border: 1px solid var(--border-subtle);
-		border-radius: var(--radius-xl);
-		overflow: hidden;
+		border-radius: var(--radius-lg);
+		overflow: auto;
 	}
 
 	table {
+		min-width: 980px;
 		width: 100%;
 		border-collapse: collapse;
 	}
@@ -513,7 +484,7 @@
 	tbody tr.job-row {
 		border-bottom: 1px solid var(--border-subtle);
 		cursor: pointer;
-		transition: background-color 120ms cubic-bezier(0.22, 1, 0.36, 1);
+		transition: background-color 120ms var(--ease-out);
 	}
 
 	tbody tr.job-row:last-child,
@@ -780,5 +751,23 @@
 		color: var(--text-secondary);
 		margin: 0;
 		max-width: 280px;
+	}
+
+	@media (max-width: 760px) {
+		.add-form {
+			align-items: stretch;
+			flex-direction: column;
+		}
+
+		.add-form .btn-sm {
+			width: 100%;
+		}
+
+		.table-shell {
+			margin-inline: -16px;
+			border-right: none;
+			border-left: none;
+			border-radius: 0;
+		}
 	}
 </style>

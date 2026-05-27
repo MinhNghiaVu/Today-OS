@@ -2,6 +2,7 @@
 	import { enhance } from '$app/forms';
 	import { Activity, Plus } from 'lucide-svelte';
 	import HabitProgressList from '$lib/components/HabitProgressList.svelte';
+	import PageShell from '$lib/components/PageShell.svelte';
 	import Select from '$lib/components/Select.svelte';
 	import type { PageData } from './$types';
 	import type { Habit, HabitType, HabitWithTodayLogs } from '$lib/types';
@@ -57,14 +58,11 @@
 	}
 </script>
 
-<div class="page">
-	<header class="page-header">
-		<h1>Habits</h1>
-		<button class="btn-primary" on:click={startAdd}>
-			<Plus size={16} strokeWidth={2.2} aria-hidden="true" />
-			New habit
-		</button>
-	</header>
+<PageShell title="Habits" subtitle="Small daily signals, tracked without turning the app into a dashboard.">
+	<button slot="actions" class="btn-primary" on:click={startAdd}>
+		<Plus size={16} strokeWidth={2.2} aria-hidden="true" />
+		New habit
+	</button>
 
 	{#if showForm}
 		<form
@@ -167,33 +165,12 @@
 	{:else}
 		<HabitProgressList bind:habits showManageActions onEdit={startEdit} />
 	{/if}
-</div>
+</PageShell>
 
 <style>
-	.page {
-		display: flex;
-		flex-direction: column;
-		gap: 20px;
-		padding: 32px 24px;
-	}
-
-	/* ── Header ── */
-	.page-header {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-	}
-
-	h1 {
-		margin: 0;
-		font-size: 24px;
-		font-weight: 600;
-		letter-spacing: -0.01em;
-		color: var(--text-primary);
-	}
-
 	/* ── Add/Edit form ── */
 	.habit-form {
+		margin-bottom: 16px;
 		background: var(--surface-1);
 		border: 1px solid var(--border-default);
 		border-radius: var(--radius-lg);
@@ -365,6 +342,7 @@
 
 	/* ── Empty state ── */
 	.empty-state {
+		margin-top: 4px;
 		display: flex;
 		flex-direction: column;
 		align-items: center;
@@ -395,15 +373,6 @@
 	}
 
 	@media (max-width: 560px) {
-		.page {
-			padding: 28px 16px;
-		}
-
-		.page-header {
-			align-items: flex-start;
-			gap: 12px;
-		}
-
 		.form-row,
 		.form-actions {
 			flex-direction: column;

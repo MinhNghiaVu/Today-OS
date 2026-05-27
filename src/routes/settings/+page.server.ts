@@ -20,7 +20,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 
 	return {
 		email: data?.email ?? user.email ?? '',
-		preferences: data?.preferences ?? { theme: 'dark', accentIndex: 0 },
+		preferences: data?.preferences ?? { theme: 'dark', accentIndex: 5 },
 		exportData: {
 			todos: todos.data ?? [],
 			habits: habits.data ?? [],

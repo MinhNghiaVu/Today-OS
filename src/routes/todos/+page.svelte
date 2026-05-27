@@ -1,4 +1,5 @@
 <script lang="ts">
+	import PageShell from '$lib/components/PageShell.svelte';
 	import TodoList from '$lib/components/TodoList.svelte';
 	import type { TodoStats } from '$lib/utils/todos';
 	import type { PageData } from './$types';
@@ -13,11 +14,8 @@
 	};
 </script>
 
-<div class="page">
-	<header class="page-header">
-		<h1>Todos</h1>
-		<span class="total-badge">{todoStats.pending} pending</span>
-	</header>
+<PageShell title="Todos" subtitle="A clean task ledger for everything that should not stay in your head.">
+	<span slot="meta" class="total-badge">{todoStats.pending} pending</span>
 
 	<TodoList
 		todos={data.todos}
@@ -31,39 +29,17 @@
 		emptyDescription="Add your first task using the form above."
 		bind:stats={todoStats}
 	/>
-</div>
+</PageShell>
 
 <style>
-	.page {
-		display: flex;
-		flex-direction: column;
-		gap: 20px;
-		padding: 32px 24px;
-	}
-
-	.page-header {
-		display: flex;
-		align-items: baseline;
-		gap: 12px;
-	}
-
-	h1 {
-		margin: 0;
-		color: var(--text-primary);
-		font-size: 24px;
-		font-weight: 600;
-		letter-spacing: -0.01em;
-		line-height: 1.2;
-	}
-
 	.total-badge {
+		display: inline-flex;
+		align-items: center;
+		min-height: 28px;
+		border-radius: var(--radius-full);
+		background: var(--surface-2);
+		padding: 0 10px;
 		color: var(--text-secondary);
 		font-size: 13px;
-	}
-
-	@media (max-width: 560px) {
-		.page {
-			padding: 28px 16px;
-		}
 	}
 </style>

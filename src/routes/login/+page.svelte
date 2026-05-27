@@ -174,7 +174,7 @@
 		font-size: 24px;
 		font-weight: 600;
 		color: var(--text-primary);
-		letter-spacing: -0.01em;
+		letter-spacing: 0;
 	}
 
 	.sub {

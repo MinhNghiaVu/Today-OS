@@ -1,8 +1,8 @@
 <script lang="ts">
 	import '../app.css';
 	import { page } from '$app/stores';
-	import { settings, mobileSidebarOpen } from '$lib/stores';
-	import { Menu } from 'lucide-svelte';
+	import { settings } from '$lib/stores';
+	import AppMobileNav from '$lib/components/AppMobileNav.svelte';
 	import AppSidebar from '$lib/components/AppSidebar.svelte';
 	import Toast from '$lib/components/Toast.svelte';
 
@@ -17,26 +17,20 @@
 	{#if !isAuthRoute}
 		<AppSidebar user={data.user ?? null} pathname={$page.url.pathname} />
 		<header class="mobile-topbar">
-			<button
-				type="button"
-				class="mobile-menu-button"
-				on:click={() => mobileSidebarOpen.open()}
-				aria-label="Open navigation"
-				aria-controls="app-sidebar"
-				aria-expanded={$mobileSidebarOpen}
-			>
-				<Menu size={20} strokeWidth={2} />
-			</button>
-			<a href="/today" class="mobile-brand" aria-label="Today OS home">
+			<div class="mobile-brand">
 				<img src="/icon-192.png" alt="" aria-hidden="true" width="24" height="24" />
 				<span>Today OS</span>
-			</a>
+			</div>
 		</header>
 	{/if}
 
 	<main class="content">
 		<slot />
 	</main>
+
+	{#if !isAuthRoute}
+		<AppMobileNav pathname={$page.url.pathname} />
+	{/if}
 </div>
 
 <Toast />
@@ -81,36 +75,12 @@
 			z-index: 30;
 			display: flex;
 			align-items: center;
-			gap: 8px;
+			justify-content: flex-start;
 			height: 56px;
 			padding: 8px 12px;
 			background: color-mix(in oklab, var(--bg) 94%, transparent);
 			border-bottom: 1px solid var(--border-subtle);
 			backdrop-filter: blur(12px);
-		}
-
-		.mobile-menu-button {
-			display: inline-flex;
-			align-items: center;
-			justify-content: center;
-			width: 40px;
-			height: 40px;
-			border: none;
-			border-radius: var(--radius-md);
-			background: transparent;
-			color: var(--text-primary);
-			cursor: pointer;
-			transition:
-				background-color 120ms var(--ease-out),
-				transform 120ms var(--ease-out);
-		}
-
-		.mobile-menu-button:hover {
-			background: var(--surface-2);
-		}
-
-		.mobile-menu-button:active {
-			transform: translateY(1px);
 		}
 
 		.mobile-brand {
@@ -124,7 +94,7 @@
 			color: var(--text-primary);
 			font-size: 15px;
 			font-weight: 600;
-			letter-spacing: -0.01em;
+			letter-spacing: 0;
 		}
 
 		.mobile-brand img {
@@ -134,6 +104,10 @@
 			object-fit: cover;
 			box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
 			flex-shrink: 0;
+		}
+
+		.content {
+			padding-bottom: var(--mobile-bottom-nav-height);
 		}
 	}
 

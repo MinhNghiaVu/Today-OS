@@ -48,8 +48,8 @@
 					storedTheme ||
 					cookie('theme') ||
 					(window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
-				var accentIndex = Number(storedAccent || cookie('accentIndex') || 0);
-				var accent = accents[accentIndex] || accents[0];
+				var accentIndex = Number(storedAccent || cookie('accentIndex') || 5);
+				var accent = accents[accentIndex] || accents[5];
 
 				root.setAttribute('data-theme', theme === 'light' ? 'light' : 'dark');
 				root.style.colorScheme = theme === 'light' ? 'light' : 'dark';

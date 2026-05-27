@@ -243,7 +243,7 @@
 		line-height: 1.6;
 	}
 
-	.prose :global(h1) { font-size: 22px; font-weight: 600; margin: 0 0 12px; letter-spacing: -0.01em; }
+	.prose :global(h1) { font-size: 22px; font-weight: 600; margin: 0 0 12px; letter-spacing: 0; }
 	.prose :global(h2) { font-size: 17px; font-weight: 600; margin: 20px 0 8px; }
 	.prose :global(h3) { font-size: 15px; font-weight: 600; margin: 16px 0 6px; }
 	.prose :global(p) { margin: 0 0 12px; }
@@ -337,7 +337,7 @@
 	@media (max-width: 760px) {
 		.page {
 			flex-direction: column;
-			height: calc(100dvh - 56px);
+			height: calc(100dvh - 56px - var(--mobile-bottom-nav-height));
 		}
 
 		.editor-header {

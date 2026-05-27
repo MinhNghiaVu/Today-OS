@@ -20,7 +20,7 @@ const SCHEMA = [
 		id text primary key,
 		email text not null default '',
 		display_name text,
-		preferences jsonb not null default '{"theme":"dark","accentIndex":0}'::jsonb,
+		preferences jsonb not null default '{"theme":"dark","accentIndex":5}'::jsonb,
 		google_access_token text,
 		google_refresh_token text,
 		google_token_expiry timestamptz,
