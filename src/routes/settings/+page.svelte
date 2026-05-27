@@ -3,6 +3,9 @@
 	import { invalidateAll } from '$app/navigation';
 	import { settings, ACCENT_PRESETS } from '$lib/stores';
 	import PwaInstallSetting from '$lib/components/PwaInstallSetting.svelte';
+	import SettingsButton from '$lib/components/settings/SettingsButton.svelte';
+	import SettingsRow from '$lib/components/settings/SettingsRow.svelte';
+	import SettingsSection from '$lib/components/settings/SettingsSection.svelte';
 	import type { PageData } from './$types';
 
 	export let data: PageData;
@@ -33,13 +36,8 @@
 		<h1>Settings</h1>
 	</header>
 
-	<section class="settings-section">
-		<h2 class="section-heading">Appearance</h2>
-
-		<div class="row">
-			<div class="row-label">
-				<span class="label">Theme</span>
-			</div>
+	<SettingsSection title="Appearance">
+		<SettingsRow label="Theme">
 			<div class="seg-group">
 				<form method="POST" action="?/setTheme" use:enhance={() => {
 					settings.setTheme('dark');
@@ -56,12 +54,9 @@
 					<button type="submit" class="seg-btn" class:active={$settings.theme === 'light'}>Light</button>
 				</form>
 			</div>
-		</div>
+		</SettingsRow>
 
-		<div class="row">
-			<div class="row-label">
-				<span class="label">Accent color</span>
-			</div>
+		<SettingsRow label="Accent color">
 			<div class="swatch-row">
 				{#each ACCENT_PRESETS as preset, i}
 					<form method="POST" action="?/setAccent" use:enhance={() => {
@@ -80,41 +75,24 @@
 					</form>
 				{/each}
 			</div>
-		</div>
-	</section>
+		</SettingsRow>
+	</SettingsSection>
 
-	<section class="settings-section">
-		<h2 class="section-heading">Account</h2>
-
-		<div class="row">
-			<div class="row-label">
-				<span class="label">Email</span>
-				<span class="hint">{data.email}</span>
-			</div>
-		</div>
-	</section>
+	<SettingsSection title="Account">
+		<SettingsRow label="Email" hint={data.email} />
+	</SettingsSection>
 
 	<PwaInstallSetting />
 
-	<section class="settings-section">
-		<h2 class="section-heading">Data</h2>
+	<SettingsSection title="Data">
+		<SettingsRow label="Export" hint="Download all data as JSON.">
+			<SettingsButton on:click={exportData}>Export JSON</SettingsButton>
+		</SettingsRow>
 
-		<div class="row">
-			<div class="row-label">
-				<span class="label">Export</span>
-				<span class="hint">Download all data as JSON.</span>
-			</div>
-			<button class="btn-secondary" on:click={exportData}>Export JSON</button>
-		</div>
-
-		<div class="row">
-			<div class="row-label">
-				<span class="label">Clear all data</span>
-				<span class="hint">Permanently deletes all todos, habits, and notes.</span>
-			</div>
-			<button class="btn-destructive" on:click={clearData}>Clear</button>
-		</div>
-	</section>
+		<SettingsRow label="Clear all data" hint="Permanently deletes all todos, habits, and notes.">
+			<SettingsButton variant="destructive" on:click={clearData}>Clear</SettingsButton>
+		</SettingsRow>
+	</SettingsSection>
 </div>
 
 <style>
@@ -136,59 +114,6 @@
 		font-weight: 600;
 		color: var(--text-primary);
 		letter-spacing: -0.01em;
-	}
-
-	/* Section */
-	.settings-section {
-		border-top: 1px solid var(--border-subtle);
-		padding: 24px 0;
-		display: flex;
-		flex-direction: column;
-		gap: 0;
-	}
-
-	.settings-section:last-child {
-		border-bottom: 1px solid var(--border-subtle);
-	}
-
-	.section-heading {
-		margin: 0 0 16px;
-		font-size: 11px;
-		font-weight: 500;
-		text-transform: uppercase;
-		letter-spacing: 0.04em;
-		color: var(--text-tertiary);
-	}
-
-	/* Row */
-	.row {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		gap: 16px;
-		padding: 12px 0;
-	}
-
-	.row + .row {
-		border-top: 1px solid var(--border-subtle);
-	}
-
-	.row-label {
-		display: flex;
-		flex-direction: column;
-		gap: 2px;
-		min-width: 0;
-	}
-
-	.label {
-		font-size: 14px;
-		font-weight: 400;
-		color: var(--text-primary);
-	}
-
-	.hint {
-		font-size: 13px;
-		color: var(--text-secondary);
 	}
 
 	/* Segmented button group (theme toggle) */
@@ -270,64 +195,6 @@
 	}
 
 	.swatch:focus-visible {
-		outline: 2px solid var(--border-focus);
-		outline-offset: 2px;
-	}
-
-	/* Action buttons */
-	.btn-secondary {
-		background: transparent;
-		border: 1px solid var(--border-default);
-		border-radius: var(--radius-md);
-		padding: 0 16px;
-		height: 36px;
-		font-size: 13px;
-		font-weight: 500;
-		color: var(--text-primary);
-		cursor: pointer;
-		flex-shrink: 0;
-		transition: background 120ms var(--ease-out), border-color 120ms var(--ease-out);
-	}
-
-	.btn-secondary:hover {
-		background: var(--surface-2);
-		border-color: var(--border-strong);
-	}
-
-	.btn-secondary:active {
-		transform: translateY(1px);
-	}
-
-	.btn-secondary:focus-visible {
-		outline: 2px solid var(--border-focus);
-		outline-offset: 2px;
-	}
-
-	/* Destructive button §8.1 */
-	.btn-destructive {
-		background: transparent;
-		border: 1px solid color-mix(in oklab, var(--danger) 40%, transparent);
-		border-radius: var(--radius-md);
-		padding: 0 16px;
-		height: 36px;
-		font-size: 13px;
-		font-weight: 500;
-		color: var(--danger);
-		cursor: pointer;
-		flex-shrink: 0;
-		transition: background 120ms var(--ease-out), border-color 120ms var(--ease-out);
-	}
-
-	.btn-destructive:hover {
-		background: var(--danger-soft);
-		border-color: var(--danger);
-	}
-
-	.btn-destructive:active {
-		transform: translateY(1px);
-	}
-
-	.btn-destructive:focus-visible {
 		outline: 2px solid var(--border-focus);
 		outline-offset: 2px;
 	}
