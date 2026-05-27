@@ -98,33 +98,40 @@
 	inert={isMobileViewport && !$mobileSidebarOpen}
 >
 	<div class="sidebar-top">
-		<a href="/today" class="logo" aria-label="Today OS home" on:click={closeMobileSidebar}>
-			<img class="logo-mark" src="/icon-192.png" alt="" aria-hidden="true" width="24" height="24" />
-			<span class="label-text">Today OS</span>
-		</a>
-		<button
-			type="button"
-			class="collapse-button"
-			on:click={() => sidebarCollapsed.toggle()}
-			aria-label={navCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-			aria-pressed={navCollapsed}
-			title={navCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-		>
-			{#if navCollapsed}
-				<PanelLeftOpen size={16} strokeWidth={2} />
-			{:else}
-				<PanelLeftClose size={16} strokeWidth={2} />
-			{/if}
-		</button>
-		<button
-			bind:this={closeButton}
-			type="button"
-			class="drawer-close-button"
-			on:click={closeMobileSidebar}
-			aria-label="Close navigation"
-		>
-			<X size={18} strokeWidth={2} />
-		</button>
+		{#if isMobileViewport}
+			<button
+				bind:this={closeButton}
+				type="button"
+				class="drawer-close-button"
+				on:click={closeMobileSidebar}
+				aria-label="Close navigation"
+			>
+				<X size={18} strokeWidth={2} />
+			</button>
+			<div class="logo mobile-logo" aria-label="Today OS navigation">
+				<img class="logo-mark" src="/icon-192.png" alt="" aria-hidden="true" width="24" height="24" />
+				<span class="label-text">Today OS</span>
+			</div>
+		{:else}
+			<a href="/today" class="logo" aria-label="Today OS home" on:click={closeMobileSidebar}>
+				<img class="logo-mark" src="/icon-192.png" alt="" aria-hidden="true" width="24" height="24" />
+				<span class="label-text">Today OS</span>
+			</a>
+			<button
+				type="button"
+				class="collapse-button"
+				on:click={() => sidebarCollapsed.toggle()}
+				aria-label={navCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+				aria-pressed={navCollapsed}
+				title={navCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+			>
+				{#if navCollapsed}
+					<PanelLeftOpen size={16} strokeWidth={2} />
+				{:else}
+					<PanelLeftClose size={16} strokeWidth={2} />
+				{/if}
+			</button>
+		{/if}
 	</div>
 
 	<ul class="nav-list">
@@ -240,7 +247,7 @@
 	}
 
 	.drawer-close-button {
-		display: none;
+		display: inline-flex;
 	}
 
 	.sidebar-top:hover .collapse-button,
@@ -403,7 +410,7 @@
 			width: auto;
 			height: auto;
 			min-height: 44px;
-			justify-content: space-between;
+			justify-content: flex-start;
 			padding: 0 0 12px;
 		}
 
@@ -416,14 +423,18 @@
 			padding: 0 8px;
 		}
 
+		.mobile-logo {
+			color: var(--text-secondary);
+		}
+
 		.collapse-button {
 			display: none;
 		}
 
 		.drawer-close-button {
-			display: inline-flex;
 			width: 40px;
 			height: 40px;
+			color: var(--text-primary);
 		}
 
 		.nav-list {

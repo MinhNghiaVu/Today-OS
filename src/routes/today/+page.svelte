@@ -1,16 +1,15 @@
 <script lang="ts">
-	import { enhance } from '$app/forms';
 	import {
 		Activity,
 		CalendarDays,
 		ChevronRight,
 		Clock3,
-		FileText,
 	} from 'lucide-svelte';
 	import HabitProgressList from '$lib/components/HabitProgressList.svelte';
+	import SummaryStatStrip from '$lib/components/SummaryStatStrip.svelte';
+	import TodayQuickNotesPanel from '$lib/components/TodayQuickNotesPanel.svelte';
 	import TodoList from '$lib/components/TodoList.svelte';
 	import { isHabitOnTrack } from '$lib/utils/habits';
-	import { getActionData } from '$lib/utils/optimistic';
 	import type { TodoStats } from '$lib/utils/todos';
 	import type { PageData } from './$types';
 	import type { HabitWithTodayLogs, Note } from '$lib/types';
@@ -25,10 +24,8 @@
 
 	const todayStr = new Date().toISOString().slice(0, 10);
 
-	let noteContent = '';
 	let habitTotals: HabitWithTodayLogs[] = data.habitTotals;
 	let notesToday: Note[] = data.notesToday;
-	let optimisticNoteSeq = 0;
 	let todoStats: TodoStats = {
 		all: data.todosToday.length,
 		pending: data.todosToday.filter((todo) => todo.status === 'pending').length,
@@ -38,38 +35,25 @@
 	$: if (data.habitTotals) habitTotals = data.habitTotals;
 	$: if (data.notesToday) notesToday = data.notesToday;
 	$: habitsOnTrack = habitTotals.filter(isHabitOnTrack);
-	$: notesPreview = notesToday.slice(0, 3);
-
-	function makeOptimisticNote(content: string): Note {
-		const now = new Date().toISOString();
-		const firstLine = content.split('\n').find(Boolean)?.trim() ?? 'Quick note';
-		optimisticNoteSeq += 1;
-		return {
-			id: `optimistic-note-${Date.now()}-${optimisticNoteSeq}`,
-			user_id: 'optimistic',
-			title: firstLine.length > 60 ? `${firstLine.slice(0, 57)}...` : firstLine,
-			content,
-			type: 'note',
-			date: todayStr,
-			created_at: now,
-			updated_at: now
-		};
-	}
-
-	function getNoteFromResult(result: unknown): Note | null {
-		const note = getActionData(result)?.note;
-		return note && typeof note === 'object' && 'id' in note ? (note as Note) : null;
-	}
+	$: summaryStats = [
+		{
+			value: todoStats.pending,
+			label: `todo${todoStats.pending === 1 ? '' : 's'} left`,
+			ariaLabel: `${todoStats.pending} todos left`
+		},
+		{
+			value: `${habitsOnTrack.length}/${habitTotals.length}`,
+			label: 'habits on track',
+			ariaLabel: `${habitsOnTrack.length} of ${habitTotals.length} habits on track`
+		},
+		{
+			value: notesToday.length,
+			label: `note${notesToday.length === 1 ? '' : 's'}`,
+			ariaLabel: `${notesToday.length} notes`
+		}
+	];
 
 	function formatTime(iso: string): string {
-		return new Date(iso).toLocaleTimeString('en-US', {
-			hour: 'numeric',
-			minute: '2-digit',
-			hour12: true
-		});
-	}
-
-	function formatNoteTime(iso: string): string {
 		return new Date(iso).toLocaleTimeString('en-US', {
 			hour: 'numeric',
 			minute: '2-digit',
@@ -85,20 +69,7 @@
 			<div>
 				<h1>{dateLabel}</h1>
 			</div>
-			<div class="hero-stats" aria-label="Today summary">
-				<div class="hero-stat">
-					<span class="stat-value">{todoStats.pending}</span>
-					<span class="stat-label">todo{todoStats.pending === 1 ? '' : 's'} left</span>
-				</div>
-				<div class="hero-stat">
-					<span class="stat-value">{habitsOnTrack.length}/{habitTotals.length}</span>
-					<span class="stat-label">habits on track</span>
-				</div>
-				<div class="hero-stat">
-					<span class="stat-value">{notesToday.length}</span>
-					<span class="stat-label">note{notesToday.length === 1 ? '' : 's'}</span>
-				</div>
-			</div>
+			<SummaryStatStrip items={summaryStats} ariaLabel="Today summary" />
 		</header>
 
 		<div class="daily-layout">
@@ -205,64 +176,7 @@
 					{/if}
 				</section>
 
-				<section class="panel compact-panel">
-					<div class="panel-heading">
-						<div>
-							<h2>Quick notes</h2>
-						</div>
-						<a href="/notes" class="panel-link">
-							Open
-							<ChevronRight size={14} strokeWidth={2} />
-						</a>
-					</div>
-
-					<form
-						method="POST"
-						action="?/addNote"
-						class="note-form"
-						use:enhance={({ formData }) => {
-							const content = String(formData.get('content') ?? '').trim();
-							const optimistic = content ? makeOptimisticNote(content) : null;
-							if (optimistic) notesToday = [optimistic, ...notesToday];
-							noteContent = '';
-							return async ({ result }) => {
-								if (result.type === 'failure' || result.type === 'error') {
-									if (optimistic) notesToday = notesToday.filter((note) => note.id !== optimistic.id);
-									return;
-								}
-								const serverNote = getNoteFromResult(result);
-								if (optimistic && serverNote) {
-									notesToday = notesToday.map((note) => note.id === optimistic.id ? serverNote : note);
-								}
-							};
-						}}
-					>
-						<textarea
-							name="content"
-							bind:value={noteContent}
-							placeholder="Jot something down..."
-							rows="4"
-							aria-label="Quick note"
-						></textarea>
-						<button type="submit" class="note-submit">
-							<FileText size={15} strokeWidth={2} aria-hidden="true" />
-							Save note
-						</button>
-					</form>
-
-					{#if notesPreview.length > 0}
-						<ul class="note-list">
-							{#each notesPreview as note}
-								<li>
-									<span class="note-title">{note.title || 'Untitled'}</span>
-									<span class="note-meta">{formatNoteTime(note.updated_at)}</span>
-								</li>
-							{/each}
-						</ul>
-					{:else}
-						<p class="hint">No notes attached to today yet.</p>
-					{/if}
-				</section>
+				<TodayQuickNotesPanel bind:notes={notesToday} today={todayStr} />
 			</aside>
 		</div>
 	</div>
@@ -307,37 +221,6 @@
 		font-size: 16px;
 		font-weight: 600;
 		line-height: 1.3;
-	}
-
-	.hero-stats {
-		display: grid;
-		grid-template-columns: repeat(3, minmax(96px, 1fr));
-		gap: 8px;
-		width: min(420px, 100%);
-	}
-
-	.hero-stat {
-		background: var(--surface-1);
-		border: 1px solid var(--border-subtle);
-		border-radius: var(--radius-lg);
-		padding: 12px 14px;
-		box-shadow: var(--shadow-sm);
-	}
-
-	.stat-value {
-		display: block;
-		font-size: 20px;
-		font-weight: 600;
-		line-height: 1.1;
-		color: var(--text-primary);
-	}
-
-	.stat-label {
-		display: block;
-		margin-top: 3px;
-		font-size: 12px;
-		color: var(--text-tertiary);
-		white-space: nowrap;
 	}
 
 	.daily-layout {
@@ -399,47 +282,17 @@
 		color: var(--text-primary);
 	}
 
-	.muted,
-	.hint {
+	.muted {
 		color: var(--text-tertiary);
 		font-size: 13px;
 	}
 
-	textarea {
-		width: 100%;
-		background: var(--surface-2);
-		border: 1px solid var(--border-default);
-		border-radius: var(--radius-md);
-		color: var(--text-primary);
-		font-family: inherit;
-		font-size: 14px;
-		outline: none;
-		transition: border-color 120ms var(--ease-out), background 120ms var(--ease-out);
-	}
-
-	textarea {
-		min-height: 104px;
-		resize: vertical;
-		padding: 11px 12px;
-		line-height: 1.5;
-	}
-
-	textarea::placeholder {
-		color: var(--text-tertiary);
-	}
-
-	textarea:hover {
-		border-color: var(--border-strong);
-	}
-
-	button:focus-visible,
 	a:focus-visible {
 		outline: 2px solid var(--border-focus);
 		outline-offset: 2px;
 	}
 
-	.event-list,
-	.note-list {
+	.event-list {
 		list-style: none;
 		margin: 0;
 		padding: 0;
@@ -538,71 +391,11 @@
 		white-space: nowrap;
 	}
 
-	.note-form {
-		display: flex;
-		flex-direction: column;
-		gap: 8px;
-	}
-
-	.note-submit {
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		gap: 7px;
-		height: 36px;
-		border: none;
-		border-radius: var(--radius-md);
-		background: var(--accent);
-		color: var(--text-on-accent);
-		font-size: 14px;
-		font-weight: 500;
-		cursor: pointer;
-	}
-
-	.note-list {
-		display: flex;
-		flex-direction: column;
-		gap: 6px;
-		margin-top: 14px;
-	}
-
-	.note-list li {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		gap: 10px;
-		padding: 9px 10px;
-		border-radius: var(--radius-md);
-		background: var(--surface-2);
-	}
-
-	.note-title {
-		overflow: hidden;
-		text-overflow: ellipsis;
-		white-space: nowrap;
-		color: var(--text-primary);
-		font-size: 13px;
-	}
-
-	.note-meta {
-		flex-shrink: 0;
-		color: var(--text-tertiary);
-		font-size: 12px;
-	}
-
-	.hint {
-		margin: 12px 0 0;
-	}
-
 	@media (max-width: 980px) {
 		.hero {
 			align-items: stretch;
 			flex-direction: column;
 			gap: 16px;
-		}
-
-		.hero-stats {
-			width: 100%;
 		}
 
 		.daily-layout {
@@ -617,10 +410,6 @@
 
 		h1 {
 			font-size: 25px;
-		}
-
-		.hero-stats {
-			grid-template-columns: 1fr;
 		}
 
 		.panel {

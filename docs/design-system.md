@@ -241,7 +241,7 @@ Fixed width 240–260px, `--surface-1` background, 1px right border (`--border-s
 
 - **Brand mark** — top, 20px height, 16–20px page padding around it.
 - **Collapse state** — desktop sidebar may collapse to a 56px icon rail. The top rail uses the standard 16px sidebar padding, shows the app logo by default, and swaps to the expand/collapse control on hover or keyboard focus using the same fixed 40px target so nothing jumps. Labels fade away, nav items keep their icon targets centered, and the account popover opens beside the rail instead of being clipped.
-- **Mobile drawer** — mobile does not use the collapsed icon rail. A 56px top bar exposes a 40px hamburger target, and the full sidebar slides in from the left as a full-viewport sheet with labels visible. Backdrop click, Esc, close button, and route selection close it. Animate only transform and opacity.
+- **Mobile drawer** — mobile does not use the collapsed icon rail. A 56px top bar exposes a 40px hamburger target, and the full sidebar slides in from the left as a full-viewport sheet with labels visible. The open drawer keeps the close control in the leading slot where the hamburger launched; the brand in the drawer is a static label, not a home link. Backdrop click, Esc, close button, and route selection close it. Animate only transform and opacity.
 - **Nav section** — 8px padding, 2px gap between items. Section labels (uppercase, 11px) above grouped items if there are multiple groups.
 - **Spacer** — `flex-1`, pushes the account block to the bottom.
 - **Account block** — single button at the bottom (see Component specs §8.7).
@@ -256,6 +256,14 @@ Pick one per surface; never mix.
 | Default | 44–52px | `px-4 py-3` | Todos, habits, notes list, settings rows |
 | Comfortable | 60–72px | `px-4 py-4` | Calendar entries, recent activity, search results |
 | Rich | 80–96px | `px-5 py-5` | Featured cards, large notification rows |
+
+### Compact summary strips
+
+Dashboard metrics with short values should stay in a single horizontal strip on mobile instead of stacking into full-width cards. Use three equal columns when the labels are short (`todos left`, `habits on track`, `notes`), 6–8px gaps, and 8–12px card padding. If labels overflow, shorten the copy before increasing height.
+
+### Mobile master/detail
+
+Desktop master/detail layouts may use a fixed left rail. On mobile, collapse that rail into a shallow horizontal picker above the detail surface, with the primary editor or detail view filling the remaining height. Notes use this pattern: the note list becomes a swipeable rail, and the editor stays immediately reachable without navigating through a second sidebar.
 
 ### Dividers
 

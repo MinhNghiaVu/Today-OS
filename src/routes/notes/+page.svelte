@@ -3,7 +3,8 @@
 	import { fly } from 'svelte/transition';
 	import { cubicOut, cubicIn } from 'svelte/easing';
 	import { marked } from 'marked';
-	import { FileText, Plus, Trash2 } from 'lucide-svelte';
+	import { FileText, Trash2 } from 'lucide-svelte';
+	import NoteListPane from '$lib/components/NoteListPane.svelte';
 	import SegmentedControl from '$lib/components/SegmentedControl.svelte';
 	import type { PageData } from './$types';
 
@@ -82,47 +83,10 @@
 		selectedId = remaining[0]?.id ?? null;
 	}
 
-	function fmtDate(iso: string) {
-		const d = new Date(iso);
-		const diff = Date.now() - d.getTime();
-		if (diff < 60_000) return 'just now';
-		if (diff < 3_600_000) return `${Math.floor(diff / 60_000)}m ago`;
-		if (diff < 86_400_000) return `${Math.floor(diff / 3_600_000)}h ago`;
-		return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-	}
 </script>
 
 <div class="page">
-	<aside class="note-list">
-		<div class="list-header">
-			<span class="list-title">Notes</span>
-			<button class="new-btn" on:click={newNote} aria-label="New note">
-				<Plus size={16} aria-hidden="true" />
-			</button>
-		</div>
-		<ul>
-			{#each sorted as note (note.id)}
-				<li transition:fly={{ y: -4, duration: 180, easing: cubicOut }}>
-					<button
-						class="note-item"
-						class:active={selectedId === note.id}
-						on:click={() => selectNote(note.id)}
-					>
-						<span class="note-item-title">{note.title || 'Untitled'}</span>
-						<span class="note-item-date">{fmtDate(note.updated_at)}</span>
-					</button>
-				</li>
-			{/each}
-			{#if sorted.length === 0}
-				<li class="empty-list">
-					<FileText size={32} class="empty-icon" aria-hidden="true" />
-					<p class="empty-title">No notes yet</p>
-					<p class="empty-desc">Create your first note to get started</p>
-					<button class="empty-cta" on:click={newNote}>New note</button>
-				</li>
-			{/if}
-		</ul>
-	</aside>
+	<NoteListPane notes={sorted} {selectedId} on:select={(event) => selectNote(event.detail)} on:create={newNote} />
 
 	<div class="editor">
 		{#if selected}
@@ -140,7 +104,7 @@
 				/>
 				<button class="del-btn" on:click={deleteNote} aria-label="Delete note">
 					<Trash2 size={14} aria-hidden="true" />
-					Delete
+					<span class="del-label">Delete</span>
 				</button>
 			</div>
 
@@ -182,119 +146,6 @@
 		margin: 0;
 		overflow: hidden;
 	}
-
-	/* ─── Note list ─────────────────────────────────────── */
-
-	.note-list {
-		width: 240px;
-		flex-shrink: 0;
-		border-right: 1px solid var(--border-subtle);
-		display: flex;
-		flex-direction: column;
-		overflow: hidden;
-		background: var(--surface-1);
-	}
-
-	.list-header {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		padding: 20px 16px 12px;
-		border-bottom: 1px solid var(--border-subtle);
-		flex-shrink: 0;
-	}
-
-	.list-title {
-		font-size: 11px;
-		font-weight: 500;
-		text-transform: uppercase;
-		letter-spacing: 0.04em;
-		color: var(--text-tertiary);
-	}
-
-	.new-btn {
-		width: 28px;
-		height: 28px;
-		border: none;
-		border-radius: var(--radius-md);
-		background: transparent;
-		color: var(--text-secondary);
-		cursor: pointer;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		transition: background 120ms var(--ease-out), color 120ms var(--ease-out);
-	}
-
-	.new-btn:hover {
-		background: var(--surface-2);
-		color: var(--text-primary);
-	}
-
-	.new-btn:focus-visible {
-		outline: 2px solid var(--border-focus);
-		outline-offset: 2px;
-	}
-
-	ul {
-		list-style: none;
-		margin: 0;
-		padding: 6px 0;
-		overflow-y: auto;
-		flex: 1;
-	}
-
-	.note-item {
-		width: 100%;
-		background: transparent;
-		border: none;
-		padding: 10px 16px;
-		text-align: left;
-		cursor: pointer;
-		display: flex;
-		flex-direction: column;
-		gap: 3px;
-		transition: background 120ms var(--ease-out);
-	}
-
-	.note-item:hover {
-		background: var(--surface-2);
-	}
-
-	.note-item.active {
-		background: var(--surface-3);
-	}
-
-	.note-item:focus-visible {
-		outline: 2px solid var(--border-focus);
-		outline-offset: -2px;
-	}
-
-	.note-item-title {
-		font-size: 13px;
-		font-weight: 500;
-		color: var(--text-primary);
-		white-space: nowrap;
-		overflow: hidden;
-		text-overflow: ellipsis;
-	}
-
-	.note-item-date {
-		font-size: 12px;
-		color: var(--text-tertiary);
-	}
-
-	/* Empty list state §8.12 */
-	.empty-list {
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		text-align: center;
-		padding: 32px 16px;
-		gap: 8px;
-	}
-
-	/* ─── Editor ─────────────────────────────────────────── */
 
 	.editor {
 		flex: 1;
@@ -343,7 +194,10 @@
 		color: var(--text-secondary);
 		cursor: pointer;
 		flex-shrink: 0;
-		transition: color 120ms var(--ease-out), border-color 120ms var(--ease-out), background 120ms var(--ease-out);
+		transition:
+			color 120ms var(--ease-out),
+			border-color 120ms var(--ease-out),
+			background-color 120ms var(--ease-out);
 	}
 
 	.del-btn:hover {
@@ -357,7 +211,6 @@
 		outline-offset: 2px;
 	}
 
-	/* Editor body — keyed for transition */
 	.editor-body {
 		flex: 1;
 		display: flex;
@@ -375,7 +228,7 @@
 		padding: 24px;
 		outline: none;
 		resize: none;
-		font-family: inherit; /* Inter, not mono */
+		font-family: inherit;
 	}
 
 	.content-input::placeholder {
@@ -390,7 +243,6 @@
 		line-height: 1.6;
 	}
 
-	/* Prose styles — only inline <code> and <pre> use mono */
 	.prose :global(h1) { font-size: 22px; font-weight: 600; margin: 0 0 12px; letter-spacing: -0.01em; }
 	.prose :global(h2) { font-size: 17px; font-weight: 600; margin: 20px 0 8px; }
 	.prose :global(h3) { font-size: 15px; font-weight: 600; margin: 16px 0 6px; }
@@ -422,7 +274,6 @@
 	.prose :global(a) { color: var(--accent); }
 	.prose :global(strong) { font-weight: 600; }
 
-	/* Empty states §8.12 */
 	.empty-editor {
 		flex: 1;
 		display: flex;
@@ -434,8 +285,7 @@
 		padding: 32px;
 	}
 
-	.empty-editor :global(.empty-icon),
-	.empty-list :global(.empty-icon) {
+	.empty-editor :global(.empty-icon) {
 		color: var(--text-tertiary);
 		margin-bottom: 4px;
 	}
@@ -454,14 +304,6 @@
 		max-width: 280px;
 	}
 
-	.empty-list .empty-title {
-		font-size: 13px;
-	}
-
-	.empty-list .empty-desc {
-		font-size: 12px;
-	}
-
 	.empty-cta {
 		margin-top: 4px;
 		background: var(--accent);
@@ -473,7 +315,9 @@
 		font-size: 14px;
 		font-weight: 500;
 		cursor: pointer;
-		transition: background 120ms var(--ease-out), transform 120ms var(--ease-out);
+		transition:
+			background-color 120ms var(--ease-out),
+			transform 120ms var(--ease-out);
 	}
 
 	.empty-cta:hover {
@@ -490,9 +334,42 @@
 		outline-offset: 2px;
 	}
 
-	.empty-list .empty-cta {
-		height: 28px;
-		font-size: 13px;
-		padding: 0 12px;
+	@media (max-width: 760px) {
+		.page {
+			flex-direction: column;
+			height: calc(100dvh - 56px);
+		}
+
+		.editor-header {
+			flex-wrap: wrap;
+			gap: 8px;
+			padding: 12px 16px;
+		}
+
+		.title-input {
+			flex: 1 0 100%;
+			font-size: 17px;
+		}
+
+		.del-btn {
+			width: 32px;
+			padding: 0;
+			justify-content: center;
+		}
+
+		.del-label {
+			position: absolute;
+			width: 1px;
+			height: 1px;
+			margin: -1px;
+			overflow: hidden;
+			clip: rect(0 0 0 0);
+			white-space: nowrap;
+		}
+
+		.content-input,
+		.preview {
+			padding: 18px 16px 24px;
+		}
 	}
 </style>
