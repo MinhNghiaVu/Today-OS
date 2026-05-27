@@ -360,7 +360,9 @@ Tech stack & architecture ￼
 
 - PWA:
 
- ▫ Configure manifest and service worker (e.g. ‎`@vite-pwa/sveltekit`) so I can install this on my phone and use it like a native app.
+ ▫ Configure manifest, iOS metadata, a service worker, and a short Settings install affordance so I can install this on my phone and use it like a native app.
+
+ ▫ The service worker should cache the public app shell and static assets only. Authenticated pages and user data stay network-first to avoid storing private todo, habit, note, calendar, or job responses in the browser cache.
 
 - Google Calendar integration:
 

@@ -2,6 +2,7 @@
 	import { enhance } from '$app/forms';
 	import { invalidateAll } from '$app/navigation';
 	import { settings, ACCENT_PRESETS } from '$lib/stores';
+	import PwaInstallSetting from '$lib/components/PwaInstallSetting.svelte';
 	import type { PageData } from './$types';
 
 	export let data: PageData;
@@ -92,6 +93,8 @@
 			</div>
 		</div>
 	</section>
+
+	<PwaInstallSetting />
 
 	<section class="settings-section">
 		<h2 class="section-heading">Data</h2>
