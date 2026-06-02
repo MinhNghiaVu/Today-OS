@@ -32,7 +32,7 @@ A personal daily operating system built with SvelteKit. Open it and immediately 
 |---|---|
 | Framework | SvelteKit |
 | Runtime | Bun |
-| Backend / Auth | Supabase (Postgres + RLS + Google OAuth) |
+| Backend / Auth | Neon Postgres + Neon Auth |
 | Styling | Tailwind CSS + CSS custom properties |
 | Icons | lucide-svelte |
 | Markdown | marked |

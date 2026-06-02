@@ -56,8 +56,8 @@
 		}
 
 		.summary-card {
-			min-height: 58px;
-			padding: 8px;
+			min-height: 64px;
+			padding: 12px 10px;
 		}
 
 		.summary-value {

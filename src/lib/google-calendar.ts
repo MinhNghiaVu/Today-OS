@@ -22,7 +22,8 @@ export async function getEventsForDate(accessToken: string, date: string): Promi
 		});
 
 		if (res.status === 401) throw new Error('TOKEN_EXPIRED');
-		if (!res.ok) return [];
+		if (res.status === 403) throw new Error('CALENDAR_ACCESS_DENIED');
+		if (!res.ok) throw new Error('CALENDAR_FETCH_FAILED');
 
 		const json = await res.json();
 		return (json.items ?? []).map(
@@ -42,8 +43,7 @@ export async function getEventsForDate(accessToken: string, date: string): Promi
 			})
 		);
 	} catch (error) {
-		if (error instanceof Error && error.message === 'TOKEN_EXPIRED') throw error;
-		return [];
+		throw error;
 	} finally {
 		clearTimeout(timeout);
 	}

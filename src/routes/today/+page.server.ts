@@ -2,6 +2,7 @@ import { fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { getTodosToday, getHabitSummariesToday, getNotesForDate } from '$lib/db';
 import { getEventsForDate } from '$lib/google-calendar';
+import { getGoogleCalendarAccessToken } from '$lib/server/google-calendar-auth';
 import { logHabit, removeHabitLog, updateHabitLog } from '$lib/server/habit-actions';
 import {
 	addTodoAction,
@@ -11,37 +12,29 @@ import {
 } from '$lib/server/todo-actions';
 import type { CalendarEvent } from '$lib/types';
 
-export const load: PageServerLoad = async ({ locals }) => {
+export const load: PageServerLoad = async ({ locals, request, url }) => {
 	const { user } = locals;
 	if (!user) redirect(303, '/login');
 
 	const today = new Date().toISOString().slice(0, 10);
 
-	const [todosToday, habitTotals, notesToday, tokenRow] = await Promise.all([
+	const [todosToday, habitTotals, notesToday, calendarAuth] = await Promise.all([
 		getTodosToday(locals.supabase, user.id),
 		getHabitSummariesToday(locals.supabase, user.id),
 		getNotesForDate(locals.supabase, user.id, today),
-		locals.supabase
-			.from('users')
-			.select('google_access_token, google_token_expiry')
-			.eq('id', user.id)
-			.single()
+		getGoogleCalendarAccessToken({
+			cookieHeader: request.headers.get('cookie'),
+			origin: url.origin,
+			userId: user.id
+		})
 	]);
 
-	const token = tokenRow.data?.google_access_token ?? null;
-	const expiry = tokenRow.data?.google_token_expiry ?? null;
-
-	let calendarState: 'ok' | 'disconnected' | 'expired' = 'disconnected';
-	if (token) {
-		calendarState = expiry && new Date(expiry) < new Date() ? 'expired' : 'ok';
-	}
-
 	const calendarEvents: Promise<CalendarEvent[]> =
-		calendarState === 'ok'
-			? getEventsForDate(token!, today).catch(() => [])
+		calendarAuth.state === 'ok'
+			? getEventsForDate(calendarAuth.accessToken!, today)
 			: Promise.resolve([]);
 
-	return { todosToday, habitTotals, notesToday, calendarState, calendarEvents };
+	return { todosToday, habitTotals, notesToday, calendarState: calendarAuth.state, calendarEvents };
 };
 
 export const actions: Actions = {

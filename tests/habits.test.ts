@@ -2,6 +2,7 @@
 import { describe, expect, test } from 'bun:test';
 import {
 	applyHabitLogAdd,
+	applyHabitLogRemove,
 	applyHabitLogUpdate,
 	createOptimisticHabitLog,
 	replaceHabitLog
@@ -65,5 +66,43 @@ describe('habit optimistic helpers', () => {
 
 		expect(updated.total).toBe(500);
 		expect(updated.todayLogs[0].value).toBe(500);
+	});
+
+	test('increments the seven-day goal count when an optimistic log meets the goal', () => {
+		const log = createOptimisticHabitLog({
+			habitId: '11111111-1111-4111-8111-111111111111',
+			value: 2500,
+			sequence: 2,
+			date: '2026-05-24',
+			now: '2026-05-24T03:00:00.000Z'
+		});
+
+		const [updated] = applyHabitLogAdd([habit()], log);
+
+		expect(updated.total).toBe(2500);
+		expect(updated.daysLogged).toBe(1);
+		expect(updated.daysMet).toBe(1);
+	});
+
+	test('updates the seven-day goal count when editing or removing a met day', () => {
+		const existing: HabitLog = {
+			id: '44444444-4444-4444-8444-444444444444',
+			user_id: 'user_1',
+			habit_id: '11111111-1111-4111-8111-111111111111',
+			date: '2026-05-24',
+			value: 2500,
+			created_at: '2026-05-24T02:00:00.000Z'
+		};
+		const starting = habit({ total: 2500, daysLogged: 1, daysMet: 1, todayLogs: [existing] });
+
+		const [belowGoal] = applyHabitLogUpdate([starting], { ...existing, value: 500 });
+		const [removed] = applyHabitLogRemove([starting], existing);
+
+		expect(belowGoal.total).toBe(500);
+		expect(belowGoal.daysLogged).toBe(1);
+		expect(belowGoal.daysMet).toBe(0);
+		expect(removed.total).toBe(0);
+		expect(removed.daysLogged).toBe(0);
+		expect(removed.daysMet).toBe(0);
 	});
 });

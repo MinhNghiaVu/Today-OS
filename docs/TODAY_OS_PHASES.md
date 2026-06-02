@@ -8,16 +8,16 @@ No active implementation phase. Phase work through Phase 6 is complete.
 
 Known manual setup remains:
 
-- Follow `docs/phase2-setup.md` for Supabase project keys, DB migrations, and Google OAuth.
+- Follow `docs/phase2-setup.md` for Neon project env vars, schema setup, and Google OAuth.
 - Follow `docs/phase4-setup.md` for Google Calendar read-only integration.
-- Follow `docs/phase6-setup.md` for the jobs table migration if the target Supabase project has not run it yet.
+- Follow `docs/phase6-setup.md` for the jobs table migration if the target Neon database has not run it yet.
 
 Work one phase at a time if a new phase is added. Do not expand into later phases unless the user explicitly asks.
 
 ## Phase Status
 
 - [x] **Phase 1 — SvelteKit routing, in-memory stores, Today page, habit drawer, notes, and settings**
-- [x] **Phase 2 — Supabase + Google Auth code**
+- [x] **Phase 2 — Neon + Google Auth code**
 - [x] **Phase 2.5 — Design-system rollout across existing screens**
 - [x] **Phase 3 — Calendar route + habit charts**
 - [x] **Phase 4 — Google Calendar read-only**
@@ -27,7 +27,7 @@ Work one phase at a time if a new phase is added. Do not expand into later phase
 
 ## Phase Notes
 
-### Phase 2 — Supabase + Auth
+### Phase 2 — Neon + Auth
 
 Status: complete, with manual setup documented.
 

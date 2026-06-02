@@ -7,6 +7,7 @@ import {
 	getNotesForDate
 } from '$lib/db';
 import { getEventsForDate } from '$lib/google-calendar';
+import { getGoogleCalendarAccessToken } from '$lib/server/google-calendar-auth';
 import { logHabit, removeHabitLog, updateHabitLog } from '$lib/server/habit-actions';
 import {
 	addTodoAction,
@@ -16,7 +17,7 @@ import {
 } from '$lib/server/todo-actions';
 import type { CalendarDayData, CalendarEvent } from '$lib/types';
 
-export const load: PageServerLoad = async ({ locals, url }) => {
+export const load: PageServerLoad = async ({ locals, request, url }) => {
 	const { supabase, user } = locals;
 	if (!user) throw error(401, 'Unauthorized');
 
@@ -28,19 +29,16 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	const year = yearParam ? parseInt(yearParam) : now.getFullYear();
 	const month = monthParam ? parseInt(monthParam) : now.getMonth() + 1;
 
-	const [activity] = await Promise.all([
-		getCalendarMonthActivity(supabase, user.id, year, month)
+	const [activity, calendarAuth] = await Promise.all([
+		getCalendarMonthActivity(supabase, user.id, year, month),
+		getGoogleCalendarAccessToken({
+			cookieHeader: request.headers.get('cookie'),
+			origin: url.origin,
+			userId: user.id
+		})
 	]);
 
-	const tokenRow = await supabase
-		.from('users')
-		.select('google_access_token, google_token_expiry')
-		.eq('id', user.id)
-		.single();
-
-	const gcToken = tokenRow.data?.google_access_token ?? null;
-	const gcExpiry = tokenRow.data?.google_token_expiry ?? null;
-	const gcConnected = gcToken !== null && !(gcExpiry && new Date(gcExpiry) < new Date());
+	const gcConnected = calendarAuth.state === 'ok';
 
 	let dayData: CalendarDayData | null = null;
 
@@ -49,7 +47,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 			getTodosForDate(supabase, user.id, dateParam),
 			getHabitSummariesForDate(supabase, user.id, dateParam),
 			getNotesForDate(supabase, user.id, dateParam),
-			gcConnected ? getEventsForDate(gcToken!, dateParam).catch(() => []) : Promise.resolve([] as CalendarEvent[])
+			gcConnected ? getEventsForDate(calendarAuth.accessToken!, dateParam).catch(() => []) : Promise.resolve([] as CalendarEvent[])
 		]);
 		dayData = { todos, habits, notes, gcEvents };
 	}

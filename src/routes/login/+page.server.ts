@@ -1,5 +1,6 @@
 import { fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
+import { GOOGLE_CALENDAR_SCOPES } from '$lib/server/google-calendar-auth';
 import { applyAuthCookies, authErrorMessage, authPost, logAuthFailure } from '$lib/server/neon-auth';
 
 const PASSWORD_REQUIREMENTS = [
@@ -22,7 +23,7 @@ export const actions: Actions = {
 		const response = await authPost('sign-in/social', {
 			provider: 'google',
 			callbackURL: `${url.origin}/today`,
-			scopes: ['openid', 'email', 'profile', 'https://www.googleapis.com/auth/calendar.readonly']
+			scopes: GOOGLE_CALENDAR_SCOPES
 		}, url.origin, request.headers.get('cookie'));
 		applyAuthCookies(cookies, response.headers);
 
