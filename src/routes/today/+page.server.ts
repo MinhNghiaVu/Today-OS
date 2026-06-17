@@ -106,6 +106,45 @@ export const actions: Actions = {
 		return { ok: true };
 	},
 
+	deferToTomorrow: async ({ locals, request }) => {
+		const { user } = locals;
+		if (!user) return fail(401);
+		const form = await request.formData();
+		const id = String(form.get('id') ?? '');
+
+		const tomorrow = new Date();
+		tomorrow.setDate(tomorrow.getDate() + 1);
+		const tomorrowStr = tomorrow.toISOString().slice(0, 10);
+
+		const { error } = await locals.supabase
+			.from('todos')
+			.update({ due_date: tomorrowStr, today_focus: false, focus_order: null })
+			.eq('id', id)
+			.eq('user_id', user.id);
+
+		if (error) return fail(500, { error: error.message });
+		return { ok: true };
+	},
+
+	shutdownToday: async ({ locals }) => {
+		const { user } = locals;
+		if (!user) return fail(401);
+
+		const tomorrow = new Date();
+		tomorrow.setDate(tomorrow.getDate() + 1);
+		const tomorrowStr = tomorrow.toISOString().slice(0, 10);
+
+		const { error } = await locals.supabase
+			.from('todos')
+			.update({ due_date: tomorrowStr, today_focus: false, focus_order: null })
+			.eq('user_id', user.id)
+			.eq('status', 'pending')
+			.eq('due_date', new Date().toISOString().slice(0, 10));
+
+		if (error) return fail(500, { error: error.message });
+		return { ok: true };
+	},
+
 	updateHabitLog: async ({ locals, request }) => {
 		return updateHabitLog({ request, supabase: locals.supabase, userId: locals.user?.id });
 	},

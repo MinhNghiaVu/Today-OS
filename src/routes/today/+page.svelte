@@ -12,6 +12,7 @@
 	import TodayQuickCapture from '$lib/components/TodayQuickCapture.svelte';
 	import TodayQuickNotesPanel from '$lib/components/TodayQuickNotesPanel.svelte';
 	import TodoList from '$lib/components/TodoList.svelte';
+	import EveningShutdown from '$lib/components/EveningShutdown.svelte';
 	import { isHabitOnTrack } from '$lib/utils/habits';
 	import type { TodoStats } from '$lib/utils/todos';
 	import type { PageData } from './$types';
@@ -100,6 +101,7 @@
 					emptyDescription="Add anything you want out of your head."
 					bind:stats={todoStats}
 				/>
+				<EveningShutdown pendingCount={todoStats.pending} />
 			</section>
 
 			<section class="panel">
