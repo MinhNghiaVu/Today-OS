@@ -21,7 +21,7 @@ Next: Phase 9A — TBD (future enhancement).
 - [ ] **Phase 7 — Mobile Command Center**
   - [x] **Phase 7A — Habit icons**
   - [x] **Phase 7B — Quick capture**
-  - [ ] **Phase 7C — Command center polish**
+  - [x] **Phase 7C — Command center polish**
 - [x] **Phase 8A — Daily priorities (Top 3 focus)**
 - [x] **Phase 8B — Evening shutdown and task deferral**
 - [x] **Phase 8C — Weekly review**

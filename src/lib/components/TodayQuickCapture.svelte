@@ -212,7 +212,7 @@
 		display: flex;
 		flex-direction: column;
 		gap: 10px;
-		padding: 16px;
+		padding: 18px;
 		border-radius: var(--radius-lg);
 		border: 1px solid var(--border-subtle);
 		background: var(--surface-1);

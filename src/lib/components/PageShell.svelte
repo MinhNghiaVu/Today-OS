@@ -133,5 +133,9 @@
 		h1 {
 			font-size: 25px;
 		}
+
+		p {
+			display: none;
+		}
 	}
 </style>

@@ -43,7 +43,7 @@
 		background: var(--surface-1);
 		border: 1px solid var(--border-subtle);
 		border-radius: var(--radius-lg);
-		padding: 16px;
+		padding: 18px;
 		box-shadow: var(--shadow-sm);
 	}
 
@@ -56,7 +56,7 @@
 
 	h2 {
 		margin: 0;
-		font-size: 14px;
+		font-size: 16px;
 		font-weight: 600;
 		color: var(--text-primary);
 		letter-spacing: 0;
