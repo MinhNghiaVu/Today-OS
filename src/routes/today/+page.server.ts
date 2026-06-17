@@ -4,6 +4,7 @@ import { getTodosToday, getHabitSummariesToday, getNotesForDate } from '$lib/db'
 import { getEventsForDate } from '$lib/google-calendar';
 import { getGoogleCalendarAccessToken } from '$lib/server/google-calendar-auth';
 import { logHabit, removeHabitLog, updateHabitLog } from '$lib/server/habit-actions';
+import { noteTitleFromContent } from '$lib/utils/capture';
 import {
 	addTodoAction,
 	removeTodoAction,
@@ -82,8 +83,7 @@ export const actions: Actions = {
 		if (!content) return fail(400, { error: 'Write something first' });
 
 		const today = new Date().toISOString().slice(0, 10);
-		const firstLine = content.split('\n').find(Boolean)?.trim() ?? 'Quick note';
-		const title = firstLine.length > 60 ? `${firstLine.slice(0, 57)}...` : firstLine;
+		const title = noteTitleFromContent(content);
 
 		const { data, error } = await locals.supabase
 			.from('notes')
@@ -93,5 +93,26 @@ export const actions: Actions = {
 
 		if (error) return fail(500, { error: error.message });
 		return { ok: true, note: data };
+	},
+
+	addJob: async ({ locals, request }) => {
+		const { user } = locals;
+		if (!user) return fail(401);
+
+		const form = await request.formData();
+		const company = (form.get('company') as string)?.trim();
+		const role = (form.get('role') as string)?.trim() || null;
+
+		if (!company) return fail(400, { error: 'Company name required' });
+
+		const { error } = await locals.supabase.from('jobs').insert({
+			user_id: user.id,
+			company,
+			role,
+			status: 'pending'
+		});
+
+		if (error) return fail(500, { error: error.message });
+		return { ok: true };
 	}
 };

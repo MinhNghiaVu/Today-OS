@@ -4,9 +4,9 @@ This is the phase/status handoff for Today OS. Keep root `AGENTS.md` and `CLAUDE
 
 ## Current Next Task
 
-Phase 7A habit icons is in progress on a clean clone.
+Phase 7B quick capture is ready to commit.
 
-Next: commit Phase 7A, then Phase 7B quick capture.
+Next: Phase 7C command-center polish.
 
 ## Phase Status
 
@@ -19,7 +19,7 @@ Next: commit Phase 7A, then Phase 7B quick capture.
 - [x] **Phase 6 — Job Board**
 - [x] **Polish pass — Load performance, first-paint theme, and responsive shell**
 - [ ] **Phase 7 — Mobile Command Center**
-  - [ ] **Phase 7A — Habit icons**
+  - [x] **Phase 7A — Habit icons**
   - [ ] **Phase 7B — Quick capture**
   - [ ] **Phase 7C — Command center polish**
 

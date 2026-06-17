@@ -2,6 +2,7 @@
 	import { enhance } from '$app/forms';
 	import { ChevronRight, FileText } from 'lucide-svelte';
 	import { getActionData } from '$lib/utils/optimistic';
+	import { noteTitleFromContent } from '$lib/utils/capture';
 	import type { Note } from '$lib/types';
 
 	export let notes: Note[] = [];
@@ -14,12 +15,11 @@
 
 	function makeOptimisticNote(content: string): Note {
 		const now = new Date().toISOString();
-		const firstLine = content.split('\n').find(Boolean)?.trim() ?? 'Quick note';
 		optimisticNoteSeq += 1;
 		return {
 			id: `optimistic-note-${Date.now()}-${optimisticNoteSeq}`,
 			user_id: 'optimistic',
-			title: firstLine.length > 60 ? `${firstLine.slice(0, 57)}...` : firstLine,
+			title: noteTitleFromContent(content),
 			content,
 			type: 'note',
 			date: today,
