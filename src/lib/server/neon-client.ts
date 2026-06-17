@@ -114,6 +114,11 @@ class QueryBuilder {
 		return this;
 	}
 
+	lt(column: string, value: unknown) {
+		this.filters.push({ kind: 'lt', column, value });
+		return this;
+	}
+
 	not(column: string, operator: string, value: unknown) {
 		if (operator === 'is' && value === null) this.filters.push({ kind: 'not-null', column });
 		return this;

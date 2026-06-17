@@ -109,3 +109,13 @@ export interface Job {
 	created_at: string;
 	updated_at: string;
 }
+
+export type FocusSessionType = 'focus' | 'break';
+
+export interface FocusSession {
+	id: string;
+	user_id: string;
+	duration_seconds: number;
+	type: FocusSessionType;
+	completed_at: string;
+}

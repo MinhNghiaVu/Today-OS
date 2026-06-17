@@ -1,5 +1,5 @@
 export type Filter =
-	| { kind: 'eq' | 'gte' | 'lte'; column: string; value: unknown }
+	| { kind: 'eq' | 'gte' | 'lte' | 'lt'; column: string; value: unknown }
 	| { kind: 'not-null'; column: string }
 	| { kind: 'today-todos'; date: string };
 
@@ -100,7 +100,7 @@ function addFilterParts(filters: Filter[], table: string, parts: string[], value
 			continue;
 		}
 		values.push(filter.value);
-		const operator = filter.kind === 'eq' ? '=' : filter.kind === 'gte' ? '>=' : '<=';
+		const operator = filter.kind === 'eq' ? '=' : filter.kind === 'gte' ? '>=' : filter.kind === 'lte' ? '<=' : '<';
 		parts.push(`${ident(filter.column)} ${operator} ${param(values.length, filter.column, table)}`);
 	}
 }

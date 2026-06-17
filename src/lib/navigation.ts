@@ -4,6 +4,7 @@ import {
 	Briefcase,
 	CalendarDays,
 	CheckSquare,
+	Clock,
 	FileText,
 	Settings2,
 	Sun
@@ -14,6 +15,7 @@ export const appNavItems = [
 	{ href: '/todos', label: 'Todos', icon: CheckSquare, mobilePrimary: true },
 	{ href: '/habits', label: 'Habits', icon: Activity, mobilePrimary: true },
 	{ href: '/notes', label: 'Notes', icon: FileText, mobilePrimary: true },
+	{ href: '/focus', label: 'Focus', icon: Clock, mobilePrimary: true },
 	{ href: '/calendar', label: 'Calendar', icon: CalendarDays, mobilePrimary: false },
 	{ href: '/review', label: 'Review', icon: BarChart3, mobilePrimary: false },
 	{ href: '/jobs', label: 'Jobs', icon: Briefcase, mobilePrimary: false },

@@ -6,7 +6,8 @@ import type {
 	HabitLog,
 	HabitWithTodayLogs,
 	Note,
-	Job
+	Job,
+	FocusSession
 } from './types';
 import { sortTodos } from '$lib/utils/todos';
 import { inferHabitIcon, isHabitIconName, normalizeHabitIcon } from '$lib/utils/habit-icons';
@@ -387,6 +388,21 @@ export async function getJobs(sb: AppDbClient, userId: string): Promise<Job[]> {
 		.select('*')
 		.eq('user_id', userId)
 		.order('created_at', { ascending: false });
+	if (error) throw error;
+	return (data ?? []) as any;
+}
+
+// ── Focus timer ─────────────────────────────────────────────
+
+export async function getFocusSessionsToday(sb: AppDbClient, userId: string): Promise<FocusSession[]> {
+	const today = new Date().toISOString().slice(0, 10);
+	const { data, error } = await sb
+		.from('focus_sessions')
+		.select('*')
+		.eq('user_id', userId)
+		.gte('completed_at', today)
+		.lt('completed_at', `${today}T23:59:59Z`)
+		.order('completed_at', { ascending: false });
 	if (error) throw error;
 	return (data ?? []) as any;
 }
