@@ -61,8 +61,49 @@ export const actions: Actions = {
 		return removeTodoAction({ request, supabase: locals.supabase, userId: locals.user?.id });
 	},
 
-	logHabit: async ({ locals, request }) => {
-		return logHabit({ request, supabase: locals.supabase, userId: locals.user?.id });
+	toggleFocus: async ({ locals, request }) => {
+		const { user } = locals;
+		if (!user) return fail(401);
+		const form = await request.formData();
+		const id = String(form.get('id') ?? '');
+		const focused = String(form.get('today_focus') ?? '') === 'true';
+
+		const { data: existing } = await locals.supabase
+			.from('todos')
+			.select('id')
+			.eq('user_id', user.id)
+			.eq('today_focus', true);
+
+		const currentCount = (existing ?? []).length;
+		if (focused && currentCount >= 3) return fail(400, { error: 'Max 3 daily priorities.' });
+
+		const nextOrder = focused ? (currentCount + 1) : null;
+
+		const { error } = await locals.supabase
+			.from('todos')
+			.update({ today_focus: focused, focus_order: focused ? nextOrder : null })
+			.eq('id', id)
+			.eq('user_id', user.id);
+
+		if (error) return fail(500, { error: error.message });
+		return { ok: true };
+	},
+
+	reorderFocus: async ({ locals, request }) => {
+		const { user } = locals;
+		if (!user) return fail(401);
+		const form = await request.formData();
+		const ids = (String(form.get('ids') ?? '')).split(',').filter(Boolean);
+		if (ids.length === 0) return fail(400);
+
+		for (let i = 0; i < ids.length; i++) {
+			await locals.supabase
+				.from('todos')
+				.update({ focus_order: i + 1 })
+				.eq('id', ids[i])
+				.eq('user_id', user.id);
+		}
+		return { ok: true };
 	},
 
 	updateHabitLog: async ({ locals, request }) => {

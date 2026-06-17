@@ -8,6 +8,7 @@
 	import HabitProgressList from '$lib/components/HabitProgressList.svelte';
 	import PageShell from '$lib/components/PageShell.svelte';
 	import SummaryStatStrip from '$lib/components/SummaryStatStrip.svelte';
+	import TodayFocusPanel from '$lib/components/TodayFocusPanel.svelte';
 	import TodayQuickCapture from '$lib/components/TodayQuickCapture.svelte';
 	import TodayQuickNotesPanel from '$lib/components/TodayQuickNotesPanel.svelte';
 	import TodoList from '$lib/components/TodoList.svelte';
@@ -73,6 +74,8 @@
 	<div class="daily-layout">
 		<main class="primary-column">
 			<TodayQuickCapture habits={habitTotals} today={todayStr} />
+
+			<TodayFocusPanel todos={data.todosToday} />
 
 			<section class="panel">
 				<div class="panel-heading">

@@ -11,6 +11,8 @@ export interface Todo {
 	status: TodoStatus;
 	due_date?: string;
 	priority?: TodoPriority;
+	today_focus?: boolean;
+	focus_order?: number;
 	note_id?: string;
 	created_at: string;
 	completed_at?: string;
