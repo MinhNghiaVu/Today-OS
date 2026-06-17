@@ -4,9 +4,9 @@ This is the phase/status handoff for Today OS. Keep root `AGENTS.md` and `CLAUDE
 
 ## Current Next Task
 
-Phase 7C command-center polish is in progress.
+Phase 8C weekly review is complete.
 
-Next: Phase 8A daily priorities and morning plan.
+Next: Phase 9A — TBD (future enhancement).
 
 ## Phase Status
 
@@ -22,6 +22,9 @@ Next: Phase 8A daily priorities and morning plan.
   - [x] **Phase 7A — Habit icons**
   - [x] **Phase 7B — Quick capture**
   - [ ] **Phase 7C — Command center polish**
+- [x] **Phase 8A — Daily priorities (Top 3 focus)**
+- [x] **Phase 8B — Evening shutdown and task deferral**
+- [x] **Phase 8C — Weekly review**
 
 ## Phase Notes
 

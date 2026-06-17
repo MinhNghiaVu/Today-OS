@@ -277,6 +277,108 @@ export async function getHabitLogsForRange(
 	return result;
 }
 
+// ── Weekly review ────────────────────────────────────────────
+
+function getWeekRange(): { start: string; end: string } {
+	const end = new Date().toISOString().slice(0, 10);
+	const start = new Date();
+	start.setDate(start.getDate() - 6);
+	return { start: start.toISOString().slice(0, 10), end };
+}
+
+export interface WeeklyHabitSummary {
+	date: string;
+	total: number;
+	met: boolean;
+}
+
+export interface WeeklyReviewData {
+	habitSummaries: Record<string, { habit: Habit; days: WeeklyHabitSummary[] }>;
+	todosCompleted: { date: string; count: number }[];
+	notesCreated: { id: string; title: string; content: string; date: string }[];
+	weekDays: string[];
+}
+
+export async function getWeeklyReviewData(
+	sb: AppDbClient,
+	userId: string
+): Promise<WeeklyReviewData> {
+	const { start, end } = getWeekRange();
+
+	const weekDays: string[] = [];
+	for (let d = new Date(start); d <= new Date(end); d.setDate(d.getDate() + 1)) {
+		weekDays.push(d.toISOString().slice(0, 10));
+	}
+
+	// Habits: definitions + logs for the week
+	const [{ data: habits, error: hErr }, { data: logs, error: lErr }] = await Promise.all([
+		sb.from('habit_definitions').select('*').eq('user_id', userId).eq('is_active', true).order('created_at'),
+		sb.from('habit_logs').select('*').eq('user_id', userId).gte('date', start).lte('date', end)
+	]);
+	if (hErr) throw hErr;
+	if (lErr) throw lErr;
+
+	const logsByHabitDate = new Map<string, number>();
+	for (const log of ((logs ?? []) as HabitLog[])) {
+		const key = `${log.habit_id}:${log.date}`;
+		logsByHabitDate.set(key, (logsByHabitDate.get(key) ?? 0) + log.value);
+	}
+
+	const habitSummaries: Record<string, { habit: Habit; days: WeeklyHabitSummary[] }> = {};
+	for (const habit of ((habits ?? []) as Habit[])) {
+		const days = weekDays.map((date) => {
+			const total = logsByHabitDate.get(`${habit.id}:${date}`) ?? 0;
+			let met = false;
+			if (habit.daily_goal !== null) {
+				if (habit.type === 'min_goal') met = total >= habit.daily_goal;
+				else if (habit.type === 'max_goal') met = total > 0 && total <= habit.daily_goal;
+				else met = total > 0;
+			} else {
+				met = total > 0;
+			}
+			return { date, total, met };
+		});
+		habitSummaries[habit.id] = { habit, days };
+	}
+
+	// Todos completed this week
+	const { data: completedTodos, error: ctErr } = await sb
+		.from('todos')
+		.select('completed_at')
+		.eq('user_id', userId)
+		.eq('status', 'done')
+		.not('completed_at', 'is', null)
+		.gte('completed_at', start)
+		.lte('completed_at', `${end}T23:59:59Z`);
+	if (ctErr) throw ctErr;
+
+	const completedByDate = new Map<string, number>();
+	for (const todo of ((completedTodos ?? []) as { completed_at: string }[])) {
+		const date = todo.completed_at.slice(0, 10);
+		completedByDate.set(date, (completedByDate.get(date) ?? 0) + 1);
+	}
+	const todosCompleted = weekDays.map((date) => ({
+		date,
+		count: completedByDate.get(date) ?? 0
+	}));
+
+	// Notes created this week
+	const { data: notes, error: nErr } = await sb
+		.from('notes')
+		.select('id, title, content, date')
+		.eq('user_id', userId)
+		.not('date', 'is', null)
+		.gte('date', start)
+		.lte('date', end)
+		.order('created_at', { ascending: false });
+	if (nErr) throw nErr;
+
+	const notesCreated = ((notes ?? []) as { id: string; title: string; content: string; date: string }[])
+		.filter((n) => weekDays.includes(n.date));
+
+	return { habitSummaries, todosCompleted, notesCreated, weekDays };
+}
+
 // ── Jobs ──────────────────────────────────────────────────────
 
 export async function getJobs(sb: AppDbClient, userId: string): Promise<Job[]> {
