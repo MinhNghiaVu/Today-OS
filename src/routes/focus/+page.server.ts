@@ -1,6 +1,7 @@
 import { fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { getFocusSessionHistory, getFocusSessionsToday } from '$lib/db';
+import { noteTitleFromContent } from '$lib/utils/capture';
 
 export const load: PageServerLoad = async ({ locals, url }) => {
 	const { user } = locals;
@@ -61,9 +62,53 @@ export const actions: Actions = {
 
 		if (!id) return fail(400, { error: 'Missing session id' });
 
+		if (!notes) {
+			const { error } = await locals.supabase
+				.from('focus_sessions')
+				.update({ notes: null, note_id: null })
+				.eq('id', id)
+				.eq('user_id', user.id);
+			if (error) return fail(500, { error: error.message });
+			return { ok: true };
+		}
+
+		const today = new Date().toISOString().slice(0, 10);
+		const title = noteTitleFromContent(notes);
+
+		// Check if a note already exists for this session
+		const { data: session } = await locals.supabase
+			.from('focus_sessions')
+			.select('note_id')
+			.eq('id', id)
+			.eq('user_id', user.id)
+			.single();
+
+		let noteId: string;
+
+		if (session?.note_id) {
+			// Update existing note
+			const { error: noteError } = await locals.supabase
+				.from('notes')
+				.update({ title, content: notes, updated_at: new Date().toISOString() })
+				.eq('id', session.note_id)
+				.eq('user_id', user.id);
+			if (noteError) return fail(500, { error: noteError.message });
+			noteId = session.note_id;
+		} else {
+			// Create a Note row
+			const { data: note, error: noteError } = await locals.supabase
+				.from('notes')
+				.insert({ user_id: user.id, title, content: notes, date: today, type: 'note' })
+				.select('id')
+				.single();
+			if (noteError) return fail(500, { error: noteError.message });
+			noteId = note.id;
+		}
+
+		// Update the focus session with notes text + link to the note
 		const { error } = await locals.supabase
 			.from('focus_sessions')
-			.update({ notes })
+			.update({ notes, note_id: noteId })
 			.eq('id', id)
 			.eq('user_id', user.id);
 

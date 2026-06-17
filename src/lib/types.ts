@@ -119,5 +119,6 @@ export interface FocusSession {
 	type: FocusSessionType;
 	notes: string | null;
 	todo_id?: string | null;
+	note_id?: string | null;
 	completed_at: string;
 }
