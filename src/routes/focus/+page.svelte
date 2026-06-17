@@ -1,15 +1,16 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import { Timer, Coffee, Clock, Save } from 'lucide-svelte';
+	import { Timer, Coffee, Clock, Save, Target } from 'lucide-svelte';
 	import PageShell from '$lib/components/PageShell.svelte';
 	import FocusTimer from '$lib/components/FocusTimer.svelte';
 	import type { PageData } from './$types';
-	import type { FocusSession } from '$lib/types';
+	import type { FocusSession, Todo } from '$lib/types';
 
 	export let data: PageData;
 
 	let sessions: FocusSession[] = data.sessions;
 	let history: FocusSession[] = data.history;
+	let focusedTodo: { id: string; title: string } | null = data.focusedTodo;
 
 	$: todayFocusSeconds = sessions
 		.filter((s) => s.type === 'focus')
@@ -86,6 +87,7 @@
 				duration_seconds: duration,
 				type,
 				notes: null,
+				todo_id: focusedTodo?.id ?? null,
 				completed_at: new Date().toISOString()
 			},
 			...sessions
@@ -113,9 +115,17 @@
 >
 	<input type="hidden" name="duration_seconds" value="" />
 	<input type="hidden" name="type" value="" />
+	<input type="hidden" name="todo_id" value={focusedTodo?.id ?? ''} />
 </form>
 
 <PageShell title="Focus" subtitle="Pomodoro timer for concentrated work sessions." maxWidth="narrow">
+	{#if focusedTodo}
+		<div class="focus-todo-banner">
+			<Target size={16} strokeWidth={2} aria-hidden="true" />
+			<span>Focusing on: <strong>{focusedTodo.title}</strong></span>
+		</div>
+	{/if}
+
 	<FocusTimer onComplete={handleComplete} />
 
 	<div class="summary-strip">
@@ -207,6 +217,28 @@
 <style>
 	.hidden-form {
 		display: none;
+	}
+
+	.focus-todo-banner {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		padding: 12px 16px;
+		margin-bottom: 16px;
+		border-radius: var(--radius-lg);
+		background: var(--accent-soft);
+		color: var(--text-primary);
+		font-size: 14px;
+		line-height: 1.4;
+	}
+
+	.focus-todo-banner :global(svg) {
+		color: var(--accent);
+		flex-shrink: 0;
+	}
+
+	.focus-todo-banner strong {
+		font-weight: 600;
 	}
 
 	.summary-strip {

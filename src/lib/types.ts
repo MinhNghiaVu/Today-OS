@@ -118,5 +118,6 @@ export interface FocusSession {
 	duration_seconds: number;
 	type: FocusSessionType;
 	notes: string | null;
+	todo_id?: string | null;
 	completed_at: string;
 }

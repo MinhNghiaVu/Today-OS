@@ -2,7 +2,7 @@
 	import { enhance } from '$app/forms';
 	import { fly } from 'svelte/transition';
 	import { cubicIn, cubicOut } from 'svelte/easing';
-	import { Trash2 } from 'lucide-svelte';
+	import { Trash2, Target } from 'lucide-svelte';
 	import type { TodoPriority } from '$lib/types';
 	import type { OptimisticMutation } from '$lib/utils/optimistic';
 	import { dateInputValue, formatShortDate, getTodoActionError, type TodoView } from '$lib/utils/todos';
@@ -23,6 +23,7 @@
 	export let onUpdate: (todo: TodoView, formData: FormData) => OptimisticMutation | void;
 	export let onRemove: (todo: TodoView) => OptimisticMutation | void;
 	export let onError: (message: string | null) => void = () => {};
+	export let showFocus = false;
 </script>
 
 <li
@@ -141,6 +142,11 @@
 		</button>
 
 		<div class="actions">
+			{#if showFocus}
+				<a href="/focus?todo={todo.id}" class="act-btn focus" title="Focus" aria-label="Focus on this task">
+					<Target size={14} strokeWidth={2} />
+				</a>
+			{/if}
 			<form
 				method="POST"
 				action={removeAction}
@@ -360,6 +366,16 @@
 		color: var(--danger);
 		border-color: var(--danger);
 		background: var(--danger-soft);
+	}
+
+	.act-btn.focus {
+		color: var(--text-tertiary);
+	}
+
+	.act-btn.focus:hover {
+		color: var(--accent);
+		border-color: var(--accent);
+		background: var(--accent-soft);
 	}
 
 	.edit-form {

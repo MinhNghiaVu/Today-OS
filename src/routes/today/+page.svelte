@@ -97,6 +97,7 @@
 					showDueDate={false}
 					showDescription={false}
 					emptyMode="inline"
+					showFocus
 					emptyTitle="No tasks for today."
 					emptyDescription="Add anything you want out of your head."
 					bind:stats={todoStats}

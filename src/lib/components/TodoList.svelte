@@ -37,6 +37,7 @@
 	export let emptyDescription = 'Add your first task using the form above.';
 	export let emptyMode: 'center' | 'inline' = 'center';
 	export let stats: TodoStats = getTodoStats(todos);
+	export let showFocus = false;
 
 	let filter = 'all';
 	let draftTodos: TodoView[] = todos;
@@ -235,6 +236,7 @@
 					busy={isOptimisticTodo(todo)}
 					{showDueDate}
 					{showDescription}
+					{showFocus}
 					{toggleAction}
 					{updateAction}
 					{removeAction}
