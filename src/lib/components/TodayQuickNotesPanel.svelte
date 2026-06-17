@@ -42,7 +42,7 @@
 	}
 </script>
 
-<section class="panel compact-panel">
+<section class="panel">
 	<div class="panel-heading">
 		<div>
 			<h2>Quick notes</h2>
@@ -105,13 +105,9 @@
 	.panel {
 		background: var(--surface-1);
 		border: 1px solid var(--border-subtle);
-		border-radius: var(--radius-xl);
+		border-radius: var(--radius-lg);
 		padding: 18px;
 		box-shadow: var(--shadow-sm);
-	}
-
-	.compact-panel {
-		padding: 16px;
 	}
 
 	.panel-heading {
@@ -253,7 +249,6 @@
 	@media (max-width: 640px) {
 		.panel {
 			padding: 14px;
-			border-radius: var(--radius-lg);
 		}
 
 		.panel-heading {

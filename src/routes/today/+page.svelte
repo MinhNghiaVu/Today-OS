@@ -69,115 +69,116 @@
 	<svelte:fragment slot="actions">
 		<SummaryStatStrip items={summaryStats} ariaLabel="Today summary" />
 	</svelte:fragment>
-		<div class="daily-layout">
-			<main class="primary-column">
-				<TodayQuickCapture habits={habitTotals} today={todayStr} />
 
-				<section class="panel focus-panel">
-					<div class="panel-heading">
-						<div>
-							<h2>Things to do today</h2>
-						</div>
-						<span class="muted">{todoStats.done} done</span>
+	<div class="daily-layout">
+		<main class="primary-column">
+			<TodayQuickCapture habits={habitTotals} today={todayStr} />
+
+			<section class="panel">
+				<div class="panel-heading">
+					<div>
+						<h2>Things to do today</h2>
 					</div>
+					<span class="muted">{todoStats.done} done</span>
+				</div>
 
-					<TodoList
-						todos={data.todosToday}
-						today={todayStr}
-						addAction="?/addTodo"
-						toggleAction="?/toggleTodo"
-						updateAction="?/updateTodo"
-						removeAction="?/removeTodo"
-						compact
-						showDueDate={false}
-						showDescription={false}
-						emptyMode="inline"
-						emptyTitle="No tasks for today."
-						emptyDescription="Add anything you want out of your head."
-						bind:stats={todoStats}
-					/>
-				</section>
+				<TodoList
+					todos={data.todosToday}
+					today={todayStr}
+					addAction="?/addTodo"
+					toggleAction="?/toggleTodo"
+					updateAction="?/updateTodo"
+					removeAction="?/removeTodo"
+					compact
+					showDueDate={false}
+					showDescription={false}
+					emptyMode="inline"
+					emptyTitle="No tasks for today."
+					emptyDescription="Add anything you want out of your head."
+					bind:stats={todoStats}
+				/>
+			</section>
 
-				<section class="panel">
-					<div class="panel-heading">
-						<div>
-							<h2>Habits</h2>
-						</div>
-						<a href="/habits" class="panel-link">
-							Manage
-							<ChevronRight size={14} strokeWidth={2} />
-						</a>
+			<section class="panel">
+				<div class="panel-heading">
+					<div>
+						<h2>Habits</h2>
 					</div>
+					<a href="/habits" class="panel-link">
+						Manage
+						<ChevronRight size={14} strokeWidth={2} />
+					</a>
+				</div>
 
-					{#if habitTotals.length === 0}
-						<div class="empty-state">
-							<Activity class="empty-icon" size={22} strokeWidth={1.8} aria-hidden="true" />
-							<div>
-								<p>No active habits yet.</p>
-								<span>Create habits for water, calories, sleep, or anything worth tracking.</span>
-							</div>
-						</div>
-					{:else}
-						<HabitProgressList bind:habits={habitTotals} />
-					{/if}
-				</section>
-			</main>
-
-			<aside class="side-column">
-				<section class="panel compact-panel">
-					<div class="panel-heading">
+				{#if habitTotals.length === 0}
+					<div class="empty-state">
+						<Activity class="empty-icon" size={22} strokeWidth={1.8} aria-hidden="true" />
 						<div>
-							<h2>Calendar context</h2>
+							<p>No active habits yet.</p>
+							<span>Create habits for water, calories, sleep, or anything worth tracking.</span>
 						</div>
-						<CalendarDays class="heading-icon" size={18} strokeWidth={2} aria-hidden="true" />
 					</div>
+				{:else}
+					<HabitProgressList bind:habits={habitTotals} />
+				{/if}
+			</section>
+		</main>
 
-					{#if data.calendarState === 'disconnected' || data.calendarState === 'expired'}
-						<div class="callout">
-							<span>
-								{data.calendarState === 'expired' ? 'Google Calendar access expired.' : 'No calendar connected.'}
-							</span>
-							<a href="/auth/connect-calendar">{data.calendarState === 'expired' ? 'Reconnect' : 'Connect'}</a>
-						</div>
-					{:else}
-						{#await data.calendarEvents}
-							<div class="inline-loading">Loading events...</div>
-						{:then events}
-							{#if events.length === 0}
-								<div class="empty-state compact">
-									<Clock3 class="empty-icon" size={20} strokeWidth={1.8} aria-hidden="true" />
-									<div>
-										<p>No events today.</p>
-										<span>Your calendar is quiet.</span>
-									</div>
+		<aside class="side-column">
+			<section class="panel">
+				<div class="panel-heading">
+					<div>
+						<h2>Calendar context</h2>
+					</div>
+					<CalendarDays class="heading-icon" size={18} strokeWidth={2} aria-hidden="true" />
+				</div>
+
+				{#if data.calendarState === 'disconnected' || data.calendarState === 'expired'}
+					<div class="callout">
+						<span>
+							{data.calendarState === 'expired' ? 'Google Calendar access expired.' : 'No calendar connected.'}
+						</span>
+						<a href="/auth/connect-calendar">{data.calendarState === 'expired' ? 'Reconnect' : 'Connect'}</a>
+					</div>
+				{:else}
+					{#await data.calendarEvents}
+						<div class="inline-loading">Loading events...</div>
+					{:then events}
+						{#if events.length === 0}
+							<div class="empty-state">
+								<Clock3 class="empty-icon" size={20} strokeWidth={1.8} aria-hidden="true" />
+								<div>
+									<p>No events today.</p>
+									<span>Your calendar is quiet.</span>
 								</div>
-							{:else}
-								<ul class="event-list">
-									{#each events as event (event.id)}
-										<li>
-											<span class="event-time">{event.allDay ? 'All day' : formatTime(event.start)}</span>
-											<div>
-												<span class="event-title">{event.title}</span>
-												{#if event.location}
-													<span class="event-loc">{event.location}</span>
-												{/if}
-											</div>
-										</li>
-									{/each}
-								</ul>
-							{/if}
-						{:catch}
-							<div class="callout">
-								<span>Couldn't load calendar events.</span>
-								<a href="/auth/connect-calendar">Reconnect</a>
 							</div>
-						{/await}
-					{/if}
-				</section>
+						{:else}
+							<ul class="event-list">
+								{#each events as event (event.id)}
+									<li>
+										<span class="event-time">{event.allDay ? 'All day' : formatTime(event.start)}</span>
+										<div>
+											<span class="event-title">{event.title}</span>
+											{#if event.location}
+												<span class="event-loc">{event.location}</span>
+											{/if}
+										</div>
+									</li>
+								{/each}
+							</ul>
+						{/if}
+					{:catch}
+						<div class="callout">
+							<span>Couldn't load calendar events.</span>
+							<a href="/auth/connect-calendar">Reconnect</a>
+						</div>
+					{/await}
+				{/if}
+			</section>
 
-				<TodayQuickNotesPanel bind:notes={notesToday} today={todayStr} />
-			</aside>
-		</div>
+			<TodayQuickNotesPanel bind:notes={notesToday} today={todayStr} />
+		</aside>
+	</div>
 </PageShell>
 
 <style>
@@ -211,14 +212,6 @@
 		border-radius: var(--radius-lg);
 		padding: 18px;
 		box-shadow: var(--shadow-sm);
-	}
-
-	.focus-panel {
-		padding-bottom: 12px;
-	}
-
-	.compact-panel {
-		padding: 16px;
 	}
 
 	.panel-heading {
@@ -259,24 +252,15 @@
 		outline-offset: 2px;
 	}
 
-	.event-list {
-		list-style: none;
-		margin: 0;
-		padding: 0;
-	}
-
 	.empty-state {
 		display: flex;
 		align-items: center;
 		gap: 12px;
-		padding: 18px;
-		border-radius: var(--radius-lg);
+		padding: 11px 14px;
+		border-radius: var(--radius-md);
 		background: var(--surface-2);
 		color: var(--text-secondary);
-	}
-
-	.empty-state.compact {
-		padding: 14px;
+		font-size: 13px;
 	}
 
 	:global(.empty-icon) {
@@ -322,6 +306,9 @@
 	}
 
 	.event-list {
+		list-style: none;
+		margin: 0;
+		padding: 0;
 		display: flex;
 		flex-direction: column;
 		gap: 4px;
@@ -367,7 +354,6 @@
 	@media (max-width: 640px) {
 		.panel {
 			padding: 14px;
-			border-radius: var(--radius-lg);
 		}
 
 		.panel-heading {

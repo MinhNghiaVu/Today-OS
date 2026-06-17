@@ -31,7 +31,19 @@
 	.page-shell {
 		width: min(100%, 1040px);
 		margin: 0 auto;
-		padding: 40px 32px 56px;
+		padding: 32px 24px 56px;
+	}
+
+	@media (min-width: 641px) {
+		.page-shell {
+			padding: 32px 32px 56px;
+		}
+	}
+
+	@media (min-width: 1025px) {
+		.page-shell {
+			padding: 32px 40px 56px;
+		}
 	}
 
 	.page-shell.wide {
@@ -51,7 +63,7 @@
 		align-items: flex-start;
 		justify-content: space-between;
 		gap: 24px;
-		margin-bottom: 28px;
+		margin-bottom: 32px;
 	}
 
 	.title-group {
@@ -111,11 +123,11 @@
 
 	@media (max-width: 760px) {
 		.page-shell {
-			padding: 24px 16px 36px;
+			padding: 24px 16px 32px;
 		}
 
 		.page-shell-header {
-			margin-bottom: 20px;
+			margin-bottom: 24px;
 		}
 
 		h1 {
