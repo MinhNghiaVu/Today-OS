@@ -1,10 +1,10 @@
+import { noteTitleFromContent } from '$lib/utils/capture';
 import { fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { getTodosToday, getHabitSummariesToday, getNotesForDate } from '$lib/db';
 import { getEventsForDate } from '$lib/google-calendar';
 import { getGoogleCalendarAccessToken } from '$lib/server/google-calendar-auth';
 import { logHabit, removeHabitLog, updateHabitLog } from '$lib/server/habit-actions';
-import { noteTitleFromContent } from '$lib/utils/capture';
 import {
 	addTodoAction,
 	removeTodoAction,
@@ -126,22 +126,40 @@ export const actions: Actions = {
 		return { ok: true };
 	},
 
-	shutdownToday: async ({ locals }) => {
+	shutdownToday: async ({ locals, request }) => {
 		const { user } = locals;
 		if (!user) return fail(401);
+
+		const form = await request.formData();
+		const reflection = (form.get('reflection') as string)?.trim() || null;
 
 		const tomorrow = new Date();
 		tomorrow.setDate(tomorrow.getDate() + 1);
 		const tomorrowStr = tomorrow.toISOString().slice(0, 10);
+		const todayStr = new Date().toISOString().slice(0, 10);
 
 		const { error } = await locals.supabase
 			.from('todos')
 			.update({ due_date: tomorrowStr, today_focus: false, focus_order: null })
 			.eq('user_id', user.id)
 			.eq('status', 'pending')
-			.eq('due_date', new Date().toISOString().slice(0, 10));
+			.eq('due_date', todayStr);
 
 		if (error) return fail(500, { error: error.message });
+
+		// Save reflection as a Note if provided
+		if (reflection) {
+			const title = noteTitleFromContent(reflection);
+			const { error: noteError } = await locals.supabase.from('notes').insert({
+				user_id: user.id,
+				title,
+				content: reflection,
+				date: todayStr,
+				type: 'note'
+			});
+			if (noteError) return fail(500, { error: noteError.message });
+		}
+
 		return { ok: true };
 	},
 
