@@ -117,5 +117,6 @@ export interface FocusSession {
 	user_id: string;
 	duration_seconds: number;
 	type: FocusSessionType;
+	notes: string | null;
 	completed_at: string;
 }

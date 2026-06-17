@@ -10,7 +10,7 @@ export interface BuiltSql {
 	values: unknown[];
 }
 
-const TABLES = new Set(['users', 'todos', 'habit_definitions', 'habit_logs', 'notes', 'jobs']);
+const TABLES = new Set(['users', 'todos', 'habit_definitions', 'habit_logs', 'notes', 'jobs', 'focus_sessions']);
 const COLUMNS = new Set([
 	'id',
 	'user_id',
@@ -44,9 +44,10 @@ const COLUMNS = new Set([
 	'interview_stage',
 	'job_url',
 	'contact',
+	'notes',
 	'applied_date',
 	'interviewer',
-	'notes'
+	'duration_seconds',
 ]);
 
 const UPDATE_CASTS: Record<string, string> = {
@@ -62,7 +63,7 @@ const UPDATE_CASTS: Record<string, string> = {
 	value: 'numeric'
 };
 
-const UUID_ID_TABLES = new Set(['todos', 'habit_definitions', 'habit_logs', 'notes', 'jobs']);
+const UUID_ID_TABLES = new Set(['todos', 'habit_definitions', 'habit_logs', 'notes', 'jobs', 'focus_sessions']);
 const UUID_COLUMNS = new Set(['habit_id', 'note_id']);
 
 export function ident(value: string) {

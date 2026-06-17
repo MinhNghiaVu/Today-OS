@@ -406,3 +406,16 @@ export async function getFocusSessionsToday(sb: AppDbClient, userId: string): Pr
 	if (error) throw error;
 	return (data ?? []) as any;
 }
+
+export async function getFocusSessionHistory(sb: AppDbClient, userId: string, limitDays = 14): Promise<FocusSession[]> {
+	const start = new Date();
+	start.setDate(start.getDate() - limitDays);
+	const { data, error } = await sb
+		.from('focus_sessions')
+		.select('*')
+		.eq('user_id', userId)
+		.gte('completed_at', start.toISOString())
+		.order('completed_at', { ascending: false });
+	if (error) throw error;
+	return (data ?? []) as any;
+}

@@ -1,13 +1,17 @@
 import { fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
-import { getFocusSessionsToday } from '$lib/db';
+import { getFocusSessionHistory, getFocusSessionsToday } from '$lib/db';
 
 export const load: PageServerLoad = async ({ locals }) => {
 	const { user } = locals;
 	if (!user) redirect(303, '/login');
 
-	const sessions = await getFocusSessionsToday(locals.supabase, user.id);
-	return { sessions };
+	const [sessions, history] = await Promise.all([
+		getFocusSessionsToday(locals.supabase, user.id),
+		getFocusSessionHistory(locals.supabase, user.id, 14)
+	]);
+
+	return { sessions, history };
 };
 
 export const actions: Actions = {
@@ -30,5 +34,25 @@ export const actions: Actions = {
 		});
 
 		if (error) return fail(500, { error: error.message });
+	},
+
+	saveNotes: async ({ locals, request }) => {
+		const { user } = locals;
+		if (!user) return fail(401);
+
+		const form = await request.formData();
+		const id = String(form.get('id') ?? '');
+		const notes = String(form.get('notes') ?? '').trim() || null;
+
+		if (!id) return fail(400, { error: 'Missing session id' });
+
+		const { error } = await locals.supabase
+			.from('focus_sessions')
+			.update({ notes })
+			.eq('id', id)
+			.eq('user_id', user.id);
+
+		if (error) return fail(500, { error: error.message });
+		return { ok: true };
 	}
 };

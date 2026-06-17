@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import { Timer, Coffee, Clock } from 'lucide-svelte';
+	import { Timer, Coffee, Clock, Save } from 'lucide-svelte';
 	import PageShell from '$lib/components/PageShell.svelte';
 	import FocusTimer from '$lib/components/FocusTimer.svelte';
 	import type { PageData } from './$types';
@@ -9,6 +9,7 @@
 	export let data: PageData;
 
 	let sessions: FocusSession[] = data.sessions;
+	let history: FocusSession[] = data.history;
 
 	$: todayFocusSeconds = sessions
 		.filter((s) => s.type === 'focus')
@@ -28,6 +29,44 @@
 		return s > 0 ? `${m}m ${s}s` : `${m}m`;
 	}
 
+	function formatTime(iso: string): string {
+		return new Date(iso).toLocaleTimeString('en-US', {
+			hour: 'numeric',
+			minute: '2-digit',
+			hour12: true
+		});
+	}
+
+	function formatDateLabel(iso: string): string {
+		const d = new Date(iso.slice(0, 10) + 'T00:00:00');
+		const today = new Date();
+		const yesterday = new Date();
+		yesterday.setDate(yesterday.getDate() - 1);
+
+		if (d.toDateString() === today.toDateString()) return 'Today';
+		if (d.toDateString() === yesterday.toDateString()) return 'Yesterday';
+		return d.toLocaleDateString('en-AU', { weekday: 'long', month: 'short', day: 'numeric' });
+	}
+
+	function groupByDay(sessions: FocusSession[]): { label: string; date: string; sessions: FocusSession[] }[] {
+		const groups = new Map<string, FocusSession[]>();
+		for (const s of sessions) {
+			const day = s.completed_at.slice(0, 10);
+			if (!groups.has(day)) groups.set(day, []);
+			groups.get(day)!.push(s);
+		}
+		return Array.from(groups.entries()).map(([date, sList]) => ({
+			label: formatDateLabel(date),
+			date,
+			sessions: sList
+		}));
+	}
+
+	$: historyGroups = groupByDay(history.filter((s) => {
+		const today = new Date().toISOString().slice(0, 10);
+		return s.completed_at.slice(0, 10) !== today;
+	}));
+
 	function handleComplete(type: 'focus' | 'break', duration: number) {
 		const formEl = document.getElementById('complete-session-form') as HTMLFormElement;
 		if (!formEl) return;
@@ -40,17 +79,28 @@
 		if (typeInput) typeInput.value = type;
 		formEl.requestSubmit();
 
-		// Optimistic update
 		sessions = [
 			{
 				id: crypto.randomUUID(),
 				user_id: '',
 				duration_seconds: duration,
 				type,
+				notes: null,
 				completed_at: new Date().toISOString()
 			},
 			...sessions
 		];
+	}
+
+	let editingNotes = new Map<string, string>();
+
+	function handleNotesInput(id: string, value: string) {
+		if (value) {
+			editingNotes.set(id, value);
+		} else {
+			editingNotes.delete(id);
+		}
+		editingNotes = editingNotes;
 	}
 </script>
 
@@ -92,16 +142,18 @@
 		</div>
 	</div>
 
+	<!-- Today's sessions -->
 	{#if sessions.length > 0}
 		<div class="session-log">
 			<span class="log-label">Today's sessions</span>
 			<div class="session-list">
-				{#each sessions.slice(0, 10) as session}
+				{#each sessions as session (session.id)}
 					<div class="session-row">
 						<div class="session-type">
 							<svelte:component this={session.type === 'focus' ? Timer : Coffee} size={14} strokeWidth={2} aria-hidden="true" />
 							<span>{session.type === 'focus' ? 'Focus' : 'Break'}</span>
 						</div>
+						<span class="session-time">{formatTime(session.completed_at)}</span>
 						<span class="session-duration">{formatDuration(session.duration_seconds)}</span>
 					</div>
 				{/each}
@@ -110,6 +162,44 @@
 	{:else}
 		<div class="empty-hint">
 			<p>Complete a focus session to see today's log here.</p>
+		</div>
+	{/if}
+
+	<!-- Session history -->
+	{#if historyGroups.length > 0}
+		<div class="history-section">
+			<span class="log-label">Recent history</span>
+			{#each historyGroups as group (group.date)}
+				<div class="history-day-group">
+					<span class="day-header">{group.label}</span>
+					{#each group.sessions as session (session.id)}
+						<div class="history-session">
+							<div class="session-row">
+								<div class="session-type">
+									<svelte:component this={session.type === 'focus' ? Timer : Coffee} size={14} strokeWidth={2} aria-hidden="true" />
+									<span>{session.type === 'focus' ? 'Focus' : 'Break'}</span>
+								</div>
+								<span class="session-time">{formatTime(session.completed_at)}</span>
+								<span class="session-duration">{formatDuration(session.duration_seconds)}</span>
+							</div>
+							<form method="POST" action="?/saveNotes" use:enhance class="notes-form">
+								<input type="hidden" name="id" value={session.id} />
+								<textarea
+									name="notes"
+									class="notes-input"
+									rows="2"
+									placeholder="What did you work on?"
+									on:input={(e) => handleNotesInput(session.id, e.currentTarget.value)}
+								>{session.notes ?? ''}</textarea>
+								<button type="submit" class="notes-save" aria-label="Save notes" disabled={!editingNotes.has(session.id)}>
+									<Save size={14} strokeWidth={2} />
+									Save
+								</button>
+							</form>
+						</div>
+					{/each}
+				</div>
+			{/each}
 		</div>
 	{/if}
 </PageShell>
@@ -166,7 +256,8 @@
 		letter-spacing: 0.04em;
 	}
 
-	.session-log {
+	.session-log,
+	.history-section {
 		background: var(--surface-1);
 		border: 1px solid var(--border-subtle);
 		border-radius: var(--radius-lg);
@@ -193,7 +284,7 @@
 	.session-row {
 		display: flex;
 		align-items: center;
-		justify-content: space-between;
+		gap: 8px;
 		padding: 8px 10px;
 		border-radius: var(--radius-md);
 		background: var(--surface-2);
@@ -205,10 +296,18 @@
 		gap: 6px;
 		font-size: 13px;
 		color: var(--text-secondary);
+		min-width: 0;
 	}
 
 	.session-type :global(svg) {
 		flex-shrink: 0;
+	}
+
+	.session-time {
+		font-size: 11px;
+		color: var(--text-tertiary);
+		font-variant-numeric: tabular-nums;
+		margin-left: auto;
 	}
 
 	.session-duration {
@@ -216,6 +315,7 @@
 		font-weight: 500;
 		color: var(--text-primary);
 		font-variant-numeric: tabular-nums;
+		flex-shrink: 0;
 	}
 
 	.empty-hint {
@@ -231,6 +331,87 @@
 		margin: 0;
 		font-size: 13px;
 		color: var(--text-tertiary);
+	}
+
+	/* ── History ── */
+	.history-day-group {
+		margin-bottom: 16px;
+	}
+
+	.history-day-group:last-child {
+		margin-bottom: 0;
+	}
+
+	.day-header {
+		display: block;
+		margin-bottom: 8px;
+		font-size: 12px;
+		font-weight: 600;
+		color: var(--text-secondary);
+	}
+
+	.history-session {
+		margin-bottom: 8px;
+	}
+
+	.history-session:last-child {
+		margin-bottom: 0;
+	}
+
+	.notes-form {
+		display: flex;
+		gap: 8px;
+		align-items: flex-start;
+		margin-top: 6px;
+		padding-left: 28px;
+	}
+
+	.notes-input {
+		flex: 1;
+		min-width: 0;
+		padding: 8px 10px;
+		border: 1px solid var(--border-default);
+		border-radius: var(--radius-md);
+		background: var(--surface-1);
+		color: var(--text-primary);
+		font-family: inherit;
+		font-size: 12px;
+		line-height: 1.4;
+		resize: vertical;
+		transition: border-color 120ms var(--ease-out);
+	}
+
+	.notes-input:focus {
+		outline: none;
+		border-color: var(--border-focus);
+	}
+
+	.notes-save {
+		display: inline-flex;
+		align-items: center;
+		gap: 4px;
+		padding: 8px 12px;
+		border: none;
+		border-radius: var(--radius-md);
+		background: var(--accent);
+		color: var(--text-on-accent);
+		font-family: inherit;
+		font-size: 12px;
+		font-weight: 500;
+		cursor: pointer;
+		flex-shrink: 0;
+		transition:
+			background-color 120ms var(--ease-out),
+			opacity 120ms var(--ease-out);
+	}
+
+	.notes-save:hover:not(:disabled) {
+		background: var(--accent-hover);
+	}
+
+	.notes-save:disabled {
+		opacity: 0.4;
+		cursor: not-allowed;
 	}
 
 	@media (max-width: 640px) {
