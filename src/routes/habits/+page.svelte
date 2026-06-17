@@ -1,15 +1,18 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { Activity, Plus } from 'lucide-svelte';
+	import HabitIconPicker from '$lib/components/HabitIconPicker.svelte';
 	import HabitProgressList from '$lib/components/HabitProgressList.svelte';
 	import PageShell from '$lib/components/PageShell.svelte';
 	import Select from '$lib/components/Select.svelte';
+	import { inferHabitIcon } from '$lib/utils/habit-icons';
 	import type { PageData } from './$types';
 	import type { Habit, HabitType, HabitWithTodayLogs } from '$lib/types';
+	import type { HabitIconName } from '$lib/utils/habit-icons';
 
 	export let data: PageData;
 
-	type HabitDraft = Omit<Habit, 'id' | 'user_id'>;
+	type HabitDraft = Omit<Habit, 'id' | 'user_id' | 'icon'> & { icon: HabitIconName };
 
 	const typeOpts: { value: HabitType; label: string }[] = [
 		{ value: 'min_goal', label: 'Min goal — at least this amount' },
@@ -23,6 +26,7 @@
 		type: 'min_goal',
 		daily_goal: null,
 		color: '#6366f1',
+		icon: 'target',
 		is_active: true
 	});
 
@@ -30,12 +34,14 @@
 	let showForm = false;
 	let draft: HabitDraft = blank();
 	let habits: HabitWithTodayLogs[] = data.habits;
+	let iconWasPicked = false;
 
 	$: if (data.habits) habits = data.habits;
 
 	function startAdd() {
 		editingId = null;
 		draft = blank();
+		iconWasPicked = false;
 		showForm = true;
 	}
 
@@ -47,14 +53,24 @@
 			type: habit.type,
 			daily_goal: habit.daily_goal,
 			color: habit.color,
+			icon: habit.icon ?? 'target',
 			is_active: habit.is_active
 		};
+		iconWasPicked = true;
 		showForm = true;
 	}
 
 	function cancelForm() {
 		showForm = false;
 		editingId = null;
+	}
+
+	function suggestIcon() {
+		if (editingId || iconWasPicked) return;
+		draft = {
+			...draft,
+			icon: inferHabitIcon({ name: draft.name, unit: draft.unit })
+		};
 	}
 </script>
 
@@ -87,13 +103,15 @@
 			<div class="form-row">
 				<label>
 					Name
-					<input bind:value={draft.name} name="name" placeholder="e.g. Water" required />
+					<input bind:value={draft.name} name="name" placeholder="e.g. Water" required on:input={suggestIcon} />
 				</label>
 				<label>
 					Unit
-					<input bind:value={draft.unit} name="unit" placeholder="e.g. ml" required />
+					<input bind:value={draft.unit} name="unit" placeholder="e.g. ml" required on:input={suggestIcon} />
 				</label>
 			</div>
+
+			<HabitIconPicker bind:value={draft.icon} bind:wasPicked={iconWasPicked} />
 
 			<div class="form-row">
 				<label>

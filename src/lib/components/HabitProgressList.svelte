@@ -4,14 +4,13 @@
 	import { cubicIn, cubicOut } from 'svelte/easing';
 	import {
 		BarChart2,
-		Droplets,
 		Pause,
 		Pencil,
 		Play,
 		Plus,
-		Target,
 		Trash2
 	} from 'lucide-svelte';
+	import HabitIcon from '$lib/components/HabitIcon.svelte';
 	import {
 		applyHabitLogAdd,
 		applyHabitLogRemove,
@@ -70,11 +69,7 @@
 		<li class:inactive={!habit.is_active}>
 			<div class="habit-main">
 				<div class="habit-icon" style="color: {habit.color}">
-					{#if habit.name.toLowerCase().includes('water')}
-						<Droplets size={17} strokeWidth={2} aria-hidden="true" />
-					{:else}
-						<Target size={17} strokeWidth={2} aria-hidden="true" />
-					{/if}
+					<HabitIcon icon={habit.icon} />
 				</div>
 				<div class="habit-copy">
 					<div class="habit-title-row">

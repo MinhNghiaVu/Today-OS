@@ -1,3 +1,5 @@
+import type { HabitIconName } from '$lib/utils/habit-icons';
+
 export type TodoStatus = 'pending' | 'done';
 export type TodoPriority = 'high' | 'medium' | 'low';
 
@@ -24,6 +26,7 @@ export interface Habit {
 	type: HabitType;
 	daily_goal: number | null;
 	color: string;
+	icon: HabitIconName | null;
 	is_active: boolean;
 }
 

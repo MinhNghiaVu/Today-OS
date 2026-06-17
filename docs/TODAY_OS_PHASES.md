@@ -4,15 +4,9 @@ This is the phase/status handoff for Today OS. Keep root `AGENTS.md` and `CLAUDE
 
 ## Current Next Task
 
-No active implementation phase. Phase work through Phase 6 is complete.
+Phase 7A habit icons is in progress on a clean clone.
 
-Known manual setup remains:
-
-- Follow `docs/phase2-setup.md` for Neon project env vars, schema setup, and Google OAuth.
-- Follow `docs/phase4-setup.md` for Google Calendar read-only integration.
-- Follow `docs/phase6-setup.md` for the jobs table migration if the target Neon database has not run it yet.
-
-Work one phase at a time if a new phase is added. Do not expand into later phases unless the user explicitly asks.
+Next: commit Phase 7A, then Phase 7B quick capture.
 
 ## Phase Status
 
@@ -24,6 +18,10 @@ Work one phase at a time if a new phase is added. Do not expand into later phase
 - [x] **Phase 5 — AI Assistant** — removed from the MVP cleanup; revisit only if it becomes an active product path.
 - [x] **Phase 6 — Job Board**
 - [x] **Polish pass — Load performance, first-paint theme, and responsive shell**
+- [ ] **Phase 7 — Mobile Command Center**
+  - [ ] **Phase 7A — Habit icons**
+  - [ ] **Phase 7B — Quick capture**
+  - [ ] **Phase 7C — Command center polish**
 
 ## Phase Notes
 

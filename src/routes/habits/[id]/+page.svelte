@@ -3,6 +3,7 @@
 	import { fly } from 'svelte/transition';
 	import { cubicOut } from 'svelte/easing';
 	import { ArrowLeft, BarChart2, Pencil, Plus, Target, Trash2, TrendingUp } from 'lucide-svelte';
+	import HabitIcon from '$lib/components/HabitIcon.svelte';
 	import HabitChart from '$lib/components/HabitChart.svelte';
 	import SegmentedControl from '$lib/components/SegmentedControl.svelte';
 	import type { PageData } from './$types';
@@ -89,7 +90,9 @@
 		<!-- Header -->
 		<div class="page-header">
 			<div class="habit-title-row">
-				<span class="habit-color-dot" style="background: {habit.color}"></span>
+				<span class="habit-icon" style="color: {habit.color}">
+					<HabitIcon icon={habit.icon} size={18} strokeWidth={2} />
+				</span>
 				<h1 class="page-title">{habit.name}</h1>
 				<span class="habit-type-badge">{HABIT_TYPE_LABELS[habit.type]}</span>
 			</div>
@@ -319,10 +322,14 @@
 		gap: 10px;
 	}
 
-	.habit-color-dot {
-		width: 12px;
-		height: 12px;
-		border-radius: var(--radius-full);
+	.habit-icon {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 34px;
+		height: 34px;
+		border-radius: var(--radius-md);
+		background: var(--surface-3);
 		flex-shrink: 0;
 	}
 

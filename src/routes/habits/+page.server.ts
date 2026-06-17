@@ -3,6 +3,7 @@ import type { Actions, PageServerLoad } from './$types';
 import { getHabitSummariesToday } from '$lib/db';
 import { logHabit, removeHabitLog, updateHabitLog } from '$lib/server/habit-actions';
 import { query } from '$lib/server/neon-client';
+import { normalizeHabitIcon, resolveHabitIconInput } from '$lib/utils/habit-icons';
 
 export const load: PageServerLoad = async ({ locals }) => {
 	const { user } = locals;
@@ -25,12 +26,14 @@ export const actions: Actions = {
 		const daily_goal = goalRaw ? parseFloat(goalRaw) : null;
 		const color = (form.get('color') as string) || '#6366f1';
 		const is_active = form.get('is_active') === 'true';
+		const iconWasPicked = form.get('icon_was_picked') === 'true';
 
 		if (!name || !unit) return fail(400, { error: 'Name and unit required' });
+		const icon = resolveHabitIconInput(form.get('icon'), { name, unit }, iconWasPicked);
 
 		const { error } = await locals.supabase
 			.from('habit_definitions')
-			.insert({ user_id: user.id, name, unit, type, daily_goal, color, is_active });
+			.insert({ user_id: user.id, name, unit, type, daily_goal, color, icon, is_active });
 
 		if (error) return fail(500, { error: error.message });
 	},
@@ -47,13 +50,14 @@ export const actions: Actions = {
 		const goalRaw = form.get('daily_goal') as string;
 		const daily_goal = goalRaw ? parseFloat(goalRaw) : null;
 		const color = form.get('color') as string;
+		const icon = normalizeHabitIcon(form.get('icon'));
 		const is_active = form.get('is_active') === 'true';
 
 		if (!id || !name || !unit) return fail(400, { error: 'Missing fields' });
 
 		const { error } = await locals.supabase
 			.from('habit_definitions')
-			.update({ name, unit, type, daily_goal, color, is_active })
+			.update({ name, unit, type, daily_goal, color, icon, is_active })
 			.eq('id', id)
 			.eq('user_id', user.id);
 

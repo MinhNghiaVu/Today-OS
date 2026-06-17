@@ -35,6 +35,24 @@ create table if not exists public.habit_definitions (
   type text not null check (type in ('min_goal', 'max_goal', 'info_only')),
   daily_goal numeric,
   color text not null default '#6366f1',
+  icon text not null default 'target'
+    check (icon in (
+      'target',
+      'droplets',
+      'footprints',
+      'tree-pine',
+      'flame',
+      'moon',
+      'brain',
+      'dumbbell',
+      'heart-pulse',
+      'book-open',
+      'coffee',
+      'utensils',
+      'clock-3',
+      'sun',
+      'smartphone'
+    )),
   is_active boolean not null default true,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()

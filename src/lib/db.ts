@@ -9,6 +9,7 @@ import type {
 	Job
 } from './types';
 import { sortTodos } from '$lib/utils/todos';
+import { inferHabitIcon, isHabitIconName, normalizeHabitIcon } from '$lib/utils/habit-icons';
 
 function today(): string {
 	return new Date().toISOString().slice(0, 10);
@@ -40,6 +41,17 @@ export async function getTodosToday(sb: AppDbClient, userId: string): Promise<To
 
 // ── Habits ────────────────────────────────────────────────────
 
+function normalizeHabitRecord(row: Habit): Habit {
+	const icon = isHabitIconName(row.icon)
+		? row.icon
+		: inferHabitIcon({ name: row.name, unit: row.unit });
+
+	return {
+		...row,
+		icon: normalizeHabitIcon(icon)
+	};
+}
+
 export async function getHabits(sb: AppDbClient, userId: string): Promise<Habit[]> {
 	const { data, error } = await sb
 		.from('habit_definitions')
@@ -47,7 +59,7 @@ export async function getHabits(sb: AppDbClient, userId: string): Promise<Habit[
 		.eq('user_id', userId)
 		.order('created_at');
 	if (error) throw error;
-	return (data ?? []) as any;
+	return ((data ?? []) as Habit[]).map(normalizeHabitRecord);
 }
 
 export async function getHabitLogEntriesForRange(
@@ -201,6 +213,7 @@ export async function getHabitSummariesForDate(
 	}
 
 	return ((habits ?? []) as Habit[]).map((habit) => {
+		const normalized = normalizeHabitRecord(habit);
 		let daysLogged = 0;
 		let daysMet = 0;
 		let todayTotal = 0;
@@ -223,7 +236,7 @@ export async function getHabitSummariesForDate(
 		}
 
 		return {
-			...habit,
+			...normalized,
 			total: parseFloat(todayTotal.toFixed(6)),
 			daysLogged,
 			daysMet,
