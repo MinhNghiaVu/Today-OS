@@ -14,6 +14,7 @@
 	import TodoList from '$lib/components/TodoList.svelte';
 	import EveningShutdown from '$lib/components/EveningShutdown.svelte';
 	import { isHabitOnTrack } from '$lib/utils/habits';
+	import TodayCommandCenter from '$lib/components/TodayCommandCenter.svelte';
 	import type { TodoStats } from '$lib/utils/todos';
 	import type { PageData } from './$types';
 	import type { HabitWithTodayLogs, Note } from '$lib/types';
@@ -39,6 +40,8 @@
 	$: if (data.habitTotals) habitTotals = data.habitTotals;
 	$: if (data.notesToday) notesToday = data.notesToday;
 	$: habitsOnTrack = habitTotals.filter(isHabitOnTrack);
+	$: focusedTodos = (data.todosToday ?? []).filter((t) => t.today_focus).sort((a, b) => (a.focus_order ?? 99) - (b.focus_order ?? 99));
+	$: nextFocusTitle = focusedTodos.length > 0 ? focusedTodos[0].title : null;
 	$: summaryStats = [
 		{
 			value: todoStats.pending,
@@ -71,6 +74,15 @@
 	<svelte:fragment slot="actions">
 		<SummaryStatStrip items={summaryStats} ariaLabel="Today summary" />
 	</svelte:fragment>
+
+	<TodayCommandCenter
+		pendingCount={todoStats.pending}
+		focusCount={focusedTodos.length}
+		nextFocusTitle={nextFocusTitle}
+		habitsOnTrack={habitsOnTrack.length}
+		habitsTotal={habitTotals.length}
+		notesCount={notesToday.length}
+	/>
 
 	<div class="daily-layout">
 		<main class="primary-column">
